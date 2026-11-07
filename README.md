@@ -20,26 +20,32 @@ godot --path .
 1. **Aim** — Left/Right arrows (or A/D) pick the horizontal launch position;
    both move the marker in screen directions.
 2. **Tilt** — Space starts the shot tilt guide: a line pivoting at the launch
-   point leans left/right automatically; Space locks the angle and adds the
-   sideways component to the throw.
+   point leans left/right with the same Left/Right arrows. The guide is
+   clamped so it can never point past the side walls from the current launch
+   spot; Space locks the angle and adds the sideways component to the throw.
 3. **Power** — Space then starts the power bar. It fills automatically,
    reverses when full, and keeps oscillating; pressing Space again locks it
    and throws. The captured percentage maps linearly to the launch speed.
 4. **Throw** — 5 shots per round. The board tilts toward the player, so a
-   marble either sinks into a hole (when it rolls over it slowly enough; a
-   fast one skips over it) or rolls back off the player's edge, which
-   **returns the throw without consuming it**. Marbles that exit through the
-   back or the sides lose the shot (0 points).
-5. **Score** — Holes score 10 / 20 / 30 / 50 from the near row to the back
-   row, with the numbers painted readable from the player's camera. After
-   the 5th throw the round total is shown; R restarts.
+   marble either embeds itself in a notch (when it rolls over it slowly
+   enough; a fast one skips over it) or rolls back off the player's edge,
+   which **returns the throw without consuming it**. The board has low
+   walls on the sides and the back: a bouncy marble with enough inertia can
+   still hop over them, and any marble that leaves the board loses the shot
+   (0 points).
+5. **Score** — Notches score 10 / 20 / 30 / 50 from the near row to the
+   back row, with the numbers painted readable from the player's camera.
+   Like the real fairground board, the notches are carved at marble size:
+   an embedded marble stays stuck with half its circumference exposed and
+   becomes a fixed obstacle later shots bounce off, so the same notch can
+   never take a second marble. The score is added the moment the marble
+   embeds. After the 5th throw the round total is shown; R restarts.
 
 ## Controls
 
 | Input | Action |
 | --- | --- |
-| Left/Right, A/D | Move the launch position |
-| Space (1st) | Start the tilt guide oscillation |
+| Left/Right, A/D | Move the launch position; lean the tilt guide (clamped to the board) |
 | Space (2nd) | Lock tilt, start the power bar |
 | Space (3rd) | Lock power and throw |
 | R | Restart the round |
@@ -48,10 +54,10 @@ godot --path .
 
 The plan is a roguelike on top of this base mechanic in the spirit of
 Balatro: rounds that escalate, and card-like modifiers that rewrite how a
-throw is scored (multipliers, hole rerolls, marble properties). For that:
+throw is scored (multipliers, notch rerolls, marble properties). For that:
 
-- The score table is the `ROW_SCORES` constant; per-hole values already flow
-  through one capture path (`_sink`), the natural seam for scoring modifiers.
+- The score table is the `ROW_SCORES` constant; per-notch values already flow
+  through one capture path (`_embed`), the natural seam for scoring modifiers.
 - The round loop (`Aim -> Power -> Flight -> x5 -> total`) is a plain state
   machine, easy to wrap with round modifiers, shop and escalation logic.
 - Physics is honest: real rigidbody marbles on a tilted board, so future

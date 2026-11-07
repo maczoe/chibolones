@@ -1,13 +1,15 @@
 extends Node3D
 ## Chibolones - proof of concept (Godot 4.7)
 ## Traditional Guatemalan fair game: throw 5 marbles ("cincos") at a wooden
-## board with numbered holes. Each marble that sinks into a hole scores the
-## number painted on it; after 5 throws the total is summed.
+## board with numbered notches carved at marble size. A slow marble embeds
+## itself in a notch (half its circumference exposed, like in the real
+## fairground board), scores the number painted there, and stays as a
+## fixed obstacle other shots bounce off; after 5 throws the total is summed.
 ##
 ## Controls (all directions match what you see on screen):
 ##   Left/Right arrows (or A/D): pick the horizontal launch position.
 ##   Space (1st): start the shot tilt guide; the line leans left/right
-##     automatically and the captured angle sets the sideways component.
+##     with the same Left/Right arrows and cannot aim past the side walls.
 ##   Space (2nd): lock the tilt and start the power bar. It fills up and
 ##     reverses automatically; press Space again to lock it and throw.
 ##   R: restart the round.
@@ -43,8 +45,7 @@ const LAUNCH_Z := -3.0
 const MIN_SPEED := 2.2
 const MAX_SPEED := 9.0
 const POWER_SPEED := 110.0   # percent per second of the oscillating bar
-const SHOT_TILT_MAX_DEG := 25.0  # the guide leans this far to each side
-const SHOT_TILT_SPEED := 120.0   # degrees per second of the oscillating guide
+const SHOT_TILT_SPEED := 70.0   # degrees per second of the manual tilt guide
 const EDGE_MARGIN := 0.25        # past an edge plus this margin = off board
 const SHOT_COUNT := 5
 
@@ -83,7 +84,8 @@ var shots_left := SHOT_COUNT
 var total_score := 0
 var aim_x := 0.0
 var shot_tilt := 0.0
-var tilt_dir := 1.0
+var tilt_max_left := 0.0    # per-side aim limits, so the guide cannot point
+var tilt_max_right := 0.0   # past the side walls from this launch spot
 var power := 0.0
 var power_dir := 1.0
 var pending_result := ""   # resolution message flashed when the volley ends
@@ -110,7 +112,7 @@ func _ready() -> void:
 	_build_board()
 	_build_ui()
 	_update_hud()
-	_flash_message("Movi con <- -> y apreta ESPACIO para elegir la inclinacion")
+	_flash_message("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -120,9 +122,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				if shots_left > 0:
 					state = State.TILT
 					shot_tilt = 0.0
-					tilt_dir = 1.0
+					_update_tilt_limits()
 					shot_guide.visible = true
-					_flash_message("Apreta ESPACIO para fijar esta inclinacion")
+					_flash_message("Inclina con <- -> y apreta ESPACIO para fijar")
 			State.TILT:
 				state = State.POWER
 				power = 0.0
@@ -154,13 +156,16 @@ func _physics_process(delta: float) -> void:
 			launch_marker.position.x = aim_x
 			shot_guide.position.x = aim_x
 		State.TILT:
-			shot_tilt += tilt_dir * SHOT_TILT_SPEED * delta
-			if shot_tilt >= SHOT_TILT_MAX_DEG:
-				shot_tilt = SHOT_TILT_MAX_DEG
-				tilt_dir = -1.0
-			elif shot_tilt <= -SHOT_TILT_MAX_DEG:
-				shot_tilt = -SHOT_TILT_MAX_DEG
-				tilt_dir = 1.0
+			var turn := 0.0
+			if Input.is_action_pressed("move_left"):
+				turn -= 1.0
+			if Input.is_action_pressed("move_right"):
+				turn += 1.0
+			# Screen directions: the camera looks down +Z, so world +X shows on
+			# the player's LEFT. Invert the sign so each arrow leans the guide
+			# the way it points on screen, clamped so it never aims off-board.
+			shot_tilt = clampf(shot_tilt - turn * SHOT_TILT_SPEED * delta,
+					-tilt_max_left, tilt_max_right)
 			shot_guide.rotation.y = deg_to_rad(shot_tilt)
 		State.POWER:
 			power += power_dir * POWER_SPEED * delta
@@ -177,6 +182,15 @@ func _physics_process(delta: float) -> void:
 
 
 # --- Shooting ----------------------------------------------------------------
+
+
+func _update_tilt_limits() -> void:
+	# The guide pivots at the launch spot; clamp each side so its far end
+	# stays inside the walls even at the far edge of the board.
+	var dist_to_far := BOARD_L / 2.0 - LAUNCH_Z
+	var side_margin := BOARD_W / 2.0 - 0.2
+	tilt_max_left = rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
+	tilt_max_right = rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
 
 
 func _launch(tilt_deg: float, power_value: float) -> void:
@@ -222,8 +236,8 @@ func _update_flight(delta: float) -> void:
 			_discard_marble(marble)
 			pending_result = "La canica salio del tablero: 0 puntos"
 			continue
-		# A fast marble hops over the holes, a slow one falls in when its
-		# center crosses the capture circle.
+		# A fast marble hops over the notches, a slow one embeds itself when
+		# its center crosses the capture circle.
 		if speed >= SKIP_SPEED:
 			continue
 		# Only capture when the marble is actually rolling on the surface: a
@@ -232,9 +246,13 @@ func _update_flight(delta: float) -> void:
 			continue
 		var reach: float = CATCH_RADIUS + speed * delta * 0.5
 		for hole in holes:
+			# An occupied notch already holds an embedded marble: shots can
+			# only bounce off it, never fall into the same spot.
+			if hole.occupied:
+				continue
 			var d := Vector2(local.x - hole.pos.x, local.z - hole.pos.z).length()
 			if d <= reach:
-				_sink(marble, hole.score)
+				_embed(marble, hole)
 				break
 		if is_instance_valid(marble) and not marble.freeze:
 			if speed < SETTLE_SPEED:
@@ -274,19 +292,20 @@ func _discard_marble(marble: RigidBody3D) -> void:
 	marble.queue_free()
 
 
-func _sink(marble: RigidBody3D, score: int) -> void:
+func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
+	hole.occupied = true
+	# Like the carved notches of the real board: the marble stays
+	# stuck with its center at surface level, so half its
+	# circumference is exposed. It freezes in place (immovable) but
+	# keeps colliding, so later shots bounce off it instead of
+	# falling into the same notch.
 	marble.freeze = true
-	marble.collision_layer = 0
-	marble.collision_mask = 0
-	total_score += score
+	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
+	total_score += hole.score
 	_update_hud()
-	pending_result = "En agujero de %d: +%d" % [score, score]
-	var tween := create_tween()
-	tween.tween_property(marble, "position:y", marble.position.y - 0.5, 0.35) \
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
-	tween.tween_callback(marble.queue_free)
+	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, hole.score]
 
 
 func _game_over() -> void:
@@ -391,9 +410,9 @@ func _build_board() -> void:
 	shot_guide.position = Vector3(0, 0.014, LAUNCH_Z)
 	var guide_stick := MeshInstance3D.new()
 	var guide_mesh := BoxMesh.new()
-	guide_mesh.size = Vector3(0.05, 0.004, 2.0)
+	guide_mesh.size = Vector3(0.05, 0.004, 2.6)
 	guide_stick.mesh = guide_mesh
-	guide_stick.position = Vector3(0, 0, 1.0)  # extends forward from the pivot
+	guide_stick.position = Vector3(0, 0, 1.3)  # extends forward from the pivot
 	var guide_mat := StandardMaterial3D.new()
 	guide_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	guide_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -425,8 +444,8 @@ func _add_wall(pos: Vector3, size: Vector3) -> void:
 func _add_hole(pos: Vector3, score: int) -> void:
 	var disc := MeshInstance3D.new()
 	var cyl := CylinderMesh.new()
-	cyl.top_radius = HOLE_RADIUS
-	cyl.bottom_radius = HOLE_RADIUS
+	cyl.top_radius = NOTCH_RADIUS + 0.015
+	cyl.bottom_radius = NOTCH_RADIUS + 0.015
 	cyl.height = 0.012
 	cyl.radial_segments = 24
 	disc.mesh = cyl
@@ -449,7 +468,7 @@ func _add_hole(pos: Vector3, score: int) -> void:
 	label.rotation_degrees = Vector3(-90, 180, 0)
 	board.add_child(label)
 
-	holes.append({"pos": pos, "score": score})
+	holes.append({"pos": pos, "score": score, "occupied": false})
 
 
 func _make_marble(shot_index: int) -> RigidBody3D:
