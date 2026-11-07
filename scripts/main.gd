@@ -24,20 +24,22 @@ extends Node3D
 # --- Board layout ---
 const COLS := 5
 const ROWS := 4
-const HOLE_RADIUS := 0.18
-const SPACING_X := 0.5
-const FIRST_ROW_Z := -0.4
-const SPACING_Z := 0.8
-const BOARD_W := 3.0
-const BOARD_L := 5.0
+const SPACING_X := 0.8
+const FIRST_ROW_Z := -0.5
+const SPACING_Z := 1.1
+const BOARD_W := 4.2
+const BOARD_L := 7.0
 const BOARD_THICK := 0.12
 const TILT_DEG := 6.0
+const WALL_HEIGHT := 0.22   # low on purpose: a bouncy marble can still hop over
+const WALL_THICK := 0.1
 
 # --- Marbles & shooting ---
 const MARBLE_RADIUS := 0.09
-const CATCH_RADIUS := 0.14
-const SKIP_SPEED := 5.5      # faster than this, the marble skips over holes
-const LAUNCH_Z := -2.0
+const NOTCH_RADIUS := MARBLE_RADIUS  # notch carved to marble size: it embeds halfway
+const CATCH_RADIUS := 0.12
+const SKIP_SPEED := 5.5      # faster than this, the marble skips over notches
+const LAUNCH_Z := -3.0
 const MIN_SPEED := 2.2
 const MAX_SPEED := 9.0
 const POWER_SPEED := 110.0   # percent per second of the oscillating bar
@@ -316,7 +318,7 @@ func _build_environment() -> void:
 
 	var cam := Camera3D.new()
 	add_child(cam)
-	cam.look_at_from_position(Vector3(0, 3.5, -4.8), Vector3(0, -0.2, 0.9), Vector3.UP)
+	cam.look_at_from_position(Vector3(0, 4.3, -6.4), Vector3(0, -0.2, 1.4), Vector3.UP)
 
 
 func _build_board() -> void:
@@ -348,9 +350,17 @@ func _build_board() -> void:
 	surface.material_override = _wood_material(Color(0.52, 0.33, 0.16))
 	body.add_child(surface)
 
-	# No walls: the board is tilted toward the player, so every marble either
-	# sinks into a hole or rolls back off the player's edge (throw returned).
-	# Back and side edges lose the throw instead of trapping the marble.
+	# Side and back walls are back. They are low (WALL_HEIGHT), so a marble
+	# with enough inertia from a hard bounce can still hop over and leave the
+	# board: the off-board rules below stay in charge. Only the player-side
+	# edge stays open and forgiving (throw returned).
+	for side in [-1.0, 1.0]:
+		_add_wall(
+			Vector3(side * (BOARD_W / 2.0 + WALL_THICK / 2.0), WALL_HEIGHT / 2.0, 0.0),
+			Vector3(WALL_THICK, WALL_HEIGHT, BOARD_L))
+	_add_wall(
+		Vector3(0.0, WALL_HEIGHT / 2.0, BOARD_L / 2.0 + WALL_THICK / 2.0),
+		Vector3(BOARD_W + 2.0 * WALL_THICK, WALL_HEIGHT, WALL_THICK))
 
 	for row in ROWS:
 		for col in COLS:
@@ -392,6 +402,24 @@ func _build_board() -> void:
 	shot_guide.add_child(guide_stick)
 	shot_guide.visible = false
 	board.add_child(shot_guide)
+
+
+func _add_wall(pos: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Wall"
+	board.add_child(body)
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	collider.shape = box
+	body.add_child(collider)
+	var mesh_i := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	mesh_i.mesh = mesh
+	mesh_i.material_override = _wood_material(Color(0.44, 0.27, 0.13))
+	body.add_child(mesh_i)
+	body.position = pos
 
 
 func _add_hole(pos: Vector3, score: int) -> void:
