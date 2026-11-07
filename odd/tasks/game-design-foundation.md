@@ -18,7 +18,7 @@ S6 (user request): "necesito que me guies a tomar decisiones sobre el game desig
 
 T1 [S1-S6] Write GDD draft (docs/gdd/gdd.md) structuring loops, systems, content taxonomy, economy, scoring model, open decisions. In progress.
 T2 [S6] Write architecture plan (docs/architecture.md): data-driven content, event-driven scoring, tuning strategy, tests, milestones M0-M6. In progress.
-T3 [S6] Resolve open design decisions D1-D4 with the user (marble model, per-throw selection, library persistence, economy interest); update GDD after answers. Blocked on user answers.
+T3 [S6] DONE. D1 mixed (common permanent + magic single-use), D2 player picks per throw, D3 library unlocks content pool, D4 no interest. GDD updated to v0.2.
 T4 [S6] Baseline git commit of design docs. Pending.
 
 ## Log
@@ -30,3 +30,4 @@ L2 (user request, verbatim): "me encanta la prueba de concepto, estammos listos 
 -Existen bonificadores que agregan mecanicas a la tematica del tablero, por ejemplo tocar los bordes, golpear una canica incrustrada, incrustar la canica despues de tocar el fondo, etc.
 -En medio de los niveles esta la tienda, donde se puede comprar canicas con efectos o mas canicas (para mas tiros) (efectos por ejemplo poder resetear la canica y volver a tirar una vez, canicas de vidrio que tienen probabilidad de romperse pero dan mayor bonificador, canicas teledirigidas que te permiten insertar donde quieras, etc.), tambien se puede comprar premios (como premios de feria) similar a los comodines de balatro esto te da efectos permanentes que pueden alterar el resultado de los multiplicadores. Tanto las canicas como los premios son coleccionables que se pueden consultar en una biblioteca. Las canicas todas son el mismo modelo 3d con diferentes colores, patrones de textura o shaders imitando a las canicas clasicas y algunas con diseno surrealistas (por ejemplo canica de fuego que tiene mas velocidad). Los premios son modelos 3d y pueden tener referencia a premios clasicos (por ejemplo un osito de peluche que sume +50 a tu puntuacion, los premios tambien deben tener flavor en base a su diseno y su efecto)
 Este es el juego base y la complejidad esta en inventarse canicas, premios y tableros para hacer el gameplay variado y que cada run se sienta distinta pero balanceada. Podrias analizar mi plan, darle estructura y si tienes preguntas me las hace para ir refinando el game design"
+L3 (user decisions): D1 Mixto comunes+magicas; D2 el jugador elige; D3 la biblioteca desbloquea contenido; D4 sin interes.

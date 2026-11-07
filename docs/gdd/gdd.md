@@ -7,8 +7,8 @@ Design language: the cozy-but-cutthroat atmosphere of a village fair,
 where every marble in your bag has a story and every prize on your shelf
 changes how the next throw plays out.
 
-Status: **draft for refinement**. Open decisions are numbered `D#` and
-listed in §11. Assumptions pending user confirmation are `A#`.
+Status: **v0.2 — core decisions resolved** (D1-D4). Open decisions `D5-D7`
+in §11. Assumptions confirmed by the user are marked `A# ✓`.
 
 ---
 
@@ -40,7 +40,7 @@ listed in §11. Assumptions pending user confirmation are `A#`.
 - Win the run by clearing board 20.
 - **Lose the run** when a board is lost. A board is lost when the player
   runs out of throws without meeting the objective (assumption A1).
-- Marbles **carry over** between boards (assumption A2): winning a board
+- Marbles **carry over** between boards (A2 ✓): winning a board
   with throws to spare is the core efficiency pressure, reinforced by the
   per-marble reward.
 
@@ -113,8 +113,16 @@ Three layers, mirroring Balatro's separation:
   break chance, price.
 - Known effects from S4: rethrow (reset the marble once), glass (break
   chance, bigger bonus), homing (aim assist to chosen notch).
-- Model question — open: **D1** (single-use vs reusable vs mixed).
-- Selection per throw — open: **D2**.
+- **D1 resolved: mixed categories.** Common marbles are permanent run
+  companions: their effect applies on every throw (glass marbles may
+  break — removing them from the bag). Magic marbles are single-use:
+  consumed when thrown. Shop and library label the category clearly;
+  balance keys: `common_effects` are modest and repeat, `magic_effects`
+  are strong and priced per use.
+- **D2 resolved: the player picks.** Before every throw the player opens
+  the marble bag and chooses which marble to throw (default selection =
+  last used, one input to skip). This makes per-throw selection a real
+  decision; the HUD must show the chosen marble's effect reminder.
 
 ### 6.2 Premios
 
@@ -141,7 +149,9 @@ Three layers, mirroring Balatro's separation:
   endless mode — open: D6).
 - Shop stock: 2-3 marbles, 2-3 prizes, 1 extra-marble pack, optional
   reroll. Prices scale with level.
-- Interest on unspent money: open **D4**.
+- Interest on unspent money: **D4 resolved: none.** Income comes only
+  from board rewards and bonus objectives; the saving/spending tension is
+  carried entirely by shop pricing and the per-marble reward.
 - Extra marbles bought in shop increase throw count for the rest of the
   run (S4). Do extra marbles persist if lost? They can't be "lost" except
   by being thrown (glass breaks) — durability model (D1) decides.
@@ -150,7 +160,11 @@ Three layers, mirroring Balatro's separation:
 
 - In-game reference of every marble and prize ever seen: 3D viewer +
   effect text + flavor.
-- Persistence and gameplay impact: open **D3**.
+- **D3 resolved: unlocks content.** The library persists across runs
+  (save file); discovering/obtaining a marble or prize adds it to the
+  pool available in future runs' shops. First runs draw from a starter
+  pool; the collection grows the roguelike over time. Locked entries
+  show as silhouettes with a hint, fair-catalog style.
 
 ## 9. UX flow
 
@@ -170,12 +184,12 @@ score vs target, active prizes row, bonus objective status.
 
 ## 11. Open decisions
 
-| # | Decision | Options |
+| # | Decision | Resolution |
 | --- | --- | --- |
-| D1 | Marble durability model | reusable all run / single-use / mixed categories |
-| D2 | Marble selection per throw | player picks / fixed queue / random hand of 2-3 |
-| D3 | Library persistence & impact | cosmetic only / unlocks content pool / no persistence |
-| D4 | Interest on unspent $ | yes (Balatro-style) / no |
-| D5 | Board order | fixed 1-20 / randomized within acts |
-| D6 | Shop after board 20 (endless) | yes / no |
-| D7 | Run length feel | 20 boards as-is vs acts of 5 with a boss board each |
+| D1 | Marble durability model | **Resolved: mixed** — common marbles permanent per run, magic marbles single-use |
+| D2 | Marble selection per throw | **Resolved: player picks** from the bag before each throw |
+| D3 | Library persistence & impact | **Resolved: unlocks content pool** across runs (save file) |
+| D4 | Interest on unspent $ | **Resolved: none** |
+| D5 | Board order | Open: fixed 1-20 / randomized within acts |
+| D6 | Shop after board 20 (endless) | Open: yes / no |
+| D7 | Run length feel | Open: 20 boards as-is vs acts of 5 with a boss board each |
