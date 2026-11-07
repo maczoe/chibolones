@@ -39,8 +39,8 @@ const WALL_THICK := 0.1
 # --- Marbles & shooting ---
 const MARBLE_RADIUS := 0.09
 const NOTCH_RADIUS := MARBLE_RADIUS  # notch carved to marble size: it embeds halfway
-const CATCH_RADIUS := 0.12
-const SKIP_SPEED := 5.5      # faster than this, the marble skips over notches
+const CATCH_RADIUS := 0.08           # center must be nearly over the notch to drop in
+const SKIP_SPEED := 4.5      # faster than this, the marble skips over notches
 const LAUNCH_Z := -3.0
 const MIN_SPEED := 2.2
 const MAX_SPEED := 9.0
@@ -244,7 +244,7 @@ func _update_flight(delta: float) -> void:
 		# body that fell through the board must never score.
 		if local.y > MARBLE_RADIUS + 0.25:
 			continue
-		var reach: float = CATCH_RADIUS + speed * delta * 0.5
+		var reach: float = CATCH_RADIUS
 		for hole in holes:
 			# An occupied notch already holds an embedded marble: shots can
 			# only bounce off it, never fall into the same spot.

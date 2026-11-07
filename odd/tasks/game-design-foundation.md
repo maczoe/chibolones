@@ -1,0 +1,32 @@
+# Game design foundation (GDD + architecture plan)
+
+Turn the chibolones POC into a full roguelike game. This phase is design
+and planning only: produce the game design document, the technical
+architecture, and the implementation roadmap. Implementation starts after
+the open design decisions are resolved with the user.
+
+## Specs
+
+S1: "El game loop es el siguiente: se inicia una partida, se comienza con 5 canicas y con $5, el jugador pasa por niveles (tableros) uno a uno hasta completar 20 tableros en una run, si completa el tablero 20 se gana la run, si se pierde un tablero se pierde la partida y se debe iniciar de nuevo"
+S2: "Cada tablero (nivel) tiene un objetivo especifico y un tema de flavor. Por ejemplo el tablero aleatorio cambia los numeros en cada tiro y se gana sacando una puntuacion mayor o igual a 100 (el numero puede variar por un factor en base al nivel actual para tener dificultad mayor). Ganar un tablero te da $ fijo en base al nivel actual y en base a la cantidad de canicas restantes (se puede ganar el tablero sin realizar todos los tiros), ademas hay un objetivo de bono extra en cada tablero que te da una bonificacion de $ si se cumple el objetivo"
+S3: "Existen bonificadores que agregan mecanicas a la tematica del tablero, por ejemplo tocar los bordes, golpear una canica incrustada, incrustar la canica despues de tocar el fondo, etc."
+S4: "En medio de los niveles esta la tienda, donde se puede comprar canicas con efectos o mas canicas (para mas tiros) (efectos por ejemplo poder resetear la canica y volver a tirar una vez, canicas de vidrio que tienen probabilidad de romperse pero dan mayor bonificador, canicas teledirigidas que te permiten insertar donde quieras, etc.), tambien se puede comprar premios (como premios de feria) similar a los comodines de balatro esto te da efectos permanentes que pueden alterar el resultado de los multiplicadores. Tanto las canicas como los premios son coleccionables que se pueden consultar en una biblioteca. Las canicas todas son el mismo modelo 3d con diferentes colores, patrones de textura o shaders imitando a las canicas clasicas y algunas con diseno surrealistas (por ejemplo canica de fuego que tiene mas velocidad). Los premios son modelos 3d y pueden tener referencia a premios clasicos (por ejemplo un osito de peluche que sume +50 a tu puntuacion, los premios tambien deben tener flavor en base a su diseno y su efecto)"
+S5: "Este es el juego base y la complejidad esta en inventarse canicas, premios y tableros para hacer el gameplay variado y que cada run se sienta distinta pero balanceada"
+S6 (user request): "necesito que me guies a tomar decisiones sobre el game design, dejar todo documentado y tener un plan para la implementacion, todo tomando en cuenta que se genere un codigo ordenado escalable y que pueda entrar al proyecto a hacer ajuste fino de variables si es necesario"
+
+## Tasks
+
+T1 [S1-S6] Write GDD draft (docs/gdd/gdd.md) structuring loops, systems, content taxonomy, economy, scoring model, open decisions. In progress.
+T2 [S6] Write architecture plan (docs/architecture.md): data-driven content, event-driven scoring, tuning strategy, tests, milestones M0-M6. In progress.
+T3 [S6] Resolve open design decisions D1-D4 with the user (marble model, per-throw selection, library persistence, economy interest); update GDD after answers. Blocked on user answers.
+T4 [S6] Baseline git commit of design docs. Pending.
+
+## Log
+
+L1 (user request, verbatim): "me parece que la fuerza de atraccion del agujero es bastante fuerte, si la canica llevar cierta velocidad puede pasar saltando el agujero, podrias bajar un poco el auto ajuste de insercion en el agujero" (tuning applied pre-design-phase; uncommitted).
+L2 (user request, verbatim): "me encanta la prueba de concepto, estammos listos para hacer un juego completo, necesito que me guies a tomar decisiones sobre el game design, dejar todo documentado y  tener un plan para la implementacion, todo tomando en cuenta que se genere un codigo ordenado escalable y que pueda entrar al proyecto a hacer ajuste fino de variables si es necesario. Te doy mi idea iniciar para ir refinando:
+-El game loop es el siguiente: se inicia una partida, se comienza con 5 canicas y con $5, el jugador pasa por niveles (tableros) uno a uno hasta completar 20 tableros en una run, si completa el tablero 20 se gana la run, si se pierde un tablero se pierde la partida y se debe iniciar de nuevo
+-Cada tablero (nivel) tiene un objetivo especifico y un tema de flavor. Por ejemplo el tablero aleatorio cambia los numeros en cada tiro y se gana sacando una puntuacion mayor o igual a 100 (el numero puede variar por un factor en base al nivel actual para tener dificultad mayor). Ganar un tablero te da $ fijo en base al nivel actual y en base a la cantidad de canicas restantes (se puede ganar el tablero sin realizar todos los tiros), ademas hay un objetivo de bono extra en cada tablero que te da una bonificacion de $ si se cumple el objetivo
+-Existen bonificadores que agregan mecanicas a la tematica del tablero, por ejemplo tocar los bordes, golpear una canica incrustrada, incrustar la canica despues de tocar el fondo, etc.
+-En medio de los niveles esta la tienda, donde se puede comprar canicas con efectos o mas canicas (para mas tiros) (efectos por ejemplo poder resetear la canica y volver a tirar una vez, canicas de vidrio que tienen probabilidad de romperse pero dan mayor bonificador, canicas teledirigidas que te permiten insertar donde quieras, etc.), tambien se puede comprar premios (como premios de feria) similar a los comodines de balatro esto te da efectos permanentes que pueden alterar el resultado de los multiplicadores. Tanto las canicas como los premios son coleccionables que se pueden consultar en una biblioteca. Las canicas todas son el mismo modelo 3d con diferentes colores, patrones de textura o shaders imitando a las canicas clasicas y algunas con diseno surrealistas (por ejemplo canica de fuego que tiene mas velocidad). Los premios son modelos 3d y pueden tener referencia a premios clasicos (por ejemplo un osito de peluche que sume +50 a tu puntuacion, los premios tambien deben tener flavor en base a su diseno y su efecto)
+Este es el juego base y la complejidad esta en inventarse canicas, premios y tableros para hacer el gameplay variado y que cada run se sienta distinta pero balanceada. Podrias analizar mi plan, darle estructura y si tienes preguntas me las hace para ir refinando el game design"
