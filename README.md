@@ -4,8 +4,9 @@ Proof of concept for a 3D game based on *chibolones*, the Guatemalan fair
 tradition: a wooden board with numbered holes where players throw large
 marbles ("cincos"), and the holes' numbers add up to earn a prize.
 
-Built with **Godot 4.7**. Scenes and nodes are built from code in
-`scripts/main.gd`, so the whole vertical slice lives in one readable file.
+Built with **Godot 4.7**. Content (boards, marbles, tuning) lives in
+`data/` as Def resources; gameplay systems live under `scripts/` and the
+project layout is documented in `docs/architecture.md`.
 
 ## Running
 
@@ -41,14 +42,35 @@ godot --path .
    never take a second marble. The score is added the moment the marble
    embeds. After the 5th throw the round total is shown; R restarts.
 
+## Platforms
+
+- **Scaling**: 1920x1080 base viewport with `canvas_items` stretch and
+  `expand` aspect, so the UI holds on most screens and handhelds; the 3D
+  board adapts to any window shape.
+- **Renderers**: Forward+ on desktop, automatic Mobile fallback for
+  Android.
+- **Input**: gameplay is bound to device-agnostic InputMap actions
+  (`move_left`, `move_right`, `shoot`, `restart`), currently mapped to
+  keyboard and gamepad. Touch controls will reuse the same actions.
+
 ## Controls
 
-| Input | Action |
-| --- | --- |
-| Left/Right, A/D | Move the launch position; lean the tilt guide (clamped to the board) |
-| Space (2nd) | Lock tilt, start the power bar |
-| Space (3rd) | Lock power and throw |
-| R | Restart the round |
+| Input | Keyboard | Gamepad |
+| --- | --- | --- |
+| Move aim / lean tilt guide | Left-Right arrows, A/D | Left stick, D-pad |
+| Shoot / lock steps (1st-3rd) | Space or Enter | A / Cross |
+| Restart round | R | Start |
+
+## Project layout
+
+```
+autoload/    EventBus (gameplay events), ContentDB (Def registry), Game (run flow)
+scripts/     core/ Def resources - board/ board scene, HUD, marble factory - scoring/
+scenes/      board/board.tscn (main scene)
+data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs
+tests/       headless SceneTree tests (smoke round, physics probe)
+docs/        GDD (docs/gdd) and architecture plan
+```
 
 ## Architecture notes (for the roguelike idea)
 
@@ -56,10 +78,12 @@ The plan is a roguelike on top of this base mechanic in the spirit of
 Balatro: rounds that escalate, and card-like modifiers that rewrite how a
 throw is scored (multipliers, notch rerolls, marble properties). For that:
 
-- The score table is the `ROW_SCORES` constant; per-notch values already flow
-  through one capture path (`_embed`), the natural seam for scoring modifiers.
-- The round loop (`Aim -> Power -> Flight -> x5 -> total`) is a plain state
-  machine, easy to wrap with round modifiers, shop and escalation logic.
+- Notch values are board data (`BoardDef.row_scores`); captures flow through
+  the EventBus `embed` event into `ScoreEngine`, the natural seam for scoring
+  modifiers (M2 hook contract in `docs/architecture.md`).
+- The round loop (`Aim -> Tilt -> Power -> Flight -> x5 -> total`) is a plain
+  state machine inside the board scene; the run loop (shop, escalation) is the
+  `Game` autoload phase machine, ready to wrap it.
 - Physics is honest: real rigidbody marbles on a tilted board, so future
   modifiers can act on marble material, board tilt, or hole geometry.
 

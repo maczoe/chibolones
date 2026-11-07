@@ -25,21 +25,15 @@ probe tests stay green (smoke updated to the new seams).
 
 ## Tasks
 
-T1 [S4,S5] project.godot: display scaling (1920x1080 canvas_items/expand,
-landscape), mobile renderer fallback, InputMap with gamepad bindings
-(stick + dpad, face button, start). Commit W1.
-T2 [S2] autoload/event_bus.gd gameplay signals. Commit W1.
-T3 [S1] Def scripts (BoardDef, MarbleDef, ShootingRules) + balance/boards/
-marbles .tres data + autoload content_db.gd. Commit W1.
-T4 [S2,S3] Board refactor: scripts/board/board.gd (throw flow from defs,
-event emission), marble_factory.gd, scoring/score_engine.gd,
-board/hud.gd, game.gd autoload shell, scenes/board/board.tscn; POC
-main.gd/main.tscn retired. Commit W2.
-T5 [S6] Tests: smoke.gd updated to new seams (board scene + event
-assertions), physics_probe.gd untouched; all headless green. Commit W3.
-T6 [S6] Docs: README (controls table + gamepad + scaling), architecture.md
-(M0 delivered), feature doc status. Commit W3.
+T1 [S4,S5] DONE commit 5446263. project.godot: display scaling (1920x1080 canvas_items/expand, landscape), mobile renderer fallback, InputMap with gamepad bindings (stick + dpad, face button, start).
+T2 [S2] DONE commit 5446263. autoload/event_bus.gd gameplay signals.
+T3 [S1] DONE commit 5446263. Def scripts (BoardDef, MarbleDef, ShootingRules) + balance/boards/marbles .tres data + autoload content_db.gd.
+T4 [S2,S3] DONE commit eab1943. Board refactor: scripts/board/board.gd (throw flow from defs, event emission), marble_factory.gd, scoring/score_engine.gd, board/hud.gd, game.gd autoload shell, scenes/board/board.tscn; POC main.gd/main.tscn retired.
+T5 [S6] DONE (landed in the W2 slice, commit eab1943). smoke.gd updated to new seams (board scene + event assertions), physics_probe.gd untouched; all headless green (12 scripts OK, SMOKE OK, PROBE OK).
+T6 [S6] DONE. README (platforms, controls table with gamepad, project layout), architecture.md (M0 marked delivered), this doc.
 
 ## Log
 
 L1 (user, verbatim): "arranca con M0, toma en consideracion el mapeo de controles para publicar en pc, android, consolas etc, toma en cuenta la resolucion y que funcione en la mayoria de dispositivos, lo demas te dejo a ti que lo estructures con una buena arquitectura y luego pasamos a realizar la planificacion del refinado del diseno"
+
+L2: M0 complete. Evidence: gdcheck 12/12 OK, SMOKE OK (score=10, embeds=1, outcomes consistent), PHYSICS PROBE OK. Noted for M1+: synthetic input needs Input.parse_input_event (InputEventAction), not Input.action_press.
