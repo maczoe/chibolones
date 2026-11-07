@@ -1,16 +1,39 @@
 extends SceneTree
-## Headless smoke test: drives the real main scene through a full round of
-## 5 shots using synthetic input (tilt -> power -> throw), then checks the
-## round resolves to a game-over state with a consistent score.
+## Headless smoke test: drives the real board scene through a full round of
+## 5 shots using synthetic input (aim -> tilt -> power -> throw), checks the
+## round resolves to a round-over state with a consistent score, and that
+## the EventBus embed events match the ScoreEngine total and the occupied
+## notches.
 ## Run: godot --headless --path . --script res://tests/smoke.gd
 
-var main: Node3D
+var board: Node3D
+var embeds: Array = []           # [notch_index, value] pairs seen on the bus
+var ended_outcomes: Array = []
 
 
 func _initialize() -> void:
-	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
-	root.add_child(main)
+	_ensure_autoloads()
+	board = (load("res://scenes/board/board.tscn") as PackedScene).instantiate()
+	root.add_child(board)
+	var bus := root.get_node("EventBus")
+	bus.embed.connect(func(index, value): embeds.append([index, value]))
+	bus.throw_ended.connect(func(outcome): ended_outcomes.append(outcome))
 	_run()
+
+
+## In --script mode Godot does not register project autoloads; install the
+## ones the board scene expects, in dependency order.
+func _ensure_autoloads() -> void:
+	var autoloads := {
+		"EventBus": "res://autoload/event_bus.gd",
+		"ContentDB": "res://autoload/content_db.gd",
+		"Game": "res://autoload/game.gd",
+	}
+	for name in autoloads:
+		if not root.has_node(name):
+			var node: Node = (load(autoloads[name]) as GDScript).new()
+			node.name = name
+			root.add_child(node)
 
 
 func _run() -> void:
@@ -18,7 +41,7 @@ func _run() -> void:
 	# Refunds (marble exits by the player's edge) do not consume the shot,
 	# so drive attempts until the round actually spends all 5 shots.
 	var attempts := 0
-	while main.shots_left > 0 and attempts < 40:
+	while board.shots_left > 0 and attempts < 40:
 		attempts += 1
 		# Move the aim sideways a little on every shot so covers differ.
 		Input.action_press("move_right")
@@ -26,49 +49,45 @@ func _run() -> void:
 		Input.action_release("move_right")
 		_tap("shoot")
 		await _frames(3)
-		if main.state != main.State.TILT:
+		if board.state != board.ThrowState.TILT:
 			return _fail("expected TILT after first space press (attempt %d)" % attempts)
 		_tap("shoot")
 		await _frames(3)
-		if main.state != main.State.POWER:
+		if board.state != board.ThrowState.POWER:
 			return _fail("expected POWER after second space press (attempt %d)" % attempts)
 		await _frames(20)  # about 36% power
 		_tap("shoot")
 		await _frames(3)
-		if main.state != main.State.FLIGHT:
+		if board.state != board.ThrowState.FLIGHT:
 			return _fail("expected FLIGHT after third space press (attempt %d)" % attempts)
-		if main.active_marbles.size() != 1:
-			return _fail("expected 1 active marble after launch (attempt %d)" % attempts)
-		var t := 0
-		while main.state == main.State.FLIGHT and t < 1200:
+		# Wait for the throw to resolve (back to AIM or round over).
+		var waited := 0
+		while board.state == board.ThrowState.FLIGHT and waited < 1200:
 			await _frames(1)
-			t += 1
-			if t % 600 == 0:
-				print("  attempt %d t=%d state=%d active=%d launch_timer=%.2f" % [
-					attempts, t, main.state, main.active_marbles.size(), main.launch_timer])
-		if main.shots_left == 0:
-			if main.state != main.State.GAME_OVER:
-				return _fail("expected GAME_OVER after the last shot (attempt %d), got state=%d" % [attempts, main.state])
-		elif main.state != main.State.AIM:
-			return _fail("flight did not resolve back to AIM (attempt %d), state=%d" % [attempts, main.state])
-		print("attempt %d done, shots_left = %d, score = %d" % [
-			attempts, main.shots_left, main.total_score])
-	if main.shots_left != 0:
-		return _fail("expected 0 shots left after %d attempts, got %d" % [attempts, main.shots_left])
-	if main.state != main.State.GAME_OVER:
-		return _fail("expected GAME_OVER, got state %d" % main.state)
-	if main.total_score < 0:
-		return _fail("negative score")
-	print("SMOKE OK: final score = %d (attempts = %d)" % [main.total_score, attempts])
+			waited += 1
+		if board.state == board.ThrowState.FLIGHT:
+			return _fail("throw never resolved (attempt %d)" % attempts)
+	if board.shots_left != 0:
+		return _fail("round did not spend all shots (attempts=%d, shots_left=%d)" % [attempts, board.shots_left])
+	if board.state != board.ThrowState.ROUND_OVER:
+		return _fail("expected ROUND_OVER at the end, got %s" % board.state)
+	# Score consistency: engine total == sum of embed events on the bus,
+	# and every embed occupied a distinct notch.
+	var engine_total: int = board.score_engine.total
+	var bus_total := 0
+	for e in embeds:
+		bus_total += e[1]
+	if engine_total != bus_total:
+		return _fail("score engine total %d != event bus embed sum %d" % [engine_total, bus_total])
+	var occupied := 0
+	for h in board.holes:
+		if h.occupied:
+			occupied += 1
+	if occupied != embeds.size():
+		return _fail("occupied notches %d != embed events %d" % [occupied, embeds.size()])
+	print("SMOKE OK: score=%d, embeds=%d, outcomes=%s, attempts=%d" % [
+			engine_total, embeds.size(), str(ended_outcomes), attempts])
 	quit(0)
-
-
-func _frames(n: int) -> void:
-	for i in n:
-		if i == 0:
-			await physics_frame
-			continue
-		await physics_frame
 
 
 func _tap(action: String) -> void:
@@ -78,7 +97,11 @@ func _tap(action: String) -> void:
 	Input.parse_input_event(ev)
 
 
-func _fail(reason: String) -> void:
-	push_error("SMOKE FAIL: " + reason)
-	print("SMOKE FAIL: " + reason)
+func _frames(n: int) -> void:
+	for i in n:
+		await physics_frame
+
+
+func _fail(msg: String) -> void:
+	print("SMOKE FAIL: " + msg)
 	quit(1)

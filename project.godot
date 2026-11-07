@@ -12,13 +12,14 @@ config_version=5
 
 config/name="Chibolones"
 config/description="Roguelike based on the Guatemalan fair marble game: throw marbles, embed them in numbered notches, survive 20 boards."
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/board/board.tscn"
 config/features=PackedStringArray("4.7")
 
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
 ContentDB="*res://autoload/content_db.gd"
+Game="*res://autoload/game.gd"
 
 [display]
 

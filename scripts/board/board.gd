@@ -1,0 +1,451 @@
+extends Node3D
+## Board scene: one chibolones board built from a BoardDef, with the POC
+## throw flow (aim -> tilt -> power -> flight) and physics capture.
+## Presentation and physics only: the score lives in a ScoreEngine child,
+## cross-cutting events go through the EventBus, and run flow belongs to
+## the Game autoload. Behavior matches the POC one to one.
+
+const MarbleFactory := preload("res://scripts/board/marble_factory.gd")
+const ScoreEngineScript := preload("res://scripts/scoring/score_engine.gd")
+const HudScript := preload("res://scripts/board/hud.gd")
+
+enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER }
+
+var board_def: BoardDef
+var rules: ShootingRules
+var marble_def: MarbleDef
+
+var state: ThrowState = ThrowState.AIM
+var shots_left := 0
+var aim_x := 0.0
+var aim_limit := 0.0
+var shot_tilt := 0.0
+var tilt_max_left := 0.0    # per-side aim limits, so the guide cannot point
+var tilt_max_right := 0.0   # past the side walls from this launch spot
+var power := 0.0
+var power_dir := 1.0
+var pending_result := ""   # resolution message flashed when the volley ends
+var launch_timer := 0.0
+var throw_index := 0
+
+var board: Node3D
+var score_engine: ScoreEngine
+var hud: CanvasLayer
+var launch_marker: MeshInstance3D
+var shot_guide: Node3D
+var holes: Array[Dictionary] = []          # {pos, score, occupied}
+var active_marbles: Array[RigidBody3D] = []
+var settle_times := {}                     # marble -> seconds under slow speed
+
+
+func _ready() -> void:
+	board_def = ContentDB.board_def(Game.board_index)
+	rules = ContentDB.rules()
+	marble_def = ContentDB.marble_def("common")
+	shots_left = rules.shots_per_board
+	aim_limit = board_def.width / 2.0 - board_def.aim_limit_margin
+	_build_environment()
+	_build_board()
+	score_engine = ScoreEngineScript.new()
+	add_child(score_engine)
+	hud = HudScript.new()
+	add_child(hud)
+	score_engine.score_changed.connect(hud.set_score)
+	hud.set_shots(shots_left, rules.shots_per_board)
+	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("restart"):
+		Game.restart_board()
+		return
+	if event.is_action_pressed("shoot"):
+		match state:
+			ThrowState.AIM:
+				if shots_left > 0:
+					state = ThrowState.TILT
+					shot_tilt = 0.0
+					_update_tilt_limits()
+					shot_guide.visible = true
+					hud.flash("Inclina con <- -> y apreta ESPACIO para fijar")
+			ThrowState.TILT:
+				state = ThrowState.POWER
+				power = 0.0
+				power_dir = 1.0
+				hud.set_power_visible(true)
+				hud.flash("Apreta ESPACIO para disparar con esta potencia")
+			ThrowState.POWER:
+				hud.set_power_visible(false)
+				shot_guide.visible = false
+				_launch(shot_tilt, power)
+			_:
+				pass
+
+
+func _physics_process(delta: float) -> void:
+	match state:
+		ThrowState.AIM:
+			var move := 0.0
+			if Input.is_action_pressed("move_left"):
+				move -= 1.0
+			if Input.is_action_pressed("move_right"):
+				move += 1.0
+			# Screen directions: the camera looks down +Z, so world +X shows on
+			# the player's LEFT. Invert the sign so each key moves the marker
+			# the way its arrow points on screen.
+			aim_x = clampf(aim_x - move * rules.aim_speed * delta, -aim_limit, aim_limit)
+			launch_marker.position.x = aim_x
+			shot_guide.position.x = aim_x
+		ThrowState.TILT:
+			var turn := 0.0
+			if Input.is_action_pressed("move_left"):
+				turn -= 1.0
+			if Input.is_action_pressed("move_right"):
+				turn += 1.0
+			# Screen directions: the camera looks down +Z, so world +X shows on
+			# the player's LEFT. Invert the sign so each arrow leans the guide
+			# the way it points on screen, clamped so it never aims off-board.
+			shot_tilt = clampf(shot_tilt - turn * rules.tilt_speed * delta,
+					-tilt_max_left, tilt_max_right)
+			shot_guide.rotation.y = deg_to_rad(shot_tilt)
+		ThrowState.POWER:
+			power += power_dir * rules.power_speed * delta
+			if power >= 100.0:
+				power = 100.0
+				power_dir = -1.0
+			elif power <= 0.0:
+				power = 0.0
+				power_dir = 1.0
+			hud.set_power(power)
+		ThrowState.FLIGHT:
+			launch_timer += delta
+			_update_flight(delta)
+		_:
+			pass
+
+
+# --- Shooting ----------------------------------------------------------------
+
+
+func _update_tilt_limits() -> void:
+	# The guide pivots at the launch spot; clamp each side so its far end
+	# stays inside the walls even at the far edge of the board.
+	var dist_to_far := board_def.length / 2.0 - board_def.launch_z()
+	var side_margin := board_def.width / 2.0 - board_def.aim_limit_margin
+	tilt_max_left = rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
+	tilt_max_right = rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
+
+
+func _launch(tilt_deg: float, power_value: float) -> void:
+	var marble := MarbleFactory.make(marble_def, throw_index)
+	throw_index += 1
+	# Marble is a child of the tilted board so local coordinates stay handy.
+	# Spawn clear of the surface: a marble born intersecting the board can
+	# escape through it in the physics engine.
+	marble.position = Vector3(aim_x, marble_def.radius + 0.05, board_def.launch_z())
+	marble.body_entered.connect(_on_marble_body_entered.bind(marble))
+	board.add_child(marble)
+	var tilt_rad := deg_to_rad(tilt_deg)
+	# Direction includes the locked shot tilt: positive tilts toward the
+	# player's left on screen, exactly like the guide line showed.
+	var dir := (board.global_transform.basis * Vector3(sin(tilt_rad), 0.0, 1.0)).normalized()
+	var speed := lerpf(rules.min_speed, rules.max_speed, power_value / 100.0) \
+			* marble_def.speed_mult
+	marble.apply_central_impulse(dir * speed * marble.mass)
+	active_marbles.append(marble)
+	settle_times.clear()
+	pending_result = ""
+	launch_timer = 0.0
+	launch_marker.visible = false
+	shots_left -= 1
+	state = ThrowState.FLIGHT
+	hud.set_shots(shots_left, rules.shots_per_board)
+	EventBus.throw_started.emit(marble_def.id)
+
+
+func _update_flight(delta: float) -> void:
+	for marble in active_marbles.duplicate():
+		if not is_instance_valid(marble):
+			active_marbles.erase(marble)
+			continue
+		var speed: float = marble.linear_velocity.length()
+		var local: Vector3 = board.to_local(marble.global_position)
+		# Off-board exits. Only the player-side edge forgives: the throw is
+		# returned so it can be thrown again. Back and side exits lose it.
+		if local.z < -board_def.length / 2.0 - rules.edge_margin:
+			_discard_marble(marble)
+			pending_result = "Salio por el borde del jugador: se puede volver a tirar"
+			EventBus.refund.emit()
+			EventBus.throw_ended.emit(&"refunded")
+			continue
+		if local.z > board_def.length / 2.0 + rules.edge_margin \
+				or absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
+				or local.y < -0.05:
+			_discard_marble(marble)
+			pending_result = "La canica salio del tablero: 0 puntos"
+			EventBus.throw_ended.emit(&"off_board")
+			continue
+		# A fast marble hops over the notches, a slow one embeds itself when
+		# its center crosses the capture circle.
+		if speed >= board_def.skip_speed:
+			continue
+		# Only capture when the marble is actually rolling on the surface: a
+		# body that fell through the board must never score.
+		if local.y > marble_def.radius + 0.25:
+			continue
+		var reach: float = board_def.capture_radius
+		for hole in holes:
+			# An occupied notch already holds an embedded marble: shots can
+			# only bounce off it, never fall into the same spot.
+			if hole.occupied:
+				continue
+			var d := Vector2(local.x - hole.pos.x, local.z - hole.pos.z).length()
+			if d <= reach:
+				_embed(marble, hole)
+				break
+		if is_instance_valid(marble) and not marble.freeze:
+			if speed < rules.settle_speed:
+				settle_times[marble] = float(settle_times.get(marble, 0.0)) + delta
+			else:
+				settle_times[marble] = 0.0
+			if float(settle_times.get(marble, 0.0)) >= rules.settle_time:
+				# Marble came to rest on the board: 0 points.
+				marble.freeze = true
+				active_marbles.erase(marble)
+				settle_times.erase(marble)
+				pending_result = "La canica se quedo quieta: 0 puntos"
+				EventBus.throw_ended.emit(&"settled")
+	# End the volley once every marble stopped, sank, or the timeout hit.
+	if active_marbles.is_empty() or launch_timer >= rules.flight_timeout:
+		if launch_timer >= rules.flight_timeout and not active_marbles.is_empty():
+			# Timed out: the throw is lost, clean the leftovers up.
+			for marble in active_marbles:
+				if is_instance_valid(marble):
+					marble.queue_free()
+			active_marbles.clear()
+			EventBus.throw_ended.emit(&"timed_out")
+		if shots_left > 0:
+			state = ThrowState.AIM
+			launch_marker.visible = true
+			if pending_result != "":
+				# Resolution messages would otherwise be overwritten by the
+				# next-throw prompt in the same frame, so flash them here.
+				hud.flash(pending_result)
+				pending_result = ""
+			else:
+				hud.flash("Tiro %d de %d" % [rules.shots_per_board - shots_left + 1, rules.shots_per_board])
+		else:
+			_round_over()
+
+
+func _discard_marble(marble: RigidBody3D) -> void:
+	active_marbles.erase(marble)
+	settle_times.erase(marble)
+	marble.queue_free()
+
+
+func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
+	active_marbles.erase(marble)
+	settle_times.erase(marble)
+	hole.occupied = true
+	# Like the carved notches of the real board: the marble stays stuck with
+	# its center at surface level, so half its circumference is exposed. It
+	# freezes in place (immovable) but keeps colliding, so later shots
+	# bounce off it instead of falling into the same notch.
+	marble.freeze = true
+	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
+	marble.add_to_group("embedded")
+	marble.set_meta("notch_index", hole.index)
+	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, hole.score]
+	EventBus.embed.emit(hole.index, hole.score)
+	EventBus.throw_ended.emit(&"embedded")
+
+
+func _round_over() -> void:
+	state = ThrowState.ROUND_OVER
+	var possible: int = rules.shots_per_board * board_def.row_scores[board_def.rows - 1]
+	hud.show_game_over(score_engine.total, possible)
+	EventBus.board_ended.emit(score_engine.total)
+
+
+func _on_marble_body_entered(other: Node, marble: RigidBody3D) -> void:
+	# Physics contact -> domain events. Impact speed is the marble speed at
+	# contact time; M2 modifiers react to these.
+	var impact := marble.linear_velocity.length()
+	if other.is_in_group("walls"):
+		EventBus.wall_hit.emit(other.get_meta("side"), impact)
+	elif other.is_in_group("embedded"):
+		EventBus.embedded_marble_hit.emit(other.get_meta("notch_index"), impact)
+
+
+# --- Construction ------------------------------------------------------------
+
+
+func _build_environment() -> void:
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	sky.sky_material = ProceduralSkyMaterial.new()
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 1.0
+	var world_env := WorldEnvironment.new()
+	world_env.environment = env
+	add_child(world_env)
+
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-55, -35, 0)
+	sun.shadow_enabled = true
+	add_child(sun)
+
+	var cam := Camera3D.new()
+	add_child(cam)
+	var length := board_def.length
+	cam.look_at_from_position(Vector3(0, length * 0.61, -length * 0.91),
+			Vector3(0, -0.2, length * 0.2), Vector3.UP)
+
+
+func _build_board() -> void:
+	board = Node3D.new()
+	board.name = "Board"
+	add_child(board)
+	# Negative X rotation lowers the player-side (-Z) end: marbles always
+	# roll back downhill toward the player, so none can rest trapped in the
+	# middle of the board without reaching a notch or the forgiving edge.
+	board.rotation_degrees.x = -board_def.tilt_deg
+
+	var body := StaticBody3D.new()
+	body.name = "BoardBody"
+	board.add_child(body)
+
+	var box := BoxShape3D.new()
+	box.size = Vector3(board_def.width, board_def.thickness, board_def.length)
+	var collider := CollisionShape3D.new()
+	collider.shape = box
+	# Align the collider's top face with the visible surface (y = 0).
+	collider.position.y = -board_def.thickness / 2.0
+	body.add_child(collider)
+
+	var surface := MeshInstance3D.new()
+	var board_mesh := BoxMesh.new()
+	board_mesh.size = box.size
+	surface.mesh = board_mesh
+	surface.position.y = -board_def.thickness / 2.0
+	surface.material_override = _wood_material(Color(0.52, 0.33, 0.16))
+	body.add_child(surface)
+
+	# Side and back walls are back. They are low, so a marble with enough
+	# inertia from a hard bounce can still hop over and leave the board: the
+	# off-board rules stay in charge. Only the player-side edge stays open
+	# and forgiving (throw returned).
+	for side in [-1.0, 1.0]:
+		_add_wall(
+				Vector3(side * (board_def.width / 2.0 + board_def.wall_thickness / 2.0),
+						board_def.wall_height / 2.0, 0.0),
+				Vector3(board_def.wall_thickness, board_def.wall_height, board_def.length),
+				"left" if side < 0.0 else "right")
+	_add_wall(
+			Vector3(0.0, board_def.wall_height / 2.0, board_def.length / 2.0 + board_def.wall_thickness / 2.0),
+			Vector3(board_def.width + 2.0 * board_def.wall_thickness, board_def.wall_height, board_def.wall_thickness),
+			"back")
+
+	for row in board_def.rows:
+		for col in board_def.cols:
+			var pos := Vector3(
+					-board_def.spacing_x * (board_def.cols - 1) / 2.0 + col * board_def.spacing_x,
+					0.0,
+					board_def.first_row_z + row * board_def.spacing_z)
+			_add_hole(pos, board_def.row_scores[row], row * board_def.cols + col)
+
+	# Aim marker: a slim strip that slides sideways while aiming.
+	launch_marker = MeshInstance3D.new()
+	var marker_mesh := BoxMesh.new()
+	marker_mesh.size = Vector3(0.06, 0.005, 0.3)
+	launch_marker.mesh = marker_mesh
+	var marker_mat := StandardMaterial3D.new()
+	marker_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	marker_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	marker_mat.albedo_color = Color(1, 1, 1, 0.55)
+	launch_marker.material_override = marker_mat
+	launch_marker.position = Vector3(0, 0.012, board_def.launch_z())
+	board.add_child(launch_marker)
+
+	# Shot tilt guide: a slim line pivoting at the launch point. It leans
+	# left/right with the arrows and freezes at the locked angle while the
+	# power bar runs.
+	shot_guide = Node3D.new()
+	shot_guide.position = Vector3(0, 0.014, board_def.launch_z())
+	var guide_stick := MeshInstance3D.new()
+	var guide_mesh := BoxMesh.new()
+	var guide_len := board_def.length * 0.37
+	guide_mesh.size = Vector3(0.05, 0.004, guide_len)
+	guide_stick.mesh = guide_mesh
+	guide_stick.position = Vector3(0, 0, guide_len / 2.0)  # extends forward
+	var guide_mat := StandardMaterial3D.new()
+	guide_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	guide_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	guide_mat.albedo_color = Color(0.35, 0.9, 1.0, 0.6)
+	guide_stick.material_override = guide_mat
+	shot_guide.add_child(guide_stick)
+	shot_guide.visible = false
+	board.add_child(shot_guide)
+
+
+func _add_wall(pos: Vector3, size: Vector3, side: String) -> void:
+	var wall := StaticBody3D.new()
+	wall.name = "Wall"
+	wall.add_to_group("walls")
+	wall.set_meta("side", side)
+	board.add_child(wall)
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	collider.shape = box
+	wall.add_child(collider)
+	var mesh_i := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	mesh_i.mesh = mesh
+	mesh_i.material_override = _wood_material(Color(0.44, 0.27, 0.13))
+	wall.add_child(mesh_i)
+	wall.position = pos
+
+
+func _add_hole(pos: Vector3, score: int, index: int) -> void:
+	# A notch is carved at marble size: a dark disc slightly wider than a
+	# marble marks the carved spot on the wood surface.
+	var disc := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	var notch_radius := marble_def.radius + 0.015
+	cyl.top_radius = notch_radius
+	cyl.bottom_radius = notch_radius
+	cyl.height = 0.012
+	cyl.radial_segments = 24
+	disc.mesh = cyl
+	disc.position = pos + Vector3(0, 0.008, 0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.05, 0.04, 0.03)
+	mat.roughness = 1.0
+	disc.material_override = mat
+	board.add_child(disc)
+
+	var label := Label3D.new()
+	label.text = str(score)
+	label.font_size = 96
+	label.pixel_size = 0.002
+	label.modulate = Color(0.95, 0.9, 0.75)
+	label.position = pos + Vector3(0, 0.02, 0)
+	# Lay the number flat, readable from the player's camera: the -90 X
+	# lay-down alone points the text top toward the player (reads upside
+	# down on screen); the 180 Y turn points it away so it reads normally.
+	label.rotation_degrees = Vector3(-90, 180, 0)
+	board.add_child(label)
+
+	holes.append({"pos": pos, "score": score, "occupied": false, "index": index})
+
+
+func _wood_material(color: Color) -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.85
+	return mat
