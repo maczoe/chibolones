@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ShootingRules" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/shooting_rules.gd" id="1_rules"]
+
+[resource]
+script = ExtResource("1_rules")
+aim_speed = 1.2
+tilt_speed = 70.0
+min_speed = 2.2
+max_speed = 9.0
+power_speed = 110.0
+edge_margin = 0.25
+settle_speed = 0.15
+settle_time = 1.2
+flight_timeout = 7.0
+shots_per_board = 5

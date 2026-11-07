@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "common"
+display_name = "Canica Comun"
+category = 0
+single_use = false
+flavor = "La canica de toda la vida: vidrio girado, sin sorpresas."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+palette = Array[Color]([Color(0.275, 0.694, 0.882, 1), Color(0.882, 0.357, 0.392, 1), Color(0.478, 0.78, 0.31, 1), Color(0.949, 0.757, 0.306, 1), Color(0.608, 0.365, 0.898, 1)])
+price = 0
+effects = Array[StringName]([])
+break_chance = 0.0
