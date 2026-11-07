@@ -1,0 +1,11 @@
+78098b89c88a74ebe8c20117b8754620
+::res://::1794030355
+icon.svg::CompressedTexture2D::5348262029359733051::1794029628::1794029685::1::::<><><>0<>0<>08b72bf37456358bad2e953c3f143493<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
+README.md::TextFile::-1::1794030053::0::1::::<><><>0<>0<><>::
+::res://scenes/::1794029628
+main.tscn::PackedScene::-1::1794029628::0::1::::<><><>0<>0<><>::res://scripts/main.gd
+::res://scripts/::1794029685
+main.gd::GDScript::4976421218984970::1794029978::0::1::::<>Node3D<><>0<>0<><>::
+::res://tests/::1794030062
+physics_probe.gd::GDScript::8246929518027274141::1794030092::0::1::::<>SceneTree<><>0<>0<><>::
+smoke.gd::GDScript::8222728545560557750::1794030007::0::1::::<>SceneTree<><>0<>0<><>::
