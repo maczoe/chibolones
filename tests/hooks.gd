@@ -244,9 +244,13 @@ func _test_glass_break() -> void:
 	board.queue_free()
 	await physics_frame
 
-	# break_chance 0.0 never breaks: nothing leaves the ammo, no event.
+	# break_chance 0.0 never breaks: nothing leaves the ammo, no event. The
+	# .tres glass now carries the approved 25% (content, not mechanic), so
+	# the test builds its own durable marble instead of trusting data.
 	game.start_run()
-	game.inventory[0] = content.marble_def("glass")
+	var safe_def: MarbleDef = content.marble_def("glass").duplicate()
+	safe_def.break_chance = 0.0
+	game.inventory[0] = safe_def
 	var safe := _open_board()
 	await physics_frame
 	var ammo_intact: int = game.ammo.size()
