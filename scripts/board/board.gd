@@ -517,7 +517,10 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	label.font_size = 96
 	label.pixel_size = 0.002
 	label.modulate = Color(0.95, 0.9, 0.75)
-	label.position = pos + Vector3(0, 0.02, 0)
+	# Below the notch (toward the player, -Z reads as screen-down from the
+	# diagonal camera): the number stays visible even when a marble is
+	# embedded in the notch, and the notch itself reads unobstructed.
+	label.position = pos + Vector3(0, 0.02, -0.19)
 	# Lay the number flat, readable from the player's camera: the -90 X
 	# lay-down alone points the text top toward the player (reads upside
 	# down on screen); the 180 Y turn points it away so it reads normally.
