@@ -6,6 +6,7 @@
 script = ExtResource("1_marble")
 id = "glass"
 display_name = "Canica de Vidrio"
+rarity = "uncommon"
 category = 0
 single_use = false
 flavor = "Clara y fragil: puntua doble, pero puede romperse al tirar."
@@ -17,6 +18,6 @@ speed_mult = 1.0
 score_mult = 2.0
 style = &"glass"
 palette = Array[Color]([Color(0.75, 0.9, 1, 0.55)])
-price = 0
+price = 4
 effects = Array[StringName]([])
-break_chance = 0.25
+break_chance = 0.2

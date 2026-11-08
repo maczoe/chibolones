@@ -43,6 +43,15 @@ func marbles() -> Array[MarbleDef]:
 	return _marbles.duplicate()
 
 
+## Strict lookup: null for unknown ids, no fallback and no warning. The
+## right seam for price checks and callers that must not guess.
+func find_marble_def(id: String) -> MarbleDef:
+	for def in _marbles:
+		if def.id == id:
+			return def
+	return null
+
+
 func marble_def(id: String) -> MarbleDef:
 	for def in _marbles:
 		if def.id == id:
@@ -53,6 +62,14 @@ func marble_def(id: String) -> MarbleDef:
 
 func prizes() -> Array[PrizeDef]:
 	return _prizes.duplicate()
+
+
+## Strict lookup: null for unknown ids, no fallback and no warning.
+func find_prize_def(id: String) -> PrizeDef:
+	for def in _prizes:
+		if def.id == id:
+			return def
+	return null
 
 
 func prize_def(id: String) -> PrizeDef:

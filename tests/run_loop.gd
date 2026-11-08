@@ -40,6 +40,9 @@ func _run() -> void:
 	_test_economy()
 	if failed:
 		return quit(1)
+	_test_item_pricing()
+	if failed:
+		return quit(1)
 	_test_progression()
 	if failed:
 		return quit(1)
@@ -85,6 +88,54 @@ func _test_economy() -> void:
 		_check(int(entry["price"]) > 0, "stock price must be positive: %s" % str(entry))
 	_check(int(stock["extra_pack_price"]) == 4, "stock pack price should be 4 at block 1")
 	_check(int(stock["reroll_price"]) == 2, "stock reroll price should be 2")
+
+
+# --- (a2) Item-owned base prices and rarity (W3, spec S2/S3) ---------------
+
+
+## W3: prices live in each def (.tres), Economy only scales them by block.
+## The hard-coded DEF_BASE_PRICES table is retired; glass breaks 20%.
+func _test_item_pricing() -> void:
+	# Every marble def carries a price and a valid rarity.
+	for def in content.marbles():
+		_check(def.price > 0, "marble %s must own a positive base price" % def.id)
+		_check(["common", "uncommon", "rare"].has(def.rarity),
+				"marble %s must have a valid rarity, got '%s'" % [def.id, def.rarity])
+	# Every prize def carries a price and a valid rarity.
+	for def in content.prizes():
+		_check(def.price > 0, "prize %s must own a positive base price" % def.id)
+		_check(["common", "uncommon", "rare"].has(def.rarity),
+				"prize %s must have a valid rarity, got '%s'" % [def.id, def.rarity])
+	# Economy prices from the def, scaled by block, floored at 1.
+	var common: Resource = content.marble_def("common")
+	_check(economy.marble_price(common.price, 1) == common.price,
+			"block 1 must not scale the def price, got %d"
+			% economy.marble_price(common.price, 1))
+	_check(economy.marble_price(common.price, 3) == roundi(common.price * 1.7),
+			"block 3 must scale the def price by 1.7")
+	_check(economy.marble_price(common.price, 3) == int(common.price * 1.7 + 0.5),
+			"def-price scaling must round to nearest")
+	_check(economy.marble_price(0, 1) == 0,
+			"a zero def price must stay 0 (missing price is a data bug, not $1)")
+	# Known ids price through their defs; unknown ids price 0.
+	_check(economy.base_price_for("common") == common.price,
+			"base_price_for must read the def's own price")
+	_check(economy.base_price_for("no-existe") == 0,
+			"base_price_for of an unknown id should be 0")
+	# Glass pin: score x2 and break 20% (content-plan §4.1).
+	var glass: Resource = content.marble_def("glass")
+	_check(is_equal_approx(glass.break_chance, 0.20),
+			"glass break chance must be 0.20, got %s" % glass.break_chance)
+	_check(is_equal_approx(glass.score_mult, 2.0), "glass score mult must stay x2")
+	# Rarity bands (S3): commons $2-3, uncommons $4-5, rares $7.
+	for def in content.marbles() + content.prizes():
+		var band: Array = {"common": [2, 3], "uncommon": [4, 5], "rare": [7, 7]}[def.rarity]
+		_check(def.price >= band[0] and def.price <= band[1],
+				"%s ($%d) must fit its rarity band %s" % [def.id, def.price, band])
+	# Stock entries price straight from their defs at block 1.
+	var stock: Dictionary = economy.shop_stock(1)
+	for entry in stock["marbles"] + stock["prizes"]:
+		_check(int(entry["price"]) > 0, "stock price must be positive: %s" % str(entry))
 
 
 # --- (b) Progression helpers (5 blocks of 4, boss every 4th) ---------------

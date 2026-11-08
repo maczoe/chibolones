@@ -6,6 +6,7 @@
 script = ExtResource("1_marble")
 id = "common"
 display_name = "Canica Comun"
+rarity = "common"
 category = 0
 single_use = false
 flavor = "La canica de toda la vida: vidrio girado, sin sorpresas."
@@ -16,6 +17,6 @@ friction = 0.6
 speed_mult = 1.0
 style = &"swirl"
 palette = Array[Color]([Color(0.275, 0.694, 0.882, 1), Color(0.882, 0.357, 0.392, 1), Color(0.478, 0.78, 0.31, 1), Color(0.949, 0.757, 0.306, 1), Color(0.608, 0.365, 0.898, 1)])
-price = 0
+price = 2
 effects = Array[StringName]([])
 break_chance = 0.0

@@ -11,15 +11,6 @@ const REROLL_PRICE := 2
 ## Stock sizes the shop offers after each board.
 const STOCK_MARBLES := 2
 const STOCK_PRIZES := 2
-## List price per content id before the block scale (content-plan §4).
-## Content defs keep price 0 until the M3 shop wave, so the placeholder
-## stock prices from this table.
-const DEF_BASE_PRICES := {
-	"common": 2,
-	"fire": 3,
-	"glass": 4,
-	"trompo": 3,
-}
 
 
 ## Reward for clearing a board: base(block) + per_marble(block) * marbles_left
@@ -36,9 +27,11 @@ func price_scale(block: int) -> float:
 	return 1.0 + 0.35 * float(block - 1)
 
 
-## Scaled price of a content def, never below 1.
+## Scaled price of a content def. Defs own their base price (W3): Economy
+## only applies the block scale and rounds to nearest. A def without a
+## price (0) stays 0 — missing data is a bug to surface, not a $1 tag.
 func marble_price(def_base_price: int, block: int) -> int:
-	return maxi(1, roundi(float(def_base_price) * price_scale(block)))
+	return roundi(float(def_base_price) * price_scale(block))
 
 
 ## One extra throw for the current board.
@@ -50,9 +43,16 @@ func reroll_price() -> int:
 	return REROLL_PRICE
 
 
-## Price of a def id before the block scale (0 for unknown ids).
+## Price of a def id before the block scale (0 for unknown ids). Since W3
+## the price lives in the def itself; this looks it up in the content DB.
 func base_price_for(def_id: String) -> int:
-	return int(DEF_BASE_PRICES.get(def_id, 0))
+	var marble := ContentDB.find_marble_def(def_id)
+	if marble != null:
+		return marble.price
+	var prize := ContentDB.find_prize_def(def_id)
+	if prize != null:
+		return prize.price
+	return 0
 
 
 ## Placeholder shop stock for a block: the two marbles, two prizes, the

@@ -7,6 +7,7 @@ enum Category { COMMON, MAGIC }
 
 @export var id: String = "common"
 @export var display_name: String = "Canica Comun"
+@export var rarity: String = "common"
 @export var category: Category = Category.COMMON
 ## Magic marbles are single-use: consumed when thrown.
 @export var single_use: bool = false

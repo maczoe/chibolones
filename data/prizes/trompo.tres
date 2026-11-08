@@ -6,7 +6,7 @@
 script = ExtResource("1_prize")
 id = "trompo"
 display_name = "Trompo de Madera"
-rarity = "common"
-price = 0
+rarity = "uncommon"
+price = 4
 flavor = "Gira y gira; cada pared que golpeas le da vueltas a tu favor."
 wall_hit_mult = 1.5
