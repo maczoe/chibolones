@@ -91,7 +91,8 @@ interested defs → apply flat adds → apply multipliers → publish breakdown
 | M | Deliverable | Tests |
 | --- | --- | --- |
 | **M0** | DELIVERED (commits 5446263, eab1943): POC split into autoloads + board scene + ScoreEngine + HUD; Defs and balance data extracted; cross-device InputMap and scaling set up | smoke + probe green; smoke asserts event/score consistency |
-| **M1** | Run skeleton: menu → board → win/lose → shop placeholder → game over; 3 handcrafted boards; economy v1 (rewards formula) | run-loop headless test: scripted throws, board win/loss, money math |
+| **M0.5** | Style & game-feel slice (user-driven tuning): feel pass over `shooting_rules`/`BoardDef` numbers, art direction slice (final-look board + 3 sample marbles + 1 prize), two seed juices (embed thunk + score popup) validating audio/UI juice pipeline on desktop AND mobile fallback | feel accepted by the user playing; visual checklist on desktop + mobile renderer |
+| **M1** | Run skeleton: menu → board → win/lose → shop placeholder → game over; 5 blocks of 4 (3 normal + 1 boss, random draw) per D5/D7; economy v1 (rewards formula) | run-loop headless test: scripted throws, board win/loss, money math |
 | **M2** | Scoring engine + event bus + hook contract; 5 bonificadores and 5 premios working | scoring pipeline unit tests with fake defs |
 | **M3** | Content wave 1: 10 canicas, 10 premios, 10 board defs; shop v1 with stock/reroll | shop stock + pricing tests, content lint (all defs valid, prices in curve) |
 | **M4** | Library + persistence (per D3), unlock pool if chosen | save/load round-trip test |

@@ -7,8 +7,9 @@ Design language: the cozy-but-cutthroat atmosphere of a village fair,
 where every marble in your bag has a story and every prize on your shelf
 changes how the next throw plays out.
 
-Status: **v0.2 — core decisions resolved** (D1-D4). Open decisions `D5-D7`
-in §11. Assumptions confirmed by the user are marked `A# ✓`.
+Status: **v0.3 — core decisions resolved** (D1-D7). Assumptions confirmed
+by the user are marked `A# ✓`. Next: M0.5 style & game-feel slice, then
+content design.
 
 ---
 
@@ -35,8 +36,12 @@ in §11. Assumptions confirmed by the user are marked `A# ✓`.
 ## 3. Run structure (S1)
 
 - Start of run: **5 marbles + $5**.
-- Boards are played **1 → 20 in order** (randomized within acts? open:
-  D5).
+- **D5 + D7 resolved: blocks of 4 with a boss board.** The run is five
+  blocks (actos): 3 normal boards + 1 boss board each, so bosses land on
+  boards 4, 8, 12, 16 and 20. Normal boards are drawn **at random** from
+  the non-boss pool per block (no repeats within a block); the boss board
+  of a block is fixed to that block's difficulty tier. Block difficulty
+  scales with block number (targets, difficulty factor, modifiers).
 - Win the run by clearing board 20.
 - **Lose the run** when a board is lost. A board is lost when the player
   runs out of throws without meeting the objective (assumption A1).
@@ -145,8 +150,12 @@ Three layers, mirroring Balatro's separation:
 - Currency: **$**, earned only during the run.
 - Income per board won: `base(level) + per_marble(level) × marbles_left +
   bonus_objective_reward`. Exact numbers live in balance data.
-- Shop appears **after each board** (boards 1-19; maybe also after 20 for
-  endless mode — open: D6).
+- Shop appears **after each board** (boards 1-19).
+- **D6 resolved: endless mode exists.** After winning board 20 the player
+  may continue into endless mode: board 21+ are boss-tier boards drawn at
+  random with a difficulty factor that keeps scaling; the run ends at the
+  first lost board. Endless is opt-in from the run-won screen and tracked
+  separately in the run summary.
 - Shop stock: 2-3 marbles, 2-3 prizes, 1 extra-marble pack, optional
   reroll. Prices scale with level.
 - Interest on unspent money: **D4 resolved: none.** Income comes only
@@ -190,6 +199,6 @@ score vs target, active prizes row, bonus objective status.
 | D2 | Marble selection per throw | **Resolved: player picks** from the bag before each throw |
 | D3 | Library persistence & impact | **Resolved: unlocks content pool** across runs (save file) |
 | D4 | Interest on unspent $ | **Resolved: none** |
-| D5 | Board order | Open: fixed 1-20 / randomized within acts |
-| D6 | Shop after board 20 (endless) | Open: yes / no |
-| D7 | Run length feel | Open: 20 boards as-is vs acts of 5 with a boss board each |
+| D5 | Board order | **Resolved: random draw** of normal boards per block (no repeats within a block) |
+| D6 | Endless after board 20 | **Resolved: yes**, opt-in, boss-tier boards with scaling factor |
+| D7 | Run structure | **Resolved: 5 blocks of 4** (3 normal + 1 boss, bosses on 4/8/12/16/20) |
