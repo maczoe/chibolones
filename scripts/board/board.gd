@@ -37,8 +37,8 @@ var skirt: MeshInstance3D
 var bulbs: Array[MeshInstance3D] = []
 var bulb_on_mat: StandardMaterial3D
 var bulb_off_mat: StandardMaterial3D
-var bulbs_animating := false
 var bulb_clock := 0.0
+var celebrate_left := 0.0
 var cam: Camera3D
 var cam_look_target: Vector3
 var cam_orbit_radius := 8.0
@@ -63,6 +63,7 @@ func _ready() -> void:
 	hud = HudScript.new()
 	add_child(hud)
 	score_engine.score_changed.connect(hud.set_score)
+	EventBus.embed.connect(_on_embed_celebrate)
 	add_child(preload("res://scripts/board/juice.gd").new())
 	hud.set_shots(shots_left, rules.shots_per_board)
 	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
@@ -722,21 +723,39 @@ func _place_bulb(pos: Vector3, mesh: SphereMesh) -> void:
 	bulbs.append(bulb)
 
 
+func _on_embed_celebrate(_notch_index: int, _value: int) -> void:
+	celebrate_left = 5.0
+
+
 func _animate_bulbs(delta: float) -> void:
-	# Pinball light show: while the player prepares a throw, the bulbs run
-	# a chase (faster on the power step); otherwise they sit steady on.
-	if state != ThrowState.TILT and state != ThrowState.POWER:
-		if bulbs_animating:
-			bulbs_animating = false
-			for b in bulbs:
-				b.material_override = bulb_on_mat
-		return
-	bulbs_animating = true
+	# Pinball light show, by mode (celebration outranks the throw step):
+	# idle/turn start = all off; preparing = slow chase; marble flying =
+	# all-bulbs blink; points scored = fast chase for 5 seconds.
 	bulb_clock += delta
-	var speed := board_def.bulb_pattern_speed * (2.0 if state == ThrowState.POWER else 1.0)
+	if celebrate_left > 0.0:
+		celebrate_left -= delta
+		_set_chase(board_def.bulb_pattern_speed)
+		return
+	match state:
+		ThrowState.TILT, ThrowState.POWER:
+			_set_chase(board_def.bulb_pattern_speed * 0.6)
+		ThrowState.FLIGHT:
+			var on := fmod(bulb_clock * 2.0, 1.0) < 0.5
+			for b in bulbs:
+				b.material_override = bulb_on_mat if on else bulb_off_mat
+		_:
+			_set_all_bulbs(false)
+
+
+func _set_chase(speed: float) -> void:
 	for i in bulbs.size():
 		var on := fmod(bulb_clock * speed + float(i) * 0.7, 1.0) < 0.55
 		bulbs[i].material_override = bulb_on_mat if on else bulb_off_mat
+
+
+func _set_all_bulbs(on: bool) -> void:
+	for b in bulbs:
+		b.material_override = bulb_on_mat if on else bulb_off_mat
 
 
 func _paint_material(color: Color, emission := 0.0) -> StandardMaterial3D:
