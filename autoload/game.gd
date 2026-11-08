@@ -287,7 +287,26 @@ func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 		run_won = true
 		run_won_sig.emit()
 	_enter(Phase.WIN)
-	change_to_current_scene()
+	# Win over the live board (user request, 2026-11-08): the board hosts the
+	# win screen as a translucent overlay so the game stays visible and alive
+	# behind GANADOR and the resumen. A scene that cannot host (or a headless
+	# test with no current scene) falls back to the plain scene switch.
+	if not _host_win_overlay():
+		change_to_current_scene()
+
+
+## Offer the current scene the chance to host the win overlay in place.
+## Returns false when there is no host, so the caller keeps the old scene
+## switch. Never touches run state: the phase and routing stay the same.
+func _host_win_overlay() -> bool:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return false
+	var scene := tree.current_scene
+	if not scene.has_method("host_win_overlay"):
+		return false
+	scene.call("host_win_overlay")
+	return true
 
 
 ## CONTINUAR on the win interstitial: back to the run flow — the shop after

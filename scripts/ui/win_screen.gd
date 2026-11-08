@@ -31,8 +31,10 @@ func _ready() -> void:
 
 
 func _build() -> void:
+	# Win over the live board (user request, 2026-11-08): the background only
+	# dims the game behind, it never replaces it with a menu-like wall.
 	var background := ColorRect.new()
-	background.color = Color("120a26")
+	background.color = Color(0.07, 0.04, 0.15, 0.45)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 

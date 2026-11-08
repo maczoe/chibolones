@@ -177,6 +177,26 @@ func _ready() -> void:
 	_reset_step_timer()
 
 
+## The board was won inside a run: the win screen plays as a translucent
+## overlay ON this board (user request, 2026-11-08), so the game stays
+## visible and alive behind GANADOR and the stats resumen. Game calls this
+## when it enters the WIN phase; CONTINUAR routes on from there.
+const WIN_SCENE := "res://scenes/run/win.tscn"
+var win_overlay: Control
+
+
+func host_win_overlay() -> void:
+	if win_overlay != null or state != ThrowState.ROUND_OVER:
+		return
+	# The board keeps rendering and its bulbs keep chasing: only the player
+	# controls go quiet (state ROUND_OVER gates every action below).
+	var layer := CanvasLayer.new()
+	layer.layer = 2  # over the HUD layer, under nothing else
+	add_child(layer)
+	win_overlay = (load(WIN_SCENE) as PackedScene).instantiate()
+	layer.add_child(win_overlay)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	# Pause first: any state except the round-over overlay (which already
 	# offers its own choices) can open the pause menu (ESC / Start).
@@ -184,7 +204,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_pause()
 		return
 	if event.is_action_pressed("restart"):
-		Game.restart_board()
+		# The win overlay plays over the live board with no controls (user
+		# request, 2026-11-08): R must not reload the board out from under it.
+		if Game.phase != Game.Phase.WIN:
+			Game.restart_board()
 		return
 	if event.is_action_pressed("cancel"):
 		# X / B: step back one stage of the throw flow.
