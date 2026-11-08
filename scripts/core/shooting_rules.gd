@@ -21,7 +21,10 @@ extends Resource
 @export_group("Settling")
 @export var settle_speed: float = 0.15
 @export var settle_time: float = 1.2
-@export var flight_timeout: float = 7.0
+## Safety net only: real outcomes (embed, settle, off-board exit) resolve
+## throws on their own. Generous, because a slow roll back down the tilted
+## board can legitimately take a while and ends as a refund.
+@export var flight_timeout: float = 15.0
 
 @export_group("Board round")
 @export var shots_per_board: int = 5
