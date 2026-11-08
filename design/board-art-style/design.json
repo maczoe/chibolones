@@ -1,0 +1,9 @@
+{
+  "title": "Estilo gráfico del tablero (M0.5)",
+  "brief": "Elegir la dirección visual de chibolones comparando low poly juguete y circo surreal (estilo The Amazing Digital Circus). Escena con cámara diagonal actual, HUD actual, mismas muescas y canicas para comparar en igualdad.",
+  "feature": "odd/tasks/game-design-foundation.md",
+  "artboards": [
+    { "file": "01-lowpoly-toy.html", "title": "A — Low Poly Juguete", "tradeoff": "Cálido y barato de renderizar (ideal Mobile); menos identidad memorable", "width": 1440, "height": 900 },
+    { "file": "02-circus-surreal.html", "title": "B — Circo Surreal (TADC)", "tradeoff": "Identidad fuerte y surrealista acorde a canicas mágicas; glow y outlines cuestan más en móviles", "width": 1440, "height": 900 }
+  ]
+}

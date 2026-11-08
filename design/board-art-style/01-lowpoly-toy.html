@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chibolones — Dirección A: Low Poly Juguete</title>
+<style>
+  :root {
+    --sky-top: #BFE3F2;
+    --sky-bottom: #FDF3E3;
+    --wood-light: #C68B4B;
+    --wood-mid: #A96B33;
+    --wood-dark: #7C4A1E;
+    --notch: #4A2E14;
+    --paint-cream: #FFF6E0;
+    --accent-red: #E4572E;
+    --accent-teal: #17A398;
+    --accent-yellow: #FFC145;
+    --blanket-a: #E4572E;
+    --blanket-b: #FFF6E0;
+    --ink: #3A2A18;
+    --marble-blue: #6EC1E4;
+    --marble-red: #E4572E;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(var(--sky-top), var(--sky-bottom) 70%);
+    color: var(--ink);
+    width: 1440px; height: 900px; overflow: hidden; position: relative;
+  }
+  /* ---- scene ---- */
+  .scene { position: absolute; inset: 0; }
+  .sun { position: absolute; top: 60px; right: 120px; width: 90px; height: 90px; border-radius: 50%;
+         background: radial-gradient(circle at 40% 40%, #FFE9B0, var(--accent-yellow)); opacity: .9; }
+  .ground { position: absolute; bottom: 0; left: 0; right: 0; height: 46%;
+            background: repeating-linear-gradient(105deg, var(--blanket-a) 0 60px, var(--blanket-b) 60px 120px); }
+  .ground::after { content: ""; position: absolute; inset: 0;
+            background: linear-gradient(rgba(253,243,227,.35), rgba(58,42,24,.25)); }
+  .board-wrap { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); }
+  /* faceted wood: hard-stop gradients fake the low-poly planes */
+  .board {
+    width: 860px; height: 420px;
+    background:
+      linear-gradient(180deg, var(--wood-light) 0 26%, var(--wood-mid) 26% 62%, var(--wood-dark) 62% 100%);
+    transform: perspective(1100px) rotateX(38deg);
+    border-radius: 18px;
+    box-shadow: 0 40px 0 -12px #5E3717, 0 60px 40px rgba(58,42,24,.35);
+    position: relative;
+  }
+  .facet { position: absolute; background: rgba(255,255,255,.10); }
+  .notch {
+    position: absolute; width: 74px; height: 74px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #6B4526 0 18%, var(--notch) 60%);
+    box-shadow: inset 0 6px 10px rgba(0,0,0,.55), 0 2px 0 rgba(255,255,255,.25);
+    display: grid; place-items: center;
+  }
+  .notch span {
+    color: var(--paint-cream); font-weight: 700; font-size: 26px; letter-spacing: 1px;
+    text-shadow: 0 2px 0 rgba(0,0,0,.4);
+  }
+  .row1 { top: 34px; } .row2 { top: 128px; } .row3 { top: 222px; }
+  .c1 { left: 118px; } .c2 { left: 280px; } .c3 { left: 442px; } .c4 { left: 604px; } .c5 { left: 666px; }
+  .row4 { top: 316px; }
+  .value-50 span { color: var(--accent-yellow); }
+  .marble {
+    position: absolute; width: 64px; height: 64px; border-radius: 50%;
+  }
+  .marble.blue { background: radial-gradient(circle at 34% 30%, #D9F1FF 0 8%, var(--marble-blue) 45%, #2E7FA8 100%); }
+  .marble.red  { background: radial-gradient(circle at 34% 30%, #FFE0D1 0 8%, var(--marble-red) 45%, #8F2B12 100%); }
+  .marble::after { content: ""; position: absolute; left: 12px; top: 8px; width: 16px; height: 10px;
+    border-radius: 50%; background: rgba(255,255,255,.75); transform: rotate(-20deg); }
+  .shadow { position: absolute; border-radius: 50%; background: rgba(58,42,24,.30); filter: blur(4px); }
+  .guide {
+    position: absolute; left: 300px; top: 60px; width: 300px; height: 6px; border-radius: 3px;
+    background: repeating-linear-gradient(90deg, rgba(23,163,152,.95) 0 22px, transparent 22px 34px);
+    transform: rotate(8deg); transform-origin: left center;
+  }
+  /* ---- HUD ---- */
+  .hud { position: absolute; inset: 0; pointer-events: none; }
+  .hud-stats { position: absolute; top: 28px; left: 32px; display: grid; gap: 10px; }
+  .stat {
+    background: var(--paint-cream); border: 3px solid var(--wood-dark); border-radius: 14px;
+    padding: 8px 18px; font-weight: 700; font-size: 22px; color: var(--ink);
+    box-shadow: 0 4px 0 var(--wood-dark);
+  }
+  .msg {
+    position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+    background: rgba(58,42,24,.88); color: var(--paint-cream); border-radius: 999px;
+    padding: 12px 28px; font-size: 22px; font-weight: 600;
+  }
+  .power { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+           width: 420px; height: 30px; border: 3px solid var(--ink); border-radius: 10px;
+           background: rgba(0,0,0,.45); overflow: hidden; }
+  .power i { display: block; height: 100%; width: 36%;
+             background: linear-gradient(90deg, #E8853D, #7FBF3F); }
+  /* ---- style notes ---- */
+  .notes {
+    position: absolute; top: 28px; right: 32px; width: 330px;
+    background: rgba(255,246,224,.94); border: 3px solid var(--wood-dark); border-radius: 16px;
+    padding: 18px 20px; box-shadow: 0 6px 0 var(--wood-dark);
+  }
+  .notes h2 { font-size: 18px; margin-bottom: 8px; }
+  .notes ul { list-style: none; font-size: 14px; line-height: 1.55; }
+  .notes li { margin-bottom: 6px; padding-left: 18px; position: relative; }
+  .notes li::before { content: "◆"; position: absolute; left: 0; color: var(--accent-teal); font-size: 11px; top: 3px; }
+  .swatches { display: flex; gap: 8px; margin-top: 10px; }
+  .swatches b { width: 34px; height: 34px; border-radius: 8px; border: 2px solid rgba(58,42,24,.35); }
+</style>
+</head>
+<body>
+  <main class="scene" aria-label="Escena de juego estilo low poly juguete">
+    <div class="sun"></div>
+    <div class="ground"></div>
+    <div class="board-wrap">
+      <div class="board">
+        <div class="facet" style="left:0; top:0; width:100%; height:26%; clip-path: polygon(0 0, 100% 0, 100% 40%, 0 100%);"></div>
+        <div class="facet" style="left:0; bottom:0; width:38%; height:38%; clip-path: polygon(0 40%, 100% 100%, 0 100%); background: rgba(0,0,0,.12);"></div>
+        <div class="notch row1 c1"><span>10</span></div>
+        <div class="notch row1 c2"><span>10</span></div>
+        <div class="notch row1 c4"><span>10</span></div>
+        <div class="notch row2 c1"><span>20</span></div>
+        <div class="notch row2 c3"><span>20</span></div>
+        <div class="notch row2 c5"><span>20</span></div>
+        <div class="notch row3 c2"><span>30</span></div>
+        <div class="notch row3 c4"><span>30</span></div>
+        <div class="notch row4 c3 value-50"><span>50</span></div>
+        <div class="shadow" style="left: 560px; top: 40px; width: 70px; height: 26px;"></div>
+        <div class="marble blue" style="left: 552px; top: 12px;"></div>
+        <div class="shadow" style="left: 250px; top: 300px; width: 70px; height: 26px;"></div>
+        <div class="marble red" style="left: 244px; top: 276px;"></div>
+        <div class="guide"></div>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="hud-stats">
+        <div class="stat">Canicas restantes: 5 / 5</div>
+        <div class="stat">Puntaje: 0</div>
+      </div>
+      <div class="msg">Mové con ← → y apretá ESPACIO para elegir la posición</div>
+      <div class="power" aria-hidden="true"><i></i></div>
+    </div>
+    <aside class="notes" aria-label="Notas de estilo">
+      <h2>Dirección A — Low Poly Juguete</h2>
+      <ul>
+        <li>Madera plana facetada: 3 tonos planos, sin textura, sombras largas suaves.</li>
+        <li>Paleta cálida saturada; los números pintados en crema, el 50 en amarillo.</li>
+        <li>Mantas a rayas y cielo degradado: feria de día, ambiente amable.</li>
+        <li>Canicas: vidrio simple con brillo blanco; legibles a cualquier tamaño.</li>
+        <li>UI: tarjetas gruesas con borde y sombra dura estilo tablero de madera.</li>
+      </ul>
+      <div class="swatches" title="Paleta">
+        <b style="background:#C68B4B"></b><b style="background:#A96B33"></b>
+        <b style="background:#7C4A1E"></b><b style="background:#FDF3E3"></b>
+        <b style="background:#E4572E"></b><b style="background:#17A398"></b>
+        <b style="background:#FFC145"></b><b style="background:#6EC1E4"></b>
+      </div>
+      <ul style="margin-top:10px">
+        <li><strong>Godot:</strong> StandardMaterial3D albedo plano, roughness 0.9; DirectionalLight cálido + ambient sky alto; sin post-proceso (ideal para el fallback Mobile).</li>
+      </ul>
+    </aside>
+  </main>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chibolones — Dirección B: Circo Surreal (estilo TADC)</title>
+<style>
+  :root {
+    --bg-top: #1C1038;
+    --bg-bottom: #3A1F6E;
+    --checker-a: #F2F2F7;
+    --checker-b: #14102A;
+    --candy-pink: #FF6FB5;
+    --candy-cyan: #4DEEEA;
+    --candy-yellow: #FFE066;
+    --candy-red: #FF4D6D;
+    --board-purple: #5B34A6;
+    --board-dark: #2E1B58;
+    --outline: #120B26;
+    --ink: #FFF7FF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
+    background: linear-gradient(var(--bg-top), var(--bg-bottom));
+    color: var(--ink);
+    width: 1440px; height: 900px; overflow: hidden; position: relative;
+  }
+  .scene { position: absolute; inset: 0; }
+  /* checkered void floor, TADC style */
+  .floor {
+    position: absolute; bottom: 0; left: -20%; right: -20%; height: 52%;
+    background:
+      linear-gradient(rgba(20,16,42,.0) 0%, rgba(20,16,42,.55) 90%),
+      repeating-conic-gradient(var(--checker-a) 0% 25%, var(--checker-b) 0% 50%);
+    background-size: auto, 140px 140px;
+    transform: perspective(900px) rotateX(55deg);
+    transform-origin: bottom center;
+  }
+  .float { position: absolute; border-radius: 50%; filter: blur(1px); opacity: .85; }
+  .float.star { border-radius: 0; }
+  .glow { box-shadow: 0 0 26px 6px rgba(255,111,181,.45); }
+  .board-wrap { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); }
+  /* marquee bulbs around the board frame */
+  .board {
+    width: 880px; height: 430px;
+    transform: perspective(1100px) rotateX(38deg);
+    border-radius: 26px;
+    background: linear-gradient(180deg, var(--board-purple) 0 30%, var(--board-dark) 100%);
+    border: 10px solid var(--outline);
+    box-shadow: 0 0 0 4px var(--candy-pink), 0 0 44px 8px rgba(77,238,234,.35), 0 50px 40px rgba(10,5,25,.6);
+    position: relative;
+  }
+  .bulbs { position: absolute; inset: -26px; display: grid;
+           grid-template-columns: repeat(14, 1fr); align-content: space-between; }
+  .bulbs i { width: 14px; height: 14px; border-radius: 50%; justify-self: center;
+             background: var(--candy-yellow); box-shadow: 0 0 10px 2px rgba(255,224,102,.8); }
+  .bulbs .row { display: contents; }
+  .notch {
+    position: absolute; width: 76px; height: 76px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 34%, #7C4FD9 0 16%, #170C33 62%);
+    border: 4px solid var(--outline);
+    box-shadow: inset 0 6px 12px rgba(0,0,0,.7), 0 0 14px rgba(77,238,234,.35);
+    display: grid; place-items: center;
+  }
+  .notch span { font-weight: 700; font-size: 27px; color: #FFF; text-shadow: 0 0 8px var(--candy-cyan), 2px 2px 0 var(--outline); }
+  .row1 { top: 30px; } .row2 { top: 126px; } .row3 { top: 222px; } .row4 { top: 318px; }
+  .c1 { left: 120px; } .c2 { left: 286px; } .c3 { left: 452px; } .c4 { left: 618px; } .c5 { left: 684px; }
+  .value-50 span { color: var(--candy-yellow); text-shadow: 0 0 12px var(--candy-yellow), 2px 2px 0 var(--outline); }
+  .marble { position: absolute; width: 66px; height: 66px; border-radius: 50%;
+            border: 4px solid var(--outline); }
+  .marble.pink { background: radial-gradient(circle at 34% 30%, #FFD7EC 0 10%, var(--candy-pink) 48%, #B02E77 100%); }
+  .marble.cyan { background: radial-gradient(circle at 34% 30%, #E4FFFF 0 10%, var(--candy-cyan) 48%, #1893A6 100%); }
+  .shadow { position: absolute; border-radius: 50%; background: rgba(10,5,25,.55); filter: blur(5px); }
+  .guide {
+    position: absolute; left: 310px; top: 64px; width: 300px; height: 8px; border-radius: 4px;
+    background: repeating-linear-gradient(90deg, var(--candy-cyan) 0 22px, transparent 22px 34px);
+    transform: rotate(8deg); transform-origin: left center;
+    box-shadow: 0 0 12px rgba(77,238,234,.8);
+  }
+  /* circus tent stripes on the side */
+  .tent { position: absolute; left: 0; top: 0; bottom: 0; width: 130px;
+    background: repeating-linear-gradient(0deg, var(--candy-red) 0 56px, #FFF 56px 112px);
+    clip-path: polygon(0 0, 55% 0, 20% 100%, 0 100%);
+    opacity: .25; }
+  .tent.right { left: auto; right: 0; clip-path: polygon(45% 0, 100% 0, 100% 100%, 80% 100%); }
+  /* ---- HUD ---- */
+  .hud { position: absolute; inset: 0; pointer-events: none; }
+  .hud-stats { position: absolute; top: 28px; left: 32px; display: grid; gap: 12px; }
+  .stat {
+    background: var(--board-dark); border: 4px solid var(--outline); border-radius: 999px;
+    padding: 8px 22px; font-weight: 700; font-size: 22px; color: var(--candy-yellow);
+    box-shadow: 0 0 0 3px var(--candy-pink), 0 0 18px rgba(255,111,181,.5);
+  }
+  .msg {
+    position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%) rotate(-1deg);
+    background: var(--candy-pink); color: var(--outline); border: 4px solid var(--outline);
+    border-radius: 999px; padding: 12px 30px; font-size: 23px; font-weight: 700;
+    box-shadow: 0 0 0 3px #FFF, 0 8px 0 var(--outline), 0 0 24px rgba(255,111,181,.6);
+  }
+  .power { position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
+           width: 420px; height: 32px; border: 4px solid var(--outline); border-radius: 999px;
+           background: rgba(20,16,42,.8); overflow: hidden; box-shadow: 0 0 0 3px var(--candy-cyan); }
+  .power i { display: block; height: 100%; width: 36%;
+             background: repeating-linear-gradient(45deg, var(--candy-cyan) 0 14px, var(--candy-pink) 14px 28px); }
+  /* ---- notes ---- */
+  .notes {
+    position: absolute; top: 28px; right: 32px; width: 340px;
+    background: rgba(46,27,88,.94); border: 4px solid var(--outline); border-radius: 18px;
+    padding: 18px 20px; box-shadow: 0 0 0 3px var(--candy-pink), 0 10px 24px rgba(10,5,25,.6);
+  }
+  .notes h2 { font-size: 18px; margin-bottom: 8px; color: var(--candy-yellow); }
+  .notes ul { list-style: none; font-size: 14px; line-height: 1.55; color: var(--ink); }
+  .notes li { margin-bottom: 6px; padding-left: 18px; position: relative; }
+  .notes li::before { content: "★"; position: absolute; left: 0; color: var(--candy-cyan); font-size: 11px; top: 3px; }
+  .swatches { display: flex; gap: 8px; margin-top: 10px; }
+  .swatches b { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--outline); }
+</style>
+</head>
+<body>
+  <main class="scene" aria-label="Escena de juego estilo circo surreal">
+    <div class="floor"></div>
+    <div class="tent"></div><div class="tent right"></div>
+    <div class="float glow" style="top:90px; left:220px; width:56px; height:56px; background:var(--candy-pink);"></div>
+    <div class="float" style="top:150px; left:420px; width:26px; height:26px; background:var(--candy-cyan);"></div>
+    <div class="float star" style="top:70px; right:430px; width:44px; height:44px; background:var(--candy-yellow); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);"></div>
+    <div class="float" style="top:210px; right:250px; width:70px; height:70px; background:var(--candy-red); opacity:.7;"></div>
+    <div class="board-wrap">
+      <div class="board">
+        <div class="bulbs" aria-hidden="true">
+          <div class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="notch row1 c1"><span>10</span></div>
+        <div class="notch row1 c2"><span>10</span></div>
+        <div class="notch row1 c4"><span>10</span></div>
+        <div class="notch row2 c1"><span>20</span></div>
+        <div class="notch row2 c3"><span>20</span></div>
+        <div class="notch row2 c5"><span>20</span></div>
+        <div class="notch row3 c2"><span>30</span></div>
+        <div class="notch row3 c4"><span>30</span></div>
+        <div class="notch row4 c3 value-50"><span>50</span></div>
+        <div class="shadow" style="left: 566px; top: 42px; width: 72px; height: 26px;"></div>
+        <div class="marble pink" style="left: 558px; top: 12px;"></div>
+        <div class="shadow" style="left: 256px; top: 304px; width: 72px; height: 26px;"></div>
+        <div class="marble cyan" style="left: 250px; top: 280px;"></div>
+        <div class="guide"></div>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="hud-stats">
+        <div class="stat">Canicas restantes: 5 / 5</div>
+        <div class="stat">Puntaje: 0</div>
+      </div>
+      <div class="msg">Mové con ← → y apretá ESPACIO para elegir la posición</div>
+      <div class="power" aria-hidden="true"><i></i></div>
+    </div>
+    <aside class="notes" aria-label="Notas de estilo">
+      <h2>Dirección B — Circo Surreal (TADC)</h2>
+      <ul>
+        <li>Vacío nocturno con piso de tablero en blanco y negro: surrealismo de circo digital.</li>
+        <li>Tablero violeta con bombitas de marquesina y bordes que brillan (emission).</li>
+        <li>Outlines negros gruesos en canicas, HUD y muescas: lectura caricaturesca.</li>
+        <li>Números con glow cyan; el 50 brilla en amarillo: jerarquía por luminosidad.</li>
+        <li>Formas flotantes de fondo: el espacio es un circo, no un patio.</li>
+      </ul>
+      <div class="swatches" title="Paleta">
+        <b style="background:#2E1B58"></b><b style="background:#5B34A6"></b>
+        <b style="background:#FF6FB5"></b><b style="background:#4DEEEA"></b>
+        <b style="background:#FFE066"></b><b style="background:#FF4D6D"></b>
+        <b style="background:#F2F2F7"></b><b style="background:#120B26"></b>
+      </div>
+      <ul style="margin-top:10px">
+        <li><strong>Godot:</strong> materiales unshaded/emission para glow (sin post-proceso caro), WorldEnvironment con fog violeta, outlines vía shader fresnel invertido; verificar coste en fallback Mobile.</li>
+      </ul>
+    </aside>
+  </main>
+</body>
+</html>
