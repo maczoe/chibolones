@@ -519,11 +519,14 @@ func _build_board() -> void:
 	var guide_len := board_def.length * 0.37
 	guide_mesh.size = Vector3(0.05, 0.004, guide_len)
 	guide_stick.mesh = guide_mesh
-	guide_stick.position = Vector3(0, 0, guide_len / 2.0)  # extends forward
+	guide_stick.position = Vector3(0, 0.03, guide_len / 2.0)  # extends forward
 	var guide_mat := StandardMaterial3D.new()
 	guide_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	guide_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	guide_mat.albedo_color = Color(0.35, 0.9, 1.0, 0.6)
+	# Overlay: the guide always draws over decals, notches and marbles.
+	guide_mat.no_depth_test = true
+	guide_mat.render_priority = 10
 	guide_stick.material_override = guide_mat
 	shot_guide.add_child(guide_stick)
 	shot_guide.visible = false
@@ -614,13 +617,16 @@ func _add_deck_art() -> void:
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.albedo_texture = board_def.deck_art
+	# Decal-like: hugging the surface and drawn early, never fighting the
+	# guide or notches for the same pixels.
+	mat.render_priority = -1
 	quad.material_override = mat
 	var band_start := board_def.launch_z() + 0.35
 	var band_end := board_def.first_row_z - 0.35
 	# Rotate an extra 180 around Z after the lay-down so the art faces the
 	# player upright (same correction the number labels use).
 	quad.rotation_degrees = Vector3(-90, 0, 180)
-	quad.position = Vector3(0, 0.013, (band_start + band_end) / 2.0)
+	quad.position = Vector3(0, 0.006, (band_start + band_end) / 2.0)
 	board.add_child(quad)
 	_add_side_deck_art()
 
