@@ -22,8 +22,9 @@ signal board_ended(score: int)
 
 ## M2 vocabulary: durability, board rules and their HUD cues.
 
-## A marble left the bag: def id and why (&"broke" = durability roll,
-## &"thrown" = consumed by the throw). Game owns the bag itself.
+## A marble left the run: def id and why (&"broke" = durability roll, so it
+## is gone for the rest of the run; &"thrown" = consumed by the throw, so the
+## next board restores it). Game owns the inventory and the board ammo.
 signal marble_removed(def_id: String, reason: StringName)
 ## A bonificador is active on this board: the cue for the board-start
 ## announcements (one event per modifier, HUD queues them).

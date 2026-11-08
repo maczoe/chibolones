@@ -217,25 +217,21 @@ func _test_decision_timer() -> void:
 
 func _test_glass_break() -> void:
 	game.start_run()
-	var bag_before: int = game.bag.size()
 	# The .tres keeps break_chance 0.0 until data/ reopens in M3; the test
 	# builds the durable glass marble itself.
 	var brittle: MarbleDef = content.marble_def("glass").duplicate()
 	brittle.break_chance = 1.0
-	var glass_slot := -1
-	for i in game.bag.size():
-		if game.bag[i].id == "glass":
-			game.bag[i] = brittle
-			glass_slot = i
-			break
+	# A normal run owns five commons (S10): the first one becomes the glass.
+	game.inventory[0] = brittle
 	var board := _open_board()
 	await physics_frame
-	board.selected_bag_index = glass_slot
+	var ammo_before: int = game.ammo.size()
+	board.selected_ammo_index = 0
 	broke.clear()
 	board._launch(0.0, 20.0)
-	_check(game.bag.size() == bag_before - 1,
-			"a broken glass marble should leave the bag (%d -> %d)"
-			% [bag_before, game.bag.size()])
+	_check(game.ammo.size() == ammo_before - 1,
+			"a broken glass marble should leave the ammo (%d -> %d)"
+			% [ammo_before, game.ammo.size()])
 	_check(broke.size() == 1,
 			"a break should emit marble_removed once, got %d" % broke.size())
 	if broke.size() == 1:
@@ -248,20 +244,18 @@ func _test_glass_break() -> void:
 	board.queue_free()
 	await physics_frame
 
-	# break_chance 0.0 never breaks: nothing leaves the bag, no event.
+	# break_chance 0.0 never breaks: nothing leaves the ammo, no event.
 	game.start_run()
-	var bag_intact: int = game.bag.size()
+	game.inventory[0] = content.marble_def("glass")
 	var safe := _open_board()
 	await physics_frame
-	for i in game.bag.size():
-		if game.bag[i].id == "glass":
-			safe.selected_bag_index = i
-			break
+	var ammo_intact: int = game.ammo.size()
+	safe.selected_ammo_index = 0
 	broke.clear()
 	safe._launch(0.0, 20.0)
-	_check(game.bag.size() == bag_intact,
-			"break_chance 0 should keep the bag intact (%d -> %d)"
-			% [bag_intact, game.bag.size()])
+	_check(game.ammo.size() == ammo_intact,
+			"break_chance 0 should keep the ammo intact (%d -> %d)"
+			% [ammo_intact, game.ammo.size()])
 	_check(broke.is_empty(), "break_chance 0 should not emit marble_removed")
 	_clear_marbles(safe)
 	safe.queue_free()

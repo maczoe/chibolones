@@ -17,10 +17,10 @@ enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 var board_def: BoardDef
 var rules: ShootingRules
 ## Base marble def: it drives the board geometry (notch size) and is the
-## fallback when the run has no bag yet (headless tests, no start_run).
+## fallback when the run has no ammo yet (headless tests, no start_run).
 var marble_def: MarbleDef
-## Bag slot of the marble the next throw uses; Up/Down swaps it while aiming.
-var selected_bag_index := 0
+## Ammo slot of the marble the next throw uses; Up/Down swaps it while aiming.
+var selected_ammo_index := 0
 ## Walls the marble hit this throw: prizes multiply their own score once per
 ## wall from this count, inside the hook contract.
 var wall_hits := 0
@@ -32,7 +32,13 @@ var wall_mult_announced := false
 var launched_def: MarbleDef  # def of the marble in flight, for score_mult
 
 var state: ThrowState = ThrowState.AIM
+## Throws the board has: the run inventory size at board start (S9), or the
+## rules baseline when the board is played outside a run.
+var shots_total := 0
 var shots_left := 0
+## The launched marble was already taken from the ammo: one consumption per
+## throw, whatever resolves it.
+var throw_consumed := false
 var aim_x := 0.0
 var aim_limit := 0.0
 var shot_tilt := 0.0
@@ -87,14 +93,22 @@ func _ready() -> void:
 	board_def = ContentDB.board_def(_board_def_index())
 	rules = ContentDB.rules()
 	marble_def = ContentDB.marble_def("common")
-	# Run context: a board played inside a run aims at that board's objective
-	# and reports its result to Game. A board opened without a run (headless
-	# tests) has no objective and keeps the plain round-over overlay.
-	if Game.in_run() and Game.phase == Game.Phase.BOARD:
+	# Run context: a board played inside a run aims at that board's objective,
+	# spends the marble inventory and reports its result to Game. A board
+	# opened without a run (headless tests) has no objective and keeps the
+	# plain round-over overlay.
+	if _inventory_mode():
 		run_objective = Game.objective_for_board(Game.current_board_in_run,
 				board_def.objective_target if board_def.objective_target > 0 else 60)
-	selected_bag_index = _common_bag_index()
-	shots_left = rules.shots_per_board
+		# S5: the ammo is the whole run inventory again. The ammo is the throw
+		# budget (S9), so rules.shots_per_board stays untouched for the boards
+		# played without a run.
+		Game.begin_board()
+		shots_total = Game.ammo.size()
+	else:
+		shots_total = rules.shots_per_board
+	selected_ammo_index = _common_ammo_index()
+	shots_left = shots_total
 	aim_limit = board_def.width / 2.0 - board_def.aim_limit_margin
 	# Bonificadores first: the wall bounce rule must be in place before the
 	# walls are built, and every other rule reads the same state later.
@@ -112,7 +126,7 @@ func _ready() -> void:
 	EventBus.embed.connect(_on_embed_celebrate)
 	EventBus.wall_hit.connect(_on_wall_hit)
 	add_child(preload("res://scripts/board/juice.gd").new())
-	hud.set_shots(shots_left, rules.shots_per_board)
+	hud.set_shots(shots_left, shots_total)
 	hud.set_target(run_objective)
 	hud.set_money(Game.money)
 	Game.money_changed.connect(hud.set_money)
@@ -165,15 +179,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			_:
 				pass
 		return
-	# Marble bag: edge-triggered on the vertical arrows while aiming, so
-	# holding a direction never cycles (the sideways arrows are held for
-	# aiming; these two are taps instead).
+	# Marble selection over the board ammo: edge-triggered on the vertical
+	# arrows while aiming, so holding a direction never cycles (the sideways
+	# arrows are held for aiming; these two are taps instead).
 	if state == ThrowState.AIM:
 		if event.is_action_pressed("move_up"):
-			_cycle_bag(-1)
+			_cycle_ammo(-1)
 			return
 		if event.is_action_pressed("move_down"):
-			_cycle_bag(1)
+			_cycle_ammo(1)
 			return
 	if event.is_action_pressed("camera_mode"):
 		# Camera mode: free the view to read the whole board; only from AIM
@@ -338,33 +352,41 @@ func _reset_step_timer() -> void:
 		board_theme.reset_decision()
 
 
-## Marble the next throw uses: the selected bag entry, or the base def when
-## the run has no bag yet (headless tests build the board without a run).
+## Marble the next throw uses: the selected ammo entry, or the base def when
+## the run has no ammo (headless tests build the board without a run).
 func _selected_marble_def() -> MarbleDef:
-	if Game.bag.is_empty():
+	if Game.ammo.is_empty():
 		return marble_def
-	return Game.bag[selected_bag_index % Game.bag.size()]
+	return Game.ammo[selected_ammo_index % Game.ammo.size()]
 
 
-## Bag slot of the common marble: the run always starts on it, so the first
+## Ammo slot of the common marble: the run always starts on it, so the first
 ## throw keeps the POC feel.
-func _common_bag_index() -> int:
-	for i in Game.bag.size():
-		if Game.bag[i].id == "common":
+func _common_ammo_index() -> int:
+	for i in Game.ammo.size():
+		if Game.ammo[i].id == "common":
 			return i
 	return 0
 
 
-func _cycle_bag(step: int) -> void:
-	var count := Game.bag.size()
+func _cycle_ammo(step: int) -> void:
+	var count := Game.ammo.size()
 	if count > 0:
-		selected_bag_index = (selected_bag_index + step + count) % count
+		selected_ammo_index = (selected_ammo_index + step + count) % count
 	var def := _selected_marble_def()
 	hud.set_selected_marble(def.display_name)
 	hud.flash("%s: %s" % [def.display_name, _marble_hint(def)])
 
 
-## One-line effect hint for the bag flash: the launch speed when the marble
+## Keep the selection on a marble that still exists after the ammo shrank.
+func _keep_selection_valid() -> void:
+	if Game.ammo.is_empty():
+		selected_ammo_index = 0
+	else:
+		selected_ammo_index %= Game.ammo.size()
+
+
+## One-line effect hint for the ammo flash: the launch speed when the marble
 ## changes it, otherwise its flavor line.
 func _marble_hint(def: MarbleDef) -> String:
 	if not is_equal_approx(def.speed_mult, 1.0):
@@ -388,13 +410,15 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	wall_mult = 1.0
 	wall_mult_announced = false
 	wall_hits = 0
+	# The throw is spent when it resolves (S4), so a refund never spends it.
+	throw_consumed = false
 	if board_theme != null:
 		# Per-throw rules first: Borracho reshuffles the values, Ventoso picks
 		# a side, Mochila covers a notch, Cronometrado restarts its clock.
 		board_theme.on_throw_started()
 	var def := _selected_marble_def()
 	# Glass durability (S3): one roll per throw, before the marble exists. A
-	# broken marble leaves the bag and the throw goes on with the next one.
+	# broken marble leaves the ammo and the throw goes on with the next one.
 	if _try_break(def):
 		def = _selected_marble_def()
 	launched_def = def
@@ -421,9 +445,12 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	pending_result = ""
 	launch_timer = 0.0
 	launch_marker.visible = false
-	shots_left -= 1
+	# Outside a run the shot is spent at launch, exactly like the POC; a run
+	# board spends the marble when the throw resolves instead (S4).
+	if not _inventory_mode():
+		shots_left -= 1
 	state = ThrowState.FLIGHT
-	hud.set_shots(shots_left, rules.shots_per_board)
+	hud.set_shots(shots_left, shots_total)
 	EventBus.throw_started.emit(def.id)
 
 
@@ -446,6 +473,7 @@ func _update_flight(delta: float) -> void:
 				or absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
 				or local.y < -0.05:
 			_discard_marble(marble)
+			_consume_throw()
 			pending_result = "La canica salio del tablero: 0 puntos"
 			EventBus.throw_ended.emit(&"off_board")
 			continue
@@ -479,6 +507,7 @@ func _update_flight(delta: float) -> void:
 				marble.freeze = true
 				active_marbles.erase(marble)
 				settle_times.erase(marble)
+				_consume_throw()
 				pending_result = "La canica se quedo quieta: 0 puntos"
 				EventBus.throw_ended.emit(&"settled")
 		# Run board: reaching the objective wins the board right here, no
@@ -494,6 +523,7 @@ func _update_flight(delta: float) -> void:
 					marble.queue_free()
 			active_marbles.clear()
 			EventBus.throw_ended.emit(&"timed_out")
+			_consume_throw()
 		if shots_left > 0:
 			state = ThrowState.AIM
 			launch_marker.visible = true
@@ -504,7 +534,7 @@ func _update_flight(delta: float) -> void:
 				hud.flash(pending_result)
 				pending_result = ""
 			else:
-				hud.flash("Tiro %d de %d" % [rules.shots_per_board - shots_left + 1, rules.shots_per_board])
+				hud.flash("Tiro %d de %d" % [shots_total - shots_left + 1, shots_total])
 		else:
 			_round_over()
 
@@ -513,6 +543,28 @@ func _discard_marble(marble: RigidBody3D) -> void:
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
 	marble.queue_free()
+
+
+## A run board spends the marble inventory: the ammo is the throw budget and
+## every resolved throw consumes a marble. A board opened without a run
+## (headless tests, --script mode) keeps the plain POC round.
+func _inventory_mode() -> bool:
+	return Game.in_run() and Game.phase == Game.Phase.BOARD
+
+
+## The throw resolved without a refund: the marble leaves the board ammo
+## (S4) and the run is told through marble_removed. The inventory keeps it,
+## so the next board restores it (S5).
+func _consume_throw() -> void:
+	if throw_consumed or not _inventory_mode():
+		return
+	throw_consumed = true
+	if Game.spend_ammo(launched_def) == null:
+		return
+	shots_left = Game.ammo.size()
+	_keep_selection_valid()
+	hud.set_shots(shots_left, shots_total)
+	hud.set_selected_marble(_selected_marble_def().display_name)
 
 
 func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
@@ -536,6 +588,7 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	if breakdown.acted():
 		hud.set_breakdown(breakdown.describe())
 	EventBus.embed.emit(hole.index, boosted)
+	_consume_throw()
 	EventBus.throw_ended.emit(&"embedded")
 
 
@@ -562,7 +615,7 @@ func _round_over() -> void:
 	hud.set_timer(-1)
 	if board_result_sent:
 		return
-	var possible: int = rules.shots_per_board * board_def.row_scores[board_def.rows - 1]
+	var possible: int = shots_total * board_def.row_scores[board_def.rows - 1]
 	if run_objective > 0 and score_engine.total < run_objective:
 		# Run board lost: the shots ran out under the objective, so the run
 		# is over. Game owns the run summary screen.
@@ -733,35 +786,23 @@ func paint_hole(hole: Dictionary) -> void:
 
 
 ## Glass durability (S3): one roll per throw, before the marble spawns. A
-## broken marble leaves the bag and the throw goes on with the next bag
-## marble. The bag never empties here: if the break would leave it empty the
-## break does not happen, so the last marble always survives.
+## broken marble leaves the ammo and the run inventory for good (S5), so the
+## next board does not restore it, and the throw goes on with the next ammo
+## marble. The last marble never breaks, so a throw always has something to
+## launch.
 func _try_break(def: MarbleDef) -> bool:
-	if def == null or not Game.in_run():
+	if def == null or not _inventory_mode():
 		return false
-	if def.break_chance <= 0.0 or Game.bag.size() <= 1:
+	if def.break_chance <= 0.0 or Game.ammo.size() <= 1:
 		return false
 	if randf() >= def.break_chance:
 		return false
-	return _remove_from_bag(def)
-
-
-## Drop the first bag entry with this def and keep the selection on a marble
-## that still exists; the HUD flashes the break.
-func _remove_from_bag(def: MarbleDef) -> bool:
-	for i in Game.bag.size():
-		var entry: MarbleDef = Game.bag[i]
-		if entry != def and entry.id != def.id:
-			continue
-		Game.bag.remove_at(i)
-		if selected_bag_index > i:
-			selected_bag_index -= 1
-		selected_bag_index %= Game.bag.size()
-		EventBus.marble_removed.emit(def.id, &"broke")
-		hud.flash("Tu canica de vidrio se rompio!")
-		hud.set_selected_marble(_selected_marble_def().display_name)
-		return true
-	return false
+	if Game.break_ammo(def) == null:
+		return false
+	_keep_selection_valid()
+	hud.flash("Tu canica de vidrio se rompio!")
+	hud.set_selected_marble(_selected_marble_def().display_name)
+	return true
 
 
 ## Bonificador banner at board start: queue the cue and let the timer space

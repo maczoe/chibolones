@@ -19,8 +19,10 @@ const START_MONEY := 5
 ## rate (content-plan §2).
 const ENDLESS_BONUS := 1
 
-## Sample marbles the run starts with, in bag order (M3 grows the pool).
-const SAMPLE_MARBLES := ["common", "fire", "glass"]
+## Marbles a normal run owns from the start (S10, economy v1 in
+## content-plan §2): five commons, no specials. Debug mode will pass its own
+## picked loadout (S8).
+const STARTING_MARBLES := ["common", "common", "common", "common", "common"]
 const SAMPLE_PRIZE := "trompo"
 
 signal phase_changed(phase: Phase)
@@ -37,8 +39,14 @@ var phase: Phase = Phase.BOARD
 ## stays 0.
 var board_index := 0
 var money := 0
-## The marble bag: what the player can pick per throw (index = bag slot).
-var bag: Array[MarbleDef] = []
+## Marbles the player owns for the whole run (S4/S5): what the shop buys,
+## what a board start restores into the ammo, and what only a broken marble
+## leaves for good.
+var inventory: Array[MarbleDef] = []
+## The current board's ammo (S5/S9): one copy of the inventory taken when
+## the board starts, and the throws the board has. A thrown marble leaves
+## it when the throw resolves (S4); a refunded one stays (S7).
+var ammo: Array[MarbleDef] = []
 ## Prizes owned this run: permanent effects (M2 hook contract).
 var prizes: Array[PrizeDef] = []
 
@@ -64,12 +72,12 @@ func start_run() -> void:
 	block = 1
 	boards_cleared = 0
 	money = START_MONEY
-	bag.clear()
+	inventory.clear()
 	prizes.clear()
-	for marble_id in SAMPLE_MARBLES:
+	for marble_id in STARTING_MARBLES:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
-			bag.append(marble)
+			inventory.append(marble)
 	var prize: PrizeDef = ContentDB.prize_def(SAMPLE_PRIZE)
 	if prize != null:
 		prizes.append(prize)
@@ -77,6 +85,7 @@ func start_run() -> void:
 	endless_mode = false
 	run_won = false
 	run_active = true
+	begin_board()
 	_enter(Phase.BOARD)
 	run_started.emit()
 	money_changed.emit(money)
@@ -85,6 +94,50 @@ func start_run() -> void:
 
 func restart_board() -> void:
 	get_tree().reload_current_scene()
+
+
+## A board is starting: its ammo is the whole run inventory again (S5). The
+## board calls this when it renders, so both the next board and a restart
+## get the full loadout back, while a broken marble stays lost because it
+## already left the inventory.
+func begin_board() -> void:
+	ammo.assign(inventory)
+
+
+## A thrown marble resolved without a refund (S4): it leaves the board ammo
+## only, so the next board restores it from the inventory. Returns the spent
+## def, or null when the ammo had no such marble.
+func spend_ammo(def: MarbleDef) -> MarbleDef:
+	var spent := _take_marble(ammo, def)
+	if spent == null:
+		return null
+	EventBus.marble_removed.emit(spent.id, &"thrown")
+	return spent
+
+
+## A marble broke on the durability roll (S5): it leaves the board ammo and
+## the run inventory for good, so the next board does not restore it.
+## Returns the lost def, or null when the ammo had no such marble.
+func break_ammo(def: MarbleDef) -> MarbleDef:
+	var lost := _take_marble(ammo, def)
+	if lost == null:
+		return null
+	_take_marble(inventory, def)
+	EventBus.marble_removed.emit(lost.id, &"broke")
+	return lost
+
+
+## Remove the first entry with this def id from a marble list (ammo or
+## inventory hold defs, never instances of the marble in flight).
+func _take_marble(list: Array[MarbleDef], def: MarbleDef) -> MarbleDef:
+	if def == null:
+		return null
+	for i in list.size():
+		if list[i].id == def.id:
+			var taken: MarbleDef = list[i]
+			list.remove_at(i)
+			return taken
+	return null
 
 
 ## The board scene is on screen; the run plays board by board.
