@@ -20,4 +20,4 @@ cam_look_z = 0.8
 cam_orbit_speed = 70.0
 cam_min_elev_deg = 10.0
 cam_max_elev_deg = 86.0
-cam_azimuth_limit_deg = 100.0
+cam_azimuth_limit_deg = 20.0
