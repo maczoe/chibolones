@@ -373,7 +373,7 @@ func _build_environment() -> void:
 	# numbers read at a glance, while keeping some diagonal drama. The orbit
 	# parameters derive from the framing, so camera mode starts here.
 	cam_look_target = Vector3(0, -0.2, rules.cam_look_z)
-	var back := length / 2.0 - rules.cam_back
+	var back := length / 2.0 - rules.cam_back + rules.cam_look_z
 	var up := rules.cam_height - cam_look_target.y
 	cam_orbit_radius = sqrt(up * up + back * back)
 	cam_default_elev_deg = rad_to_deg(atan2(up, back))
