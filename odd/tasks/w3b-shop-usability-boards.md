@@ -46,21 +46,31 @@ S5: Orden de tableros (GDD §3): tablero 1 = tablero básico; jefes fijos
 
 T1 (S3): Effect descriptions: MarbleDef.effect_description() y
     PrizeDef.effect_description(); la tienda las muestra en cada card.
-    Route: inline.
+    Route: inline. Commit: 48719c7
 T2 (S2): Inventory section in shop: lista de canicas y premios con
     cantidad, botón vender por item, Economy.rescue_price(def, block),
     Game.sell_marble/sell_prize con guardia de última canica.
-    Route: inline.
+    Route: inline. Commit: 48719c7
 T3 (S4): Shop focus restore after buy/sell/reroll (refoco al primer
-    habilitado). Route: inline.
+    habilitado). Route: inline. Commit: 48719c7
 T4 (S5): Random board order per run in Game (board 1 basic, bosses
     fixed, no repeats per block; endless boss-tier random; debug
-    untouched). Route: inline.
+    untouched). Route: inline. Commits: 48719c7 + beb515a (pool del
+    bloque 1 excluye la def 0; leak de debug_mode en el test)
 T5: Tests (sell/rescue, descriptions, focus, board order) + suite
-    completa verde. Route: inline.
+    completa verde. Route: inline. Verificado: 16/16 verde (run_loop
+    x5 corridas), gdcheck OK en los 10 archivos tocados.
+    La partida manual de control queda en manos del usuario.
 
 ## Log
 
 L1: Las 4 observaciones del playtest del usuario (S1, verbatim).
 L2: Decisiones: rescate mitad del precio actual; mínimo 1 canica;
     jefes fijos + azar normal; refoco automático en la tienda.
+L3: T1-T5 implementados (48719c7 + beb515a): effect_description en
+    ambos defs (canica sin efectos = «Sin efectos: la canica clasica»),
+    inventario con VENDER por item (rescate ceil(precio actual/2),
+    guardia de última canica), refoco al primer habilitado tras
+    comprar/vender/reroll, orden de tableros sorteado por bloque
+    (bloque 1 reparte las defs 1-2 entre tableros 2-3; jefes y tablero
+    1 fijos; endless tira defs de tier jefe). Suite 16/16 x5 corridas.
