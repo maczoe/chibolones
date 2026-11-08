@@ -40,3 +40,4 @@ floor_checker_b = Color(0.078, 0.063, 0.165, 1)
 floor_checker_size = 14.0
 deck_art = ExtResource("2_ufo")
 deck_art_width = 1.6
+deck_art_side_width = 0.5

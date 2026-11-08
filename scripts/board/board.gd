@@ -35,9 +35,11 @@ var launch_marker: MeshInstance3D
 var shot_guide: Node3D
 var skirt: MeshInstance3D
 var cam: Camera3D
-var cam_base_pos: Vector3
 var cam_look_target: Vector3
-var cam_offset := Vector2.ZERO  # camera-mode pan (x, z) from the default spot
+var cam_orbit_radius := 8.0
+var cam_azimuth_deg := 0.0   # 0 = in front of the player edge
+var cam_elev_deg := 0.0      # elevation over the surface plane
+var cam_default_elev_deg := 0.0
 var holes: Array[Dictionary] = []          # {pos, score, occupied}
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}                     # marble -> seconds under slow speed
@@ -72,10 +74,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			launch_marker.visible = false
 			hud.flash("Modo camara: flechas recorren el tablero, Z para volver")
 		elif state == ThrowState.CAMERA:
+			# Keep the camera where the player left it: the throw can be
+			# made from any angle they chose. Restart resets the board.
 			state = ThrowState.AIM
-			cam_offset = Vector2.ZERO
-			cam.position = cam_base_pos
-			cam.look_at(cam_look_target, Vector3.UP)
 			launch_marker.visible = true
 			hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 		return
@@ -141,27 +142,37 @@ func _physics_process(delta: float) -> void:
 			launch_timer += delta
 			_update_flight(delta)
 		ThrowState.CAMERA:
-			# Free view: pan over the board, always aiming at its center,
-			# clamped so the cabinet and backdrop stay inside the frame.
-			var pan := Vector2.ZERO
+			# Orbit view: horizontal arrows circle the board center (see the
+			# side walls), up/down raise or lower the view. Elevation is
+			# clamped so the camera never crosses the surface plane: the
+			# board can never be seen at more than cam_max_elev from a
+			# vertical, i.e. the view can't flip past 90 degrees.
+			var orbit := 0.0
 			if Input.is_action_pressed("move_left"):
-				pan.x -= 1.0
+				orbit += 1.0
 			if Input.is_action_pressed("move_right"):
-				pan.x += 1.0
+				orbit -= 1.0
+			var lift := 0.0
 			if Input.is_action_pressed("move_up"):
-				pan.y += 1.0
+				lift += 1.0
 			if Input.is_action_pressed("move_down"):
-				pan.y -= 1.0
-			var limit_x := board_def.width / 2.0 + rules.cam_pan_margin_x
-			var limit_z_front := -rules.cam_pan_front
-			var limit_z_back := board_def.length / 2.0 + rules.cam_pan_back
-			cam_offset += pan * rules.cam_pan_speed * delta
-			cam_offset.x = clampf(cam_offset.x, -limit_x, limit_x)
-			cam_offset.y = clampf(cam_offset.y, limit_z_front, limit_z_back)
-			cam.position = cam_base_pos + Vector3(cam_offset.x, 0.0, cam_offset.y)
-			cam.look_at(cam_look_target, Vector3.UP)
+				lift -= 1.0
+			cam_azimuth_deg = clampf(cam_azimuth_deg + orbit * rules.cam_orbit_speed * delta,
+					-rules.cam_azimuth_limit_deg, rules.cam_azimuth_limit_deg)
+			cam_elev_deg = clampf(cam_elev_deg + lift * rules.cam_orbit_speed * delta,
+					rules.cam_min_elev_deg, rules.cam_max_elev_deg)
+			_apply_camera()
 		_:
 			pass
+
+
+func _apply_camera() -> void:
+	var horiz := cam_orbit_radius * cos(deg_to_rad(cam_elev_deg))
+	cam.position = cam_look_target + Vector3(
+			sin(deg_to_rad(cam_azimuth_deg)) * horiz,
+			cam_orbit_radius * sin(deg_to_rad(cam_elev_deg)),
+			-cos(deg_to_rad(cam_azimuth_deg)) * horiz)
+	cam.look_at(cam_look_target, Vector3.UP)
 
 
 # --- Shooting ----------------------------------------------------------------
@@ -359,10 +370,15 @@ func _build_environment() -> void:
 	add_child(cam)
 	var length := board_def.length
 	# Cenital-leaning default: high and steep enough that even the far row's
-	# numbers read at a glance, while keeping some diagonal drama.
+	# numbers read at a glance, while keeping some diagonal drama. The orbit
+	# parameters derive from the framing, so camera mode starts here.
 	cam_look_target = Vector3(0, -0.2, rules.cam_look_z)
-	cam_base_pos = Vector3(0, rules.cam_height, -length / 2.0 + rules.cam_back)
-	cam.look_at_from_position(cam_base_pos, cam_look_target, Vector3.UP)
+	var back := length / 2.0 - rules.cam_back
+	var up := rules.cam_height - cam_look_target.y
+	cam_orbit_radius = sqrt(up * up + back * back)
+	cam_default_elev_deg = rad_to_deg(atan2(up, back))
+	cam_elev_deg = cam_default_elev_deg
+	_apply_camera()
 
 
 func _build_backdrop() -> void:
@@ -593,6 +609,30 @@ func _add_deck_art() -> void:
 	quad.rotation_degrees = Vector3(-90, 0, 180)
 	quad.position = Vector3(0, 0.013, (band_start + band_end) / 2.0)
 	board.add_child(quad)
+	_add_side_deck_art()
+
+
+func _add_side_deck_art() -> void:
+	# The same theme art on both cabinet side faces, centered: visible when
+	# the camera orbits to the sides. 0 disables.
+	if board_def.deck_art == null or board_def.deck_art_side_width <= 0.0:
+		return
+	var skirt_y := -0.275 - board_def.thickness / 2.0
+	var x := board_def.width / 2.0 + board_def.wall_thickness + 0.005
+	for side in [-1.0, 1.0]:
+		var quad := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(board_def.deck_art_side_width, board_def.deck_art_side_width)
+		quad.mesh = q
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_texture = board_def.deck_art
+		quad.material_override = mat
+		# Face outward: +X normal on the right side, -X on the left.
+		quad.rotation_degrees = Vector3(0, 90.0 * side, 0)
+		quad.position = Vector3(side * x, skirt_y, 0.0)
+		board.add_child(quad)
 
 
 func _add_fair_bulbs() -> void:

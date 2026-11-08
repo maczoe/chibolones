@@ -55,14 +55,15 @@ func _run() -> void:
 			await _frames(10)
 			Input.action_release("move_right")
 			Input.action_release("move_up")
-			if board.cam_offset == Vector2.ZERO:
-				return _fail("camera mode pan did not move the camera")
+			var panned := board.cam.position
+			if board.cam_azimuth_deg == 0.0 and board.cam_elev_deg == board.cam_default_elev_deg:
+				return _fail("camera mode orbit did not move the camera")
 			_tap("camera_mode")
 			await _frames(3)
 			if board.state != board.ThrowState.AIM:
 				return _fail("expected AIM after leaving camera mode")
-			if board.cam_offset != Vector2.ZERO or board.cam.position != board.cam_base_pos:
-				return _fail("camera did not return to its base spot")
+			if board.cam.position != panned:
+				return _fail("camera was reset on exit; it must keep the player's angle")
 		# Move the aim sideways a little on every shot so covers differ.
 		Input.action_press("move_right")
 		await _frames(10)

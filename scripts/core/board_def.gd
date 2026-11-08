@@ -71,6 +71,8 @@ extends Resource
 ## the notch rows, centered on X and on that band (null = none).
 @export var deck_art: Texture2D
 @export var deck_art_width: float = 1.6
+## Same art on both cabinet side faces, centered; 0 disables side art.
+@export var deck_art_side_width: float = 0.5
 
 
 func launch_z() -> float:

@@ -28,13 +28,15 @@ extends Resource
 
 @export_group("Camera")
 ## Default (cenital) camera: height above the surface, distance behind the
-## player edge, and the board-center Z the camera always aims at.
+## player edge, and the board-center Z the camera always aims at. The orbit
+## radius and default elevation derive from these.
 @export var cam_height: float = 7.2
 @export var cam_back: float = 1.6
 @export var cam_look_z: float = 0.4
-## Camera mode (Z / LB): pan speed and how far the view may travel from
-## its default spot before the limits stop it.
-@export var cam_pan_speed: float = 3.5
-@export var cam_pan_margin_x: float = 2.5
-@export var cam_pan_front: float = 2.0
-@export var cam_pan_back: float = 1.0
+## Camera mode (Z / LB) orbits the board center: angular speed, elevation
+## limits (never below the surface plane, so the view can't flip past 90
+## degrees) and how far sideways the camera may travel.
+@export var cam_orbit_speed: float = 70.0
+@export var cam_min_elev_deg: float = 10.0
+@export var cam_max_elev_deg: float = 86.0
+@export var cam_azimuth_limit_deg: float = 100.0
