@@ -9,15 +9,15 @@ extends Resource
 @export_group("Notch grid")
 @export var cols: int = 5
 @export var rows: int = 4
-@export var spacing_x: float = 0.8
+@export var spacing_x: float = 0.72
 @export var first_row_z: float = -0.5
-@export var spacing_z: float = 1.1
+@export var spacing_z: float = 1.0
 ## Painted score per row, nearest player row first.
 @export var row_scores: Array[int] = [10, 20, 30, 50]
 
 @export_group("Board geometry")
-@export var width: float = 4.2
-@export var length: float = 7.0
+@export var width: float = 3.9
+@export var length: float = 6.4
 @export var thickness: float = 0.12
 @export var tilt_deg: float = 6.0
 @export var wall_height: float = 0.22
@@ -32,7 +32,13 @@ extends Resource
 ## Launch distance from the forgiving player edge.
 @export var launch_depth: float = 0.5
 ## Max distance between marble center and notch center to embed.
-@export var capture_radius: float = 0.08
+## Tuning 2026-11-08: 0.08 -> 0.10 so bouncing drops land more often.
+@export var capture_radius: float = 0.1
+## Gentle attraction toward the nearest open notch while the marble rolls
+## below skip speed (tuning 2026-11-08): nudges the drop-in without
+## steering the throw. 0 disables it; Iman stacks its stronger magnet on
+## top of this.
+@export var capture_pull: float = 0.4
 ## Faster than this, the marble skips over notches.
 @export var skip_speed: float = 4.5
 
