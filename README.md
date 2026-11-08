@@ -27,24 +27,28 @@ godot --path .
 3. **Power** — Space then starts the power bar. It fills automatically,
    reverses when full, and keeps oscillating; pressing Space again locks it
    and throws. The captured percentage maps linearly to the launch speed.
-4. **Throw** — 5 shots per round. The board tilts toward the player, so a
-   marble either embeds itself in a notch (when it rolls over it slowly
-   enough; a fast one skips over it) or rolls back off the player's edge,
-   which **returns the throw without consuming it**. The board has low
+4. **Throw** — in a run the throws are the marbles you carry: the board ammo
+   is the run inventory, restored to full at every board start (5 common
+   marbles to begin with). The POC board played outside a run keeps 5
+   shots. The board tilts toward the player, so a marble either embeds
+   itself in a notch (when it rolls over it slowly enough; a fast one
+   skips over it) or rolls back off the player's edge, which **returns the
+   throw and the marble without consuming either**. The board has low
    walls on the sides and the back: a bouncy marble with enough inertia can
-   still hop over them, and any marble that leaves the board loses the shot
-   (0 points).
+   still hop over them, and any marble that leaves the board loses the
+   shot and the marble (0 points; both come back next board). A marble
+   broken on the glass durability roll is gone for the rest of the run.
 5. **Score** — Notches score 10 / 20 / 30 / 50 from the near row to the
    back row, with the numbers painted readable from the player's camera.
    Like the real fairground board, the notches are carved at marble size:
    an embedded marble stays stuck with half its circumference exposed and
    becomes a fixed obstacle later shots bounce off, so the same notch can
    never take a second marble. The score is added the moment the marble
-   embeds. After the 5th throw the round total is shown; R restarts.
+   embeds. After the last marble the round total is shown; R restarts.
 
 ### Sample content (M0.5)
 
-While aiming, **Up/Down** swap the marble in the bag; the HUD shows the
+While aiming, **Up/Down** swap the marble in the ammo; the HUD shows the
 selected marble under the score, and a flash line describes its effect.
 
 | Marble | Look | Effect now |
@@ -150,8 +154,8 @@ shows no line at all.
 
 ## The run
 
-**JUGAR** in the title screen starts a run; the library button stays
-disabled until M4. A run is **20 boards in 5 blocks of 4**, a boss board on
+**JUGAR** in the title screen starts a run; **MODO DEBUG** opens the
+single-board setup (below); the library button stays disabled until M4. A run is **20 boards in 5 blocks of 4**, a boss board on
 every 4th (4, 8, 12, 16, 20), and each board renders its own def: its name,
 palette, backdrop variant, emblem and rules (`data/boards/`). What escalates
 is the objective: the board target (60 normal, 100 boss) scaled by the block
@@ -161,7 +165,7 @@ rules on top, the objective under the score and the money in the run.
 - **Board won** — reaching the objective wins the board on the spot and the
   run pays `base(block) + per_marble(block) * canicas restantes + bonus`,
   i.e. `3 + block*2` plus `1 + block` per marble left.
-- **Board lost** — running out of shots under the objective ends the run:
+- **Board lost** — running out of marbles under the objective ends the run:
   the summary shows the boards cleared, the money and which board beat you,
   with **REINTENTAR** and **MENU**.
 - **Shop (placeholder)** — after every won board the shop lists the stock a
@@ -177,9 +181,19 @@ rules on top, the objective under the score and the money in the run.
 - **No interest** (D4): income comes only from boards won, so unspent money
   never grows on its own.
 
-The run state (money, bag, prizes, board, phase) lives in the `Game`
-autoload and the money numbers in the `Economy` autoload; the screens are
-`Game` phases routed through `scripts/run/run_flow.gd`.
+The run state (money, inventory, ammo, prizes, board, phase) lives in the
+`Game` autoload and the money numbers in the `Economy` autoload; the screens
+are `Game` phases routed through `scripts/run/run_flow.gd`.
+
+### Debug mode
+
+**MODO DEBUG** in the title screen opens the single-board setup: cycle all
+20 boards (the screen always shows the board name and its gimmick), toggle
+the active prizes, and pick the 5 starting marbles (at least 1; short picks
+are topped up with commons). The match renders the picked board at its own
+base objective — block factor x1, no money — through the normal inventory
+rules, and win or lose it returns straight to the title screen. Built for
+reproducing board bugs with an exact loadout.
 
 ## Platforms
 
@@ -197,7 +211,7 @@ autoload and the money numbers in the `Economy` autoload; the screens are
 | Input | Keyboard | Gamepad |
 | --- | --- | --- |
 | Move aim / lean tilt guide | Left-Right arrows, A/D | Left stick, D-pad |
-| Swap marble in the bag (while aiming) | Up-Down arrows, W/S | D-pad up/down |
+| Swap marble in the ammo (while aiming) | Up-Down arrows, W/S | D-pad up/down |
 | Shoot / lock steps (1st-3rd) | Space or Enter | A / Cross |
 | Camera mode (free view) | Z | LB |
 | Cancel / step back | X | B |
@@ -241,6 +255,8 @@ godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/run_loop.gd
 godot --headless --path . --script res://tests/hooks.gd
 godot --headless --path . --script res://tests/themes.gd
+godot --headless --path . --script res://tests/inventory.gd
+godot --headless --path . --script res://tests/debug_mode.gd
 godot --headless --path . --script res://tests/physics_probe.gd
 ```
 
@@ -255,6 +271,17 @@ pipeline, the 10 bonificadores loading with their designed values, Borracho
 shuffling without losing a value, Cronometrado auto-advancing a step, the
 glass break roll taking a marble out of the bag, Espejo doubling the center
 column, and the M1 wall math still holding.
+
+`tests/inventory.gd` covers the marble inventory: consumption on embed and
+on settled throws, refunds keeping the marble, the ammo restoring at every
+board start, a glass break leaving the run for good, an empty ammo short of
+the objective being a defeat, and the throw budget equaling the ammo size.
+
+`tests/debug_mode.gd` covers the debug match: menu entry, the setup screen
+defaults and all-20-board picker labels (name + gimmick), the empty-loadout
+guard at screen and Game level, the launch wiring (ammo, prizes, base
+objective, picked BoardDef), won and lost boards returning to the menu, and
+the normal JUGAR flow unchanged.
 
 `tests/themes.gd` covers the M2.5 board identity: the 20 boards load from
 `data/boards/` in filename order with unique names, a loadable emblem and a

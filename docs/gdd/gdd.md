@@ -124,6 +124,12 @@ Three layers, mirroring Balatro's separation:
   consumed when thrown. Shop and library label the category clearly;
   balance keys: `common_effects` are modest and repeat, `magic_effects`
   are strong and priced per use.
+  [D1 revised 2026-11-08 — inventory model (user decision): every marble
+  instance is consumable within a board — a played marble leaves the board
+  ammo — and the full inventory is restored at each board start, so marbles
+  persist across boards and only a glass break removes one for the rest of
+  the run. The common/magic distinction is now about effect behavior, not
+  per-throw consumption.]
 - **D2 resolved: the player picks.** Before every throw the player opens
   the marble bag and chooses which marble to throw (default selection =
   last used, one input to skip). This makes per-throw selection a real
@@ -195,7 +201,7 @@ score vs target, active prizes row, bonus objective status.
 
 | # | Decision | Resolution |
 | --- | --- | --- |
-| D1 | Marble durability model | **Resolved: mixed** — common marbles permanent per run, magic marbles single-use |
+| D1 | Marble durability model | **Resolved: mixed** → **revised: per-board ammo** — all marbles consumable in-board, inventory restored each board, glass break permanent |
 | D2 | Marble selection per throw | **Resolved: player picks** from the bag before each throw |
 | D3 | Library persistence & impact | **Resolved: unlocks content pool** across runs (save file) |
 | D4 | Interest on unspent $ | **Resolved: none** |
