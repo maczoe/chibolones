@@ -27,6 +27,12 @@ const EFFECT_EVENTS := {
 	&"wall_mult": [&"embed"],
 	&"board_end_flat": [&"board_ended"],
 	&"refund_money": [&"refund"],
+	&"score_mult_all": [&"embed", &"board_ended"],
+	&"bounce_scale": [&"marble_spawn"],
+	&"fire_speed_mult": [&"marble_spawn"],
+	# Queried by the board, no trigger events.
+	&"extra_throw": [],
+	&"skip_speed_scale": [],
 }
 
 
@@ -49,10 +55,22 @@ func on_event(event: StringName, ctx: Dictionary) -> void:
 			if effect == &"board_end_flat":
 				var bonus: Dictionary = ctx.get("score_bonus", {})
 				bonus[StringName(display_name)] = int(params.get("flat", 0))
+			elif effect == &"score_mult_all":
+				ctx["score_mult_all"] = float(ctx.get("score_mult_all", 1.0)) \
+						* float(params.get("mult", 1.0))
 		&"refund":
 			if effect == &"refund_money":
 				ctx["money_delta"] = int(ctx.get("money_delta", 0)) \
 						+ int(params.get("amount", 0))
+		&"marble_spawn":
+			if effect == &"bounce_scale":
+				ctx["bounce_scale"] = float(ctx.get("bounce_scale", 1.0)) \
+						* float(params.get("bounce", 1.0))
+			elif effect == &"fire_speed_mult":
+				var def = ctx.get("def")
+				if def != null and def.id == "fire":
+					ctx["speed_mult"] = float(ctx.get("speed_mult", 1.0)) \
+							* float(params.get("mult", 1.0))
 
 
 ## M2 hook contract, part 2: edit one embed's score. `ctx` carries the
@@ -62,6 +80,10 @@ func on_event(event: StringName, ctx: Dictionary) -> void:
 ## after the flats; ScoreBreakdown.final() rounds once at the end.
 func contribute_embed(_base: int, ctx: Dictionary) -> void:
 	var mults: Dictionary = ctx.get("mults", {})
+	# Corona del Circo: x1.1 to everything, on every embed.
+	if effect == &"score_mult_all":
+		mults[StringName(display_name)] = float(params.get("mult", 1.0))
+		return
 	var throw_ctx: Dictionary = ctx.get("throw", {})
 	# Wall-hit multiplier: once per wall this throw (Trompo x1.5 x walls).
 	if is_equal_approx(wall_mult_per_hit(), 1.0):

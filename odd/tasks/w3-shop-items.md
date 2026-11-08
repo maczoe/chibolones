@@ -82,7 +82,7 @@ T1 (S2,S3): Prices/rarity into defs: add rarity to MarbleDef, set price
 T2 (S4): Implement on_event hook contract (architecture.md:61-75):
     PrizeDef.on_event + registration, EventBus wiring for board_end /
     refund / marble_spawn / throw lifecycle; migrate trompo off special
-    case. Route: inline. Commit: feat(hooks): M3 on_event contract
+    case. Route: inline. Commit: 80bc06d feat(hooks): M3 on_event contract
 T3 (S9): Prize effects: Osito, Billete, Muñeco, Pelota, Rayo, Corona,
     Globo (extra_throws wiring). Route: inline.
     Commit: feat(prizes): wave-3 prize effects
@@ -114,3 +114,10 @@ L3: Mapa de exploración: MarbleDef.price nunca leído; on_event no
     implementado (architecture.md:74); Game.extra_throws escrito y jamás
     leído (game.gd:66); single_use sin usar; sin API de compra;
     shop_screen.gd placeholder con CONTINUAR solo.
+L4: T2 implementado: PrizeDef effect+params (EFFECT_EVENTS),
+    Game.dispatch_event, board dispatches throw_started/marble_spawn/
+    wall_hit/board_ended + relay throw_ended, refund money_delta por
+    EventBus. Trompo migrado a effect+params (wall_hit_mult retirado).
+    Nota de slice: 547 lineas en 2 commits (307f6ad + 80bc06d) — al
+    cerrar la feature, evaluar chained PRs; proximo commit inicia slice
+    nuevo.

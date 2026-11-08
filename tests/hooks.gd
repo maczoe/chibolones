@@ -55,6 +55,11 @@ func _run() -> void:
 	await _test_on_event_dispatch()
 	await _test_refund_money_effect()
 	await _test_board_end_bonus()
+	await _test_extra_throw_prize()
+	await _test_bounce_prize()
+	await _test_fire_speed_prize()
+	await _test_skip_speed_prize()
+	await _test_global_mult_prize()
 	await _test_trompo_migration()
 	print("HOOKS FAIL" if failed else "HOOKS OK")
 	quit(1 if failed else 0)
@@ -539,6 +544,174 @@ func _test_trompo_migration() -> void:
 	_check(is_equal_approx(trompo.wall_mult_per_hit(), 1.5),
 			"wall_mult_per_hit should read the params")
 	_check(trompo.interested_in().has(&"embed"), "the wall prize still scores through embed")
+
+
+## Globo: one extra throw per board, added to the run ammo budget.
+func _test_extra_throw_prize() -> void:
+	game.start_run()
+	var globo := PrizeDef.new()
+	globo.id = "globo"
+	globo.display_name = "Globo"
+	globo.effect = &"extra_throw"
+	globo.params = {"per_board": 1}
+	game.prizes.clear()
+	game.prizes.append(globo)
+	var board := _open_board()
+	await physics_frame
+	_check(board.shots_total == game.ammo.size() + 1,
+			"globo should add one throw to the ammo budget (%d + 1), got %d"
+			% [game.ammo.size(), board.shots_total])
+	_check(board.shots_left == board.shots_total,
+			"the extra throw should be available, shots_left is %d" % board.shots_left)
+	board.queue_free()
+	await physics_frame
+	# Without the prize the budget is exactly the ammo.
+	game.start_run()
+	var plain := _open_board()
+	await physics_frame
+	_check(plain.shots_total == game.ammo.size(),
+			"without globo the budget is the ammo size")
+	plain.queue_free()
+	await physics_frame
+
+
+## Pelota de Goma: spawned marbles bounce x1.3.
+func _test_bounce_prize() -> void:
+	game.start_run()
+	var pelota := PrizeDef.new()
+	pelota.id = "pelota"
+	pelota.display_name = "Pelota de Goma"
+	pelota.effect = &"bounce_scale"
+	pelota.params = {"bounce": 1.3}
+	game.prizes.clear()
+	game.prizes.append(pelota)
+	var board := _open_board()
+	await physics_frame
+	board._launch(0.0, 20.0)
+	_check(not board.active_marbles.is_empty(), "the launch should spawn a marble")
+	if not board.active_marbles.is_empty():
+		var marble: RigidBody3D = board.active_marbles[0]
+		var base: float = board.marble_def.bounce
+		_check(is_equal_approx(marble.physics_material_override.bounce, base * 1.3),
+				"pelota should scale the marble bounce %s x1.3, got %s"
+				% [base, marble.physics_material_override.bounce])
+	board.queue_free()
+	await physics_frame
+	game.start_run()
+
+
+## Rayo: fire marbles fly x1.5. The prize edits the spawn ctx speed_mult;
+## the board applies it to the launch impulse.
+func _test_fire_speed_prize() -> void:
+	game.start_run()
+	var rayo := PrizeDef.new()
+	rayo.id = "rayo"
+	rayo.display_name = "Rayo"
+	rayo.effect = &"fire_speed_mult"
+	rayo.params = {"mult": 1.5}
+	game.prizes.clear()
+	game.prizes.append(rayo)
+	# Contract level: the ctx edit is conditional on the def id.
+	var fire_ctx := {"board": null, "def": content.marble_def("fire"), "speed_mult": 1.0}
+	game.dispatch_event(&"marble_spawn", fire_ctx)
+	_check(is_equal_approx(fire_ctx["speed_mult"], 1.5),
+			"rayo should scale a fire marble x1.5, got %s" % str(fire_ctx["speed_mult"]))
+	var common_ctx := {"board": null, "def": content.marble_def("common"), "speed_mult": 1.0}
+	game.dispatch_event(&"marble_spawn", common_ctx)
+	_check(is_equal_approx(common_ctx["speed_mult"], 1.0),
+			"rayo must not touch a common marble, got %s" % str(common_ctx["speed_mult"]))
+	# Board level: the launch impulse carries the scale. Fire flies with the
+	# rayo; the same def without the prize flies slower.
+	game.inventory.clear()
+	game.inventory.append(content.marble_def("fire"))
+	var board := _open_board()
+	await physics_frame
+	board.selected_ammo_index = 0
+	board._launch(0.0, 20.0)
+	_check(not board.active_marbles.is_empty(), "the fire launch should spawn a marble")
+	var with_rayo := 0.0
+	if not board.active_marbles.is_empty():
+		var marble: RigidBody3D = board.active_marbles[0]
+		await physics_frame  # the impulse lands in the server state on the step
+		if is_instance_valid(marble):
+			with_rayo = marble.linear_velocity.length()
+	_clear_marbles(board)
+	board.queue_free()
+	await physics_frame
+	game.start_run()
+	game.inventory.clear()
+	game.inventory.append(content.marble_def("fire"))
+	var plain := _open_board()
+	await physics_frame
+	plain.selected_ammo_index = 0
+	plain._launch(0.0, 20.0)
+	var without := 0.0
+	if not plain.active_marbles.is_empty():
+		var plain_marble: RigidBody3D = plain.active_marbles[0]
+		await physics_frame
+		if is_instance_valid(plain_marble):
+			without = plain_marble.linear_velocity.length()
+	_clear_marbles(plain)
+	plain.queue_free()
+	await physics_frame
+	_check(with_rayo > 0.0 and without > 0.0 and with_rayo / without > 1.35
+				and with_rayo / without < 1.65,
+			"rayo should make the same fire throw fly x1.5, ratio %s (with=%s without=%s)"
+			% [str(with_rayo / maxf(without, 0.001)), str(with_rayo), str(without)])
+	game.start_run()
+
+
+## Muñeco de Nieve: embeds settle instead of staying fast, i.e. the board's
+## capture threshold (skip_speed) is halved while the prize is owned.
+func _test_skip_speed_prize() -> void:
+	game.start_run()
+	var munequito := PrizeDef.new()
+	munequito.id = "muneco"
+	munequito.display_name = "Muñeco de Nieve"
+	munequito.effect = &"skip_speed_scale"
+	munequito.params = {"scale": 0.5}
+	game.prizes.clear()
+	game.prizes.append(munequito)
+	var board := _open_board()
+	await physics_frame
+	_check(is_equal_approx(board.effective_skip_speed(),
+			board.board_def.skip_speed * 0.5),
+		"munequito should halve the skip speed, got %s"
+		% str(board.effective_skip_speed()))
+	board.queue_free()
+	await physics_frame
+	game.start_run()
+	var plain := _open_board()
+	await physics_frame
+	_check(is_equal_approx(plain.effective_skip_speed(), plain.board_def.skip_speed),
+			"without the prize the skip speed is the board's own")
+	plain.queue_free()
+	await physics_frame
+
+
+## Corona del Circo: x1.1 to everything — every embed mult and the final
+## board total.
+func _test_global_mult_prize() -> void:
+	game.start_run()
+	var corona := PrizeDef.new()
+	corona.id = "corona"
+	corona.display_name = "Corona del Circo"
+	corona.effect = &"score_mult_all"
+	corona.params = {"mult": 1.1}
+	game.prizes.clear()
+	game.prizes.append(corona)
+	var board := _open_board()
+	await physics_frame
+	var breakdown: ScoreBreakdown = board.score_engine.evaluate_embed(10, {"board": board})
+	_check(breakdown.final() == 11,
+			"corona should scale a 10 embed to 11, got %d" % breakdown.final())
+	board.score_engine.total = 100
+	board._dispatch_board_end()
+	_check(board.score_engine.total == 110,
+			"corona should scale the board total x1.1, got %d" % board.score_engine.total)
+	board.queue_free()
+	await physics_frame
+	game.start_run()
 
 
 func _event_names(seen: Array) -> Array:

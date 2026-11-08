@@ -150,9 +150,9 @@ func _ready() -> void:
 				board_def.objective_target if board_def.objective_target > 0 else 60)
 		# S5: the ammo is the whole run inventory again. The ammo is the throw
 		# budget (S9), so rules.shots_per_board stays untouched for the boards
-		# played without a run.
+		# played without a run. Globo's extra throw joins the budget (W3).
 		Game.begin_board()
-		shots_total = Game.ammo.size()
+		shots_total = Game.ammo.size() + _prize_extra_throws()
 	else:
 		shots_total = rules.shots_per_board
 	selected_ammo_index = _common_ammo_index()
@@ -629,13 +629,17 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	board.add_child(marble)
 	# W3 contract: prizes may still edit the fresh marble's physics (bounce,
 	# speed) before the impulse is applied.
-	Game.dispatch_event(&"marble_spawn", {"board": self, "body": marble, "def": def})
+	var spawn_ctx := {"board": self, "body": marble, "def": def,
+			"bounce_scale": 1.0, "speed_mult": 1.0}
+	Game.dispatch_event(&"marble_spawn", spawn_ctx)
+	if not is_equal_approx(float(spawn_ctx["bounce_scale"]), 1.0):
+		marble.physics_material_override.bounce *= float(spawn_ctx["bounce_scale"])
 	var tilt_rad := deg_to_rad(tilt_deg)
 	# Direction includes the locked shot tilt: positive tilts toward the
 	# player's left on screen, exactly like the guide line showed.
 	var dir := (board.global_transform.basis * Vector3(sin(tilt_rad), 0.0, 1.0)).normalized()
 	var speed := lerpf(rules.min_speed, rules.max_speed, power_value / 100.0) \
-			* def.speed_mult
+			* def.speed_mult * float(spawn_ctx["speed_mult"])
 	marble.apply_central_impulse(dir * speed * marble.mass)
 	active_marbles.append(marble)
 	settle_times.clear()
@@ -677,8 +681,9 @@ func _update_flight(delta: float) -> void:
 			EventBus.throw_ended.emit(&"off_board")
 			continue
 		# A fast marble hops over the notches, a slow one embeds itself when
-		# its center crosses the capture circle.
-		if speed >= board_def.skip_speed:
+		# its center crosses the capture circle. Skip-speed prizes (Muñeco)
+		# lower the threshold.
+		if speed >= effective_skip_speed():
 			continue
 		# Stuck detector first: an oscillating marble (magnet, wind, or a
 		# bounce trapped between embedded marbles) may never cross the slow
@@ -1027,13 +1032,33 @@ func wall_source_name() -> String:
 
 ## W3 contract: board-end prize effects (Osito de Peluche flat bonus) land
 ## in the total before anything reads it.
+## Globo's per-board extra throws, summed over the run's prizes.
+func _prize_extra_throws() -> int:
+	var extra := 0
+	for prize in Game.prizes:
+		if prize != null and prize.effect == &"extra_throw":
+			extra += int(prize.params.get("per_board", 1))
+	return extra
+
+
+## Effective capture threshold: the board's own skip speed scaled by every
+## owned skip-speed prize (Muñeco de Nieve halves it).
+func effective_skip_speed() -> float:
+	var scale := 1.0
+	for prize in Game.prizes:
+		if prize != null and prize.effect == &"skip_speed_scale":
+			scale *= float(prize.params.get("scale", 1.0))
+	return board_def.skip_speed * scale
+
+
 func _dispatch_board_end() -> void:
-	var ctx := {"board": self, "score_bonus": {}}
+	var ctx := {"board": self, "score_bonus": {}, "score_mult_all": 1.0}
 	Game.dispatch_event(&"board_ended", ctx)
 	var bonus := 0
 	for value in ctx["score_bonus"].values():
 		bonus += int(value)
-	score_engine.total += bonus
+	var mult := float(ctx["score_mult_all"])
+	score_engine.total = roundi(float(score_engine.total + bonus) * mult)
 
 
 ## Relay throw endings to the prize contract with the board in ctx (one
