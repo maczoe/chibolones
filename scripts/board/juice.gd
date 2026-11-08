@@ -18,11 +18,15 @@ func _ready() -> void:
 	thunk.stream = load("res://data/audio/thunk.wav")
 	thunk.volume_db = 2.0
 	board.add_child(thunk)
+	# Missing audio must never break the board (headless tests, failed import).
+	if thunk.stream == null:
+		push_warning("thunk.wav unavailable; embed sound disabled")
 	EventBus.embed.connect(_on_embed)
 
 
 func _on_embed(notch_index: int, value: int) -> void:
-	thunk.play()
+	if thunk.stream != null:
+		thunk.play()
 	_popup(notch_index, value)
 
 
