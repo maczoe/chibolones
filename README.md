@@ -274,6 +274,7 @@ godot --headless --path . --script res://tests/pause.gd
 godot --headless --path . --script res://tests/shop_focus.gd
 godot --headless --path . --script res://tests/shooting_tilt.gd
 godot --headless --path . --script res://tests/win_flow.gd
+godot --headless --path . --script res://tests/lost_marble.gd
 ```
 
 `tests/run_loop.gd` covers M1 without rendering: economy math, the 20-board

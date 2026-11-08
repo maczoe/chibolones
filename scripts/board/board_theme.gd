@@ -16,6 +16,12 @@ const SWING_AMPLITUDE := 0.5
 const PHASE_PERIOD := 2.0
 ## Iman: attraction only reaches this far from an embedded marble.
 const MAGNET_RANGE := 1.0
+## Inside this distance of an embedded marble the pull would only grind the
+## rolling one against the obstacle: the magnet damps it instead (user
+## request, 2026-11-08). Slightly over two marble radii of contact.
+const MAGNET_CONTACT_RADIUS := 0.2
+## How fast the contact damping drains speed, in units per second.
+const MAGNET_CONTACT_DAMP := 3.0
 ## Iman: force scale, so a design value of 1.5 reads as a mild pull.
 const MAGNET_FORCE_SCALE := 4.0
 ## Ventoso: force scale applied on top of the design wind strength.
@@ -184,7 +190,7 @@ func _physics_process(delta: float) -> void:
 		_apply_wind()
 	# Iman: embedded marbles pull the rolling one when it comes close.
 	if magnet_strength > 0.0:
-		_apply_magnet()
+		_apply_magnet(delta)
 
 
 func _apply_wind() -> void:
@@ -195,7 +201,7 @@ func _apply_wind() -> void:
 			marble.apply_central_force(force * marble.mass)
 
 
-func _apply_magnet() -> void:
+func _apply_magnet(delta: float) -> void:
 	var basis: Basis = board.board.global_transform.basis
 	for marble in board.active_marbles:
 		if not is_instance_valid(marble) or marble.freeze:
@@ -205,10 +211,21 @@ func _apply_magnet() -> void:
 			if not hole.occupied:
 				continue
 			var pull := Vector3(hole.pos.x - local.x, 0.0, hole.pos.z - local.z)
-			if pull.length() > MAGNET_RANGE or pull.length() < 0.001:
+			var dist := pull.length()
+			if dist > MAGNET_RANGE or dist < 0.001:
+				continue
+			if dist <= MAGNET_CONTACT_RADIUS:
+				# Contact ring: the embedded marble blocks the pull target,
+				# so force here only feeds the bounce loop. Drain speed
+				# instead and let the physics settle the marble.
+				marble.linear_velocity = marble.linear_velocity.move_toward(
+						Vector3.ZERO, MAGNET_CONTACT_DAMP * delta)
 				continue
 			marble.apply_central_force(basis * pull.normalized()
 					* magnet_strength * MAGNET_FORCE_SCALE * marble.mass)
+			# One embedded marble pulls at a time: two opposite pulls would
+			# cancel out and read as the magnet doing nothing.
+			break
 			# One embedded marble pulls at a time: two opposite pulls would
 			# cancel out and read as the magnet doing nothing.
 			break

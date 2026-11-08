@@ -94,6 +94,23 @@ const CAPTURE_PULL_RANGE := 0.5
 ## Force scale, matching the Iman magnet's convention (design 1.0 reads as
 ## a mild pull; the base assist uses 0.4).
 const CAPTURE_PULL_FORCE_SCALE := 4.0
+## An embedded marble is a dead obstacle: arriving marbles must lose energy
+## on it instead of ping-ponging until the throw times out (user request,
+## 2026-11-08).
+const EMBED_BOUNCE := 0.1
+const EMBED_FRICTION := 0.9
+## Stuck detector: a marble that barely displaces for STUCK_CHECKS checks
+## spaced STUCK_CHECK_INTERVAL apart is lost with the settle presentation,
+## so magnet/wind oscillations never hang the throw to the 15 s timeout.
+const STUCK_CHECK_INTERVAL := 0.5
+const STUCK_DISTANCE := 0.1
+const STUCK_CHECKS := 4
+## UFO abduction of a lost marble: it rises on the world vertical inside a
+## fading light beam, then frees itself. Presentation only: the throw
+## resolution does not wait for the animation (user request, 2026-11-08).
+const ABDUCT_HEIGHT := 2.6
+const ABDUCT_TIME := 1.2
+const ABDUCT_COLOR := Color(0.35, 0.9, 1.0)
 var shot_guide: Node3D
 var skirt: MeshInstance3D
 var bulbs: Array[MeshInstance3D] = []
@@ -110,6 +127,8 @@ var cam_default_elev_deg := 0.0
 var holes: Array[Dictionary] = []          # {pos, score, occupied}
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}                     # marble -> seconds under slow speed
+## Stuck-detector checkpoints: marble -> {"pos": Vector3, "checks": int}.
+var stuck_track := {}
 
 
 func _ready() -> void:
@@ -579,6 +598,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	marble.apply_central_impulse(dir * speed * marble.mass)
 	active_marbles.append(marble)
 	settle_times.clear()
+	stuck_track.clear()
 	pending_result = ""
 	launch_timer = 0.0
 	launch_marker.visible = false
@@ -618,6 +638,11 @@ func _update_flight(delta: float) -> void:
 		# its center crosses the capture circle.
 		if speed >= board_def.skip_speed:
 			continue
+		# Stuck detector first: an oscillating marble (magnet, wind, or a
+		# bounce trapped between embedded marbles) may never cross the slow
+		# settle threshold, so displacement is what decides here.
+		if _tick_stuck(marble, local, delta):
+			continue
 		# Only capture when the marble is actually rolling on the surface: a
 		# body that fell through the board must never score.
 		if local.y > marble_def.radius + 0.25:
@@ -643,10 +668,8 @@ func _update_flight(delta: float) -> void:
 			else:
 				settle_times[marble] = 0.0
 			if float(settle_times.get(marble, 0.0)) >= rules.settle_time:
-				# Marble came to rest on the board: 0 points.
-				marble.freeze = true
-				active_marbles.erase(marble)
-				settle_times.erase(marble)
+				# Marble came to rest on the board: 0 points, beamed up.
+				_abduct_marble(marble)
 				_consume_throw()
 				pending_result = "La canica se quedo quieta: 0 puntos"
 				EventBus.throw_ended.emit(&"settled")
@@ -657,10 +680,10 @@ func _update_flight(delta: float) -> void:
 	# End the volley once every marble stopped, sank, or the timeout hit.
 	if active_marbles.is_empty() or launch_timer >= rules.flight_timeout:
 		if launch_timer >= rules.flight_timeout and not active_marbles.is_empty():
-			# Timed out: the throw is lost, clean the leftovers up.
-			for marble in active_marbles:
-				if is_instance_valid(marble):
-					marble.queue_free()
+			# Timed out: the throw is lost, and the leftovers are beamed up
+			# like any other lost marble instead of popping out of existence.
+			for marble in active_marbles.duplicate():
+				_abduct_marble(marble)
 			active_marbles.clear()
 			EventBus.throw_ended.emit(&"timed_out")
 			_consume_throw()
@@ -682,7 +705,91 @@ func _update_flight(delta: float) -> void:
 func _discard_marble(marble: RigidBody3D) -> void:
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
+	stuck_track.erase(marble)
 	marble.queue_free()
+
+
+## One stuck-detector checkpoint per marble: every STUCK_CHECK_INTERVAL the
+## marble must have displaced at least STUCK_DISTANCE, or the check counter
+## grows. STUCK_CHECKS consecutive tiny displacements lose the marble with
+## the settle presentation (0 points, abduction). Returns true when the
+## marble was just resolved, so the flight loop skips its other rules.
+func _tick_stuck(marble: RigidBody3D, local: Vector3, delta: float) -> bool:
+	if not is_instance_valid(marble) or marble.freeze:
+		stuck_track.erase(marble)
+		return false
+	var entry: Dictionary = stuck_track.get(marble, {"pos": local, "checks": 0})
+	var last_pos: Vector3 = entry["pos"]
+	var checks: int = entry["checks"]
+	entry["t"] = float(entry.get("t", 0.0)) + delta
+	if float(entry["t"]) < STUCK_CHECK_INTERVAL:
+		stuck_track[marble] = entry
+		return false
+	entry["t"] = 0.0
+	if Vector2(local.x - last_pos.x, local.z - last_pos.z).length() < STUCK_DISTANCE:
+		checks += 1
+	else:
+		checks = 0
+		last_pos = local
+	entry["pos"] = last_pos
+	entry["checks"] = checks
+	stuck_track[marble] = entry
+	if checks < STUCK_CHECKS:
+		return false
+	# Trapped and going nowhere: 0 points, same presentation as a settle.
+	_abduct_marble(marble)
+	_consume_throw()
+	pending_result = "La canica se quedo quieta: 0 puntos"
+	EventBus.throw_ended.emit(&"settled")
+	return true
+
+
+## UFO abduction of a lost marble (user request, 2026-11-08): the marble
+## stops simulating and rises on the world vertical inside a fading light
+## beam, spinning and shrinking, then frees itself. Presentation only: the
+## throw resolution does not wait for the animation.
+func _abduct_marble(marble: RigidBody3D) -> void:
+	if not is_instance_valid(marble) or marble.has_meta("abducted"):
+		return
+	marble.set_meta("abducted", true)
+	active_marbles.erase(marble)
+	settle_times.erase(marble)
+	stuck_track.erase(marble)
+	marble.freeze = true
+	# The beam: a translucent light column at the marble, on the world
+	# vertical. It lives directly under the board root so the tilted board
+	# never bends it.
+	var beam := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.16
+	cyl.bottom_radius = 0.08
+	cyl.height = ABDUCT_HEIGHT
+	cyl.radial_segments = 16
+	beam.mesh = cyl
+	var beam_mat := StandardMaterial3D.new()
+	beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	beam_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	beam_mat.albedo_color = Color(ABDUCT_COLOR, 0.35)
+	beam_mat.emission_enabled = true
+	beam_mat.emission = ABDUCT_COLOR
+	beam_mat.emission_energy_multiplier = 1.5
+	beam.material_override = beam_mat
+	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	beam.position = marble.global_position + Vector3(0, ABDUCT_HEIGHT / 2.0, 0)
+	add_child(beam)
+	var top := marble.global_position + Vector3(0, ABDUCT_HEIGHT, 0)
+	var tw := marble.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(marble, "global_position", top, ABDUCT_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_property(marble, "rotation:y", marble.rotation.y + TAU * 1.5,
+			ABDUCT_TIME)
+	tw.tween_property(marble, "scale", Vector3.ONE * 0.3, ABDUCT_TIME)
+	tw.tween_property(beam, "position:y", beam.position.y + ABDUCT_HEIGHT,
+			ABDUCT_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_property(beam_mat, "albedo_color:a", 0.0, ABDUCT_TIME)
+	tw.chain().tween_callback(marble.queue_free)
+	tw.chain().tween_callback(beam.queue_free)
 
 
 ## Gentle attraction toward the nearest open notch: only below skip speed
@@ -742,6 +849,12 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
 	marble.add_to_group("embedded")
 	marble.set_meta("notch_index", hole.index)
+	# Dead obstacle material: arriving marbles lose energy on it instead of
+	# ping-ponging until the throw times out (user request, 2026-11-08).
+	var phys := PhysicsMaterial.new()
+	phys.bounce = EMBED_BOUNCE
+	phys.friction = EMBED_FRICTION
+	marble.physics_material_override = phys
 	# One seam for every score edit (M2): the pipeline applies flats, then
 	# multipliers, then rounds once. The boosted value is what the bus
 	# carries, so the HUD message, the popup and the ScoreEngine agree.
