@@ -411,9 +411,14 @@ func _test_normal_run_untouched() -> void:
 			"outside debug mode boss board 4 should ask 100, got %d"
 			% game.objective_for_board(4, 60))
 	game.board_won(2, 0)
-	_check(game.phase == game.Phase.SHOP,
-			"a won normal board should lead to the shop, phase is %s" % game.phase)
+	_check(game.phase == game.Phase.WIN,
+			"a won normal board should enter the win interstitial, phase is %s"
+			% game.phase)
 	_check(game.money > game.START_MONEY, "a won normal board should pay a reward")
+	game.win_screen_continue()
+	_check(game.phase == game.Phase.SHOP,
+			"CONTINUAR after a normal win should reach the shop, phase is %s"
+			% game.phase)
 	game.board_lost()
 	_check(game.phase == game.Phase.RESULT,
 			"a lost normal board should lead to the result screen, phase is %s"

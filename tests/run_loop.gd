@@ -122,8 +122,16 @@ func _test_phase_flow() -> void:
 	_check(game.money == 5 + economy.reward_for_block_win(1, 3, 0),
 			"winning board 1 with 3 marbles should pay %d, money is %d"
 			% [economy.reward_for_block_win(1, 3, 0), game.money])
-	_check(game.phase == game.Phase.SHOP, "a won board should lead to the shop")
+	_check(game.phase == game.Phase.WIN,
+			"a won board should enter the win interstitial, phase is %s" % game.phase)
+	_check(game.last_win_stats.get("marbles_left", -1) == 3,
+			"the win interstitial should show the marbles left")
 	_check(game.boards_cleared == 1, "boards_cleared should be 1 after the first win")
+
+	game.win_screen_continue()
+	_check(game.phase == game.Phase.SHOP,
+			"CONTINUAR on the win screen should lead to the shop, phase is %s"
+			% game.phase)
 
 	game.shop_continue()
 	_check(game.current_board_in_run == 2,
@@ -132,8 +140,15 @@ func _test_phase_flow() -> void:
 
 	game.current_board_in_run = 20
 	game.board_won(0, 0)
-	_check(game.phase == game.Phase.RESULT, "winning board 20 should enter RESULT")
+	_check(game.phase == game.Phase.WIN,
+			"winning board 20 should enter the win interstitial, phase is %s"
+			% game.phase)
 	_check(game.run_won, "winning board 20 should set run_won")
+
+	game.win_screen_continue()
+	_check(game.phase == game.Phase.RESULT,
+			"CONTINUAR after the run win should reach the summary, phase is %s"
+			% game.phase)
 
 	game.start_endless()
 	_check(game.endless_mode, "start_endless should enable endless mode")
@@ -147,9 +162,26 @@ func _test_phase_flow() -> void:
 	_check(not game.endless_mode, "a new run should clear endless mode")
 	_check(game.boards_cleared == 0, "a new run should clear boards_cleared")
 	_check(game.phase == game.Phase.BOARD, "a new run should enter BOARD")
+	await _test_win_screen_assets()
 
 
 # --- (d) Board run wiring --------------------------------------------------
+
+
+## The win interstitial's placeholder fanfare must be imported and loaded:
+## a missing .import file made the first win silent (fixed 2026-11-08).
+func _test_win_screen_assets() -> void:
+	var stream: AudioStream = load("res://data/audio/fanfare.wav")
+	_check(stream != null and stream.get_length() > 0.5,
+			"the fanfare placeholder should load as an audio stream")
+	var win: Node = (load("res://scenes/run/win.tscn") as PackedScene).instantiate()
+	root.add_child(win)
+	await physics_frame
+	var players := win.find_children("*", "AudioStreamPlayer", true, false)
+	_check(players.size() == 1 and players[0].stream != null,
+			"the win screen should carry a fanfare player with a stream")
+	win.queue_free()
+	await physics_frame
 
 
 func _test_board_wiring() -> void:
@@ -202,8 +234,12 @@ func _test_board_win() -> void:
 	_check(board.board_result_sent, "reaching the objective should report the board result")
 	_check(board.state == board.ThrowState.ROUND_OVER,
 			"a won board should end in ROUND_OVER, got %s" % board.state)
-	_check(game.phase == game.Phase.SHOP,
-			"a won board should move the run to the shop, phase is %s" % game.phase)
+	_check(game.phase == game.Phase.WIN,
+			"a won board should move the run to the win interstitial, phase is %s"
+			% game.phase)
+	_check(game.last_win_stats.get("score", -1) == board.score_engine.total
+					and game.last_win_stats.get("marbles_left", -1) == 5,
+			"the interstitial stats should carry the board score and marbles left")
 	_check(game.money == game.START_MONEY + economy.reward_for_block_win(1, 5, 0),
 			"the run should be paid %d for the won board, money is %d"
 			% [economy.reward_for_block_win(1, 5, 0), game.money])
