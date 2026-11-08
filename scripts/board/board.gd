@@ -83,6 +83,12 @@ var run_objective := 0
 ## The win/loss of this board was already reported to the Game run flow.
 var board_result_sent := false
 var launch_marker: MeshInstance3D
+## Base capture assist range: only notches closer than this pull (see
+## BoardDef.capture_pull); beyond it the throw flies untouched.
+const CAPTURE_PULL_RANGE := 0.5
+## Force scale, matching the Iman magnet's convention (design 1.0 reads as
+## a mild pull; the base assist uses 0.4).
+const CAPTURE_PULL_FORCE_SCALE := 4.0
 var shot_guide: Node3D
 var skirt: MeshInstance3D
 var bulbs: Array[MeshInstance3D] = []
@@ -555,6 +561,9 @@ func _update_flight(delta: float) -> void:
 		# body that fell through the board must never score.
 		if local.y > marble_def.radius + 0.25:
 			continue
+		# Base capture assist (tuning 2026-11-08): a gentle pull toward the
+		# nearest open notch helps the drop-in without steering the throw.
+		_apply_capture_pull(marble, local)
 		var reach: float = board_def.capture_radius
 		for hole in holes:
 			# An occupied notch already holds an embedded marble: shots can
@@ -613,6 +622,29 @@ func _discard_marble(marble: RigidBody3D) -> void:
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
 	marble.queue_free()
+
+
+## Gentle attraction toward the nearest open notch: only below skip speed
+## (a fast marble must hop over notches) and inside CAPTURE_PULL_RANGE, so
+## it nudges the drop-in instead of bending the whole throw.
+func _apply_capture_pull(marble: RigidBody3D, local: Vector3) -> void:
+	if board_def.capture_pull <= 0.0 or marble.freeze:
+		return
+	var best: Dictionary = {}
+	var best_d := CAPTURE_PULL_RANGE
+	for hole in holes:
+		if hole.occupied or hole.covered or hole.phase_hidden:
+			continue
+		var d := Vector2(local.x - hole.pos.x, local.z - hole.pos.z).length()
+		if d < best_d:
+			best_d = d
+			best = hole
+	if best.is_empty():
+		return
+	var pull := Vector3(best.pos.x - local.x, 0.0, best.pos.z - local.z)
+	marble.apply_central_force(board.global_transform.basis \
+			* pull.normalized() * board_def.capture_pull \
+			* CAPTURE_PULL_FORCE_SCALE * marble.mass)
 
 
 ## A run board spends the marble inventory: the ammo is the throw budget and
@@ -718,7 +750,7 @@ func _run_win_reached() -> bool:
 	state = ThrowState.ROUND_OVER
 	hud.flash("Tablero superado!")
 	EventBus.board_ended.emit(score_engine.total)
-	Game.board_won.call_deferred(shots_left, 0)
+	Game.board_won.call_deferred(shots_left, 0, score_engine.total)
 	return true
 
 

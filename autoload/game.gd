@@ -4,7 +4,7 @@ extends Node
 ## Money math lives in the Economy autoload; the board scene renders one
 ## board and reports win/loss here.
 
-enum Phase { MENU, BOARD, SHOP, RESULT, GAME_OVER }
+enum Phase { MENU, BOARD, SHOP, RESULT, GAME_OVER, WIN }
 
 ## The run is five blocks of four boards; bosses land on every 4th board.
 const BLOCKS := 5
@@ -250,9 +250,15 @@ func objective_for_board(n: int, target_base: int) -> int:
 	return roundi(float(base) * factor)
 
 
+## Stats of the last won board, for the win interstitial: puntuación,
+## canicas restantes and the reward paid (placeholder until the juice
+## pass). Empty until the first board_won.
+var last_win_stats := {}
+
+
 ## The board was cleared. Guarded by phase so the board's deferred call and
 ## any duplicate never pay the reward twice.
-func board_won(marbles_left: int, bonus: int) -> void:
+func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 	if not run_active or phase != Phase.BOARD:
 		return
 	boards_cleared += 1
@@ -269,10 +275,29 @@ func board_won(marbles_left: int, bonus: int) -> void:
 	money += reward
 	money_changed.emit(money)
 	board_won_sig.emit(marbles_left, bonus)
+	# Win interstitial (user request, 2026-11-08): every won board first
+	# plays the GANADOR sequence, then CONTINUAR routes on: the shop in the
+	# normal flow, the run summary after board 20 (run_won set below).
+	last_win_stats = {
+		"score": maxi(score, 0),
+		"marbles_left": maxi(marbles_left, 0),
+		"reward": reward,
+	}
 	if current_board_in_run >= BOARDS_PER_RUN and not endless_mode:
 		run_won = true
-		_enter(Phase.RESULT)
 		run_won_sig.emit()
+	_enter(Phase.WIN)
+	change_to_current_scene()
+
+
+## CONTINUAR on the win interstitial: back to the run flow — the shop after
+## every normal board, the run summary once the run itself is won. Guarded
+## by phase like every other screen transition.
+func win_screen_continue() -> void:
+	if phase != Phase.WIN:
+		return
+	if run_won:
+		_enter(Phase.RESULT)
 	else:
 		_enter(Phase.SHOP)
 	change_to_current_scene()

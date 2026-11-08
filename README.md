@@ -168,7 +168,10 @@ rules on top, the objective under the score and the money in the run.
 
 - **Board won** — reaching the objective wins the board on the spot and the
   run pays `base(block) + per_marble(block) * canicas restantes + bonus`,
-  i.e. `3 + block*2` plus `1 + block` per marble left.
+  i.e. `3 + block*2` plus `1 + block` per marble left. The win plays a
+  placeholder fanfare and a **GANADOR** interstitial with the board stats
+  (puntuación, canicas restantes, dinero); **CONTINUAR** goes to the shop,
+  or to the run summary after board 20.
 - **Board lost** — running out of marbles under the objective ends the run:
   the summary shows the boards cleared, the money and which board beat you,
   with **REINTENTAR** and **MENU**.
