@@ -58,6 +58,7 @@ func _ready() -> void:
 	hud = HudScript.new()
 	add_child(hud)
 	score_engine.score_changed.connect(hud.set_score)
+	add_child(preload("res://scripts/board/juice.gd").new())
 	hud.set_shots(shots_left, rules.shots_per_board)
 	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 
@@ -359,7 +360,7 @@ func _build_environment() -> void:
 	var spot := OmniLight3D.new()
 	spot.position = Vector3(0, 4.5, 0.5)
 	spot.light_color = board_def.light_color
-	spot.light_energy = 1.5
+	spot.light_energy = 2.3
 	spot.omni_range = 13.0
 	add_child(spot)
 
@@ -465,7 +466,7 @@ func _build_board() -> void:
 	skirt_mesh.size = Vector3(board_def.width + 2.0 * board_def.wall_thickness,
 			board_def.skirt_height, board_def.length + 2.0 * board_def.wall_thickness)
 	skirt.mesh = skirt_mesh
-	skirt.material_override = _paint_material(board_def.frame_color)
+	skirt.material_override = _paint_material(board_def.frame_color, 0.18)
 	skirt.position.y = -board_def.skirt_height / 2.0 - board_def.thickness / 2.0
 	body.add_child(skirt)
 
@@ -680,8 +681,14 @@ func _place_bulb(pos: Vector3, mesh: SphereMesh, mat: StandardMaterial3D) -> voi
 	board.add_child(bulb)
 
 
-func _paint_material(color: Color) -> StandardMaterial3D:
+func _paint_material(color: Color, emission := 0.0) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = 0.8
+	if emission > 0.0:
+		# Subtle self-glow: keeps tall cabinet faces readable in the dark
+		# room without flattening the shading.
+		mat.emission_enabled = true
+		mat.emission = color
+		mat.emission_energy_multiplier = emission
 	return mat
