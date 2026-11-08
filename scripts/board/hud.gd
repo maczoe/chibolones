@@ -21,11 +21,20 @@ class PowerBar extends Control:
 
 	func _draw() -> void:
 		var rect := Rect2(Vector2.ZERO, size)
-		draw_rect(rect, Color(0.0, 0.0, 0.0, 0.6))
+		draw_rect(rect, Color(0.08, 0.06, 0.16, 0.85))
 		var frac := power / 100.0
 		if frac > 0.0:
-			var col := Color.from_hsv(lerpf(0.05, 0.33, frac), 0.85, 0.95)
-			draw_rect(Rect2(Vector2(3, 3), Vector2((size.x - 6.0) * frac, size.y - 6.0)), col)
+			# Candy stripes: cyan and pink, circus style.
+			var stripe := 14.0
+			var x := 3.0
+			var right := 3.0 + (size.x - 6.0) * frac
+			var flip := false
+			while x < right:
+				var w := minf(stripe, right - x)
+				var col := Color("4deeea") if flip else Color("ff6fb5")
+				draw_rect(Rect2(Vector2(x, 3), Vector2(w, size.y - 6.0)), col)
+				x += w
+				flip = not flip
 		draw_rect(rect, Color(1, 1, 1, 0.9), false, 2.0)
 
 
@@ -68,15 +77,21 @@ func show_game_over(score: int, possible: int) -> void:
 # --- Construction ----------------------------------------------------------
 
 
+func _stat_label(pos: Vector2) -> Label:
+	var label := Label.new()
+	label.position = pos
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color("ffe066"))
+	label.add_theme_color_override("font_outline_color", Color("120b26"))
+	label.add_theme_constant_override("outline_size", 6)
+	return label
+
+
 func _build() -> void:
-	label_shots = Label.new()
-	label_shots.position = Vector2(16, 10)
-	label_shots.add_theme_font_size_override("font_size", 24)
+	label_shots = _stat_label(Vector2(16, 10))
 	add_child(label_shots)
 
-	label_score = Label.new()
-	label_score.position = Vector2(16, 44)
-	label_score.add_theme_font_size_override("font_size", 24)
+	label_score = _stat_label(Vector2(16, 44))
 	add_child(label_score)
 
 	label_msg = Label.new()
@@ -88,6 +103,9 @@ func _build() -> void:
 	label_msg.offset_top = -140
 	label_msg.offset_bottom = -100
 	label_msg.add_theme_font_size_override("font_size", 26)
+	label_msg.add_theme_color_override("font_color", Color("120b26"))
+	label_msg.add_theme_color_override("font_outline_color", Color("fff7ff"))
+	label_msg.add_theme_constant_override("outline_size", 8)
 	add_child(label_msg)
 
 	power_bar = PowerBar.new()
@@ -103,7 +121,7 @@ func _build() -> void:
 	add_child(power_bar)
 
 	end_overlay = ColorRect.new()
-	end_overlay.color = Color(0, 0, 0, 0.6)
+	end_overlay.color = Color(0.08, 0.06, 0.16, 0.8)
 	end_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	end_overlay.visible = false
 	add_child(end_overlay)
@@ -117,11 +135,17 @@ func _build() -> void:
 	title.text = "Fin de la ronda"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 40)
+	title.add_theme_color_override("font_color", Color("ffe066"))
+	title.add_theme_color_override("font_outline_color", Color("120b26"))
+	title.add_theme_constant_override("outline_size", 8)
 	vbox.add_child(title)
 
 	label_final = Label.new()
 	label_final.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label_final.add_theme_font_size_override("font_size", 30)
+	label_final.add_theme_color_override("font_color", Color("ff6fb5"))
+	label_final.add_theme_color_override("font_outline_color", Color("120b26"))
+	label_final.add_theme_constant_override("outline_size", 6)
 	vbox.add_child(label_final)
 
 	var hint := Label.new()

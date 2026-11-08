@@ -33,6 +33,7 @@ var score_engine: ScoreEngine
 var hud: CanvasLayer
 var launch_marker: MeshInstance3D
 var shot_guide: Node3D
+var skirt: MeshInstance3D
 var holes: Array[Dictionary] = []          # {pos, score, occupied}
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}                     # marble -> seconds under slow speed
@@ -282,27 +283,80 @@ func _on_marble_body_entered(other: Node, marble: RigidBody3D) -> void:
 
 
 func _build_environment() -> void:
+	# Circus void: dark violet, themed ambient, dim key light and a tinted
+	# spotlight over the cabinet. Every color comes from the BoardDef so a
+	# board theme can relight the whole scene.
 	var env := Environment.new()
-	env.background_mode = Environment.BG_SKY
-	var sky := Sky.new()
-	sky.sky_material = ProceduralSkyMaterial.new()
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 1.0
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color("14102a")
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color("3a1f6e")
+	env.ambient_light_energy = board_def.ambient_energy
+	env.fog_enabled = true
+	env.fog_light_color = Color("2e1b58")
+	env.fog_density = 0.012
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55, -35, 0)
-	sun.shadow_enabled = true
-	add_child(sun)
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-55, -35, 0)
+	key.light_color = Color(0.8, 0.85, 1.0)
+	key.light_energy = 0.35
+	key.shadow_enabled = true
+	add_child(key)
+
+	var spot := OmniLight3D.new()
+	spot.position = Vector3(0, 4.5, 0.5)
+	spot.light_color = board_def.light_color
+	spot.light_energy = 1.5
+	spot.omni_range = 13.0
+	add_child(spot)
+
+	_build_backdrop()
+	_build_floor()
 
 	var cam := Camera3D.new()
 	add_child(cam)
 	var length := board_def.length
 	cam.look_at_from_position(Vector3(0, length * 0.61, -length * 0.91),
 			Vector3(0, -0.2, length * 0.2), Vector3.UP)
+
+
+func _build_backdrop() -> void:
+	# Psychedelic animated wall behind the cabinet; colors and speed are
+	# board data, so each theme paints its own moving void.
+	var mesh_i := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.orientation = PlaneMesh.FACE_Z
+	plane.size = Vector2(60, 28)
+	mesh_i.mesh = plane
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://scripts/board/shaders/backdrop.gdshader")
+	mat.set_shader_parameter("color_a", board_def.backdrop_color_a)
+	mat.set_shader_parameter("color_b", board_def.backdrop_color_b)
+	mat.set_shader_parameter("color_c", board_def.backdrop_color_c)
+	mat.set_shader_parameter("speed", board_def.backdrop_speed)
+	mat.set_shader_parameter("pattern_scale", board_def.backdrop_scale)
+	mesh_i.material_override = mat
+	mesh_i.position = Vector3(0, 8.0, board_def.length + 6.0)
+	add_child(mesh_i)
+
+
+func _build_floor() -> void:
+	# Circus checker floor below the cabinet, seen in perspective.
+	var mesh_i := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(80, 80)
+	mesh_i.mesh = plane
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://scripts/board/shaders/checker_floor.gdshader")
+	mat.set_shader_parameter("col_a", board_def.floor_checker_a)
+	mat.set_shader_parameter("col_b", board_def.floor_checker_b)
+	mat.set_shader_parameter("checker_size", board_def.floor_checker_size)
+	mesh_i.material_override = mat
+	mesh_i.position = Vector3(0, -0.65, 2.0)
+	add_child(mesh_i)
 
 
 func _build_board() -> void:
@@ -331,8 +385,19 @@ func _build_board() -> void:
 	board_mesh.size = box.size
 	surface.mesh = board_mesh
 	surface.position.y = -board_def.thickness / 2.0
-	surface.material_override = _wood_material(Color(0.52, 0.33, 0.16))
+	surface.material_override = _paint_material(board_def.board_color)
 	body.add_child(surface)
+
+	# Closed cabinet (pinball box without legs): a skirt box drops from the
+	# play surface to the floor, visual only, slightly larger than the board.
+	skirt = MeshInstance3D.new()
+	var skirt_mesh := BoxMesh.new()
+	skirt_mesh.size = Vector3(board_def.width + 2.0 * board_def.wall_thickness,
+			0.55, board_def.length + 2.0 * board_def.wall_thickness)
+	skirt.mesh = skirt_mesh
+	skirt.material_override = _paint_material(board_def.frame_color)
+	skirt.position.y = -0.275 - board_def.thickness / 2.0
+	body.add_child(skirt)
 
 	# Side and back walls are back. They are low, so a marble with enough
 	# inertia from a hard bounce can still hop over and leave the board: the
@@ -348,6 +413,8 @@ func _build_board() -> void:
 			Vector3(0.0, board_def.wall_height / 2.0, board_def.length / 2.0 + board_def.wall_thickness / 2.0),
 			Vector3(board_def.width + 2.0 * board_def.wall_thickness, board_def.wall_height, board_def.wall_thickness),
 			"back")
+
+	_add_fair_bulbs()
 
 	for row in board_def.rows:
 		for col in board_def.cols:
@@ -406,7 +473,7 @@ func _add_wall(pos: Vector3, size: Vector3, side: String) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	mesh_i.mesh = mesh
-	mesh_i.material_override = _wood_material(Color(0.44, 0.27, 0.13))
+	mesh_i.material_override = _paint_material(board_def.frame_color)
 	wall.add_child(mesh_i)
 	wall.position = pos
 
@@ -429,6 +496,21 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	disc.material_override = mat
 	board.add_child(disc)
 
+	# Emissive rim around the notch: the neon ring of the circus look.
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = notch_radius + 0.01
+	torus.outer_radius = notch_radius + 0.05
+	ring.mesh = torus
+	var ring_mat := StandardMaterial3D.new()
+	ring_mat.albedo_color = board_def.notch_glow_color.darkened(0.4)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = board_def.notch_glow_color
+	ring_mat.emission_energy_multiplier = 1.2
+	ring.material_override = ring_mat
+	ring.position = pos + Vector3(0, 0.011, 0)
+	board.add_child(ring)
+
 	var label := Label3D.new()
 	label.text = str(score)
 	label.font_size = 96
@@ -444,8 +526,41 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	holes.append({"pos": pos, "score": score, "occupied": false, "index": index})
 
 
-func _wood_material(color: Color) -> StandardMaterial3D:
+func _add_fair_bulbs() -> void:
+	# Fair bulbs along the top edges of the side and back walls (never the
+	# player edge: marbles roll back through it). Visual only, shared mesh.
+	var bulb_mesh := SphereMesh.new()
+	bulb_mesh.radius = 0.05
+	bulb_mesh.height = 0.1
+	var bulb_mat := StandardMaterial3D.new()
+	bulb_mat.albedo_color = board_def.bulb_color
+	bulb_mat.emission_enabled = true
+	bulb_mat.emission = board_def.bulb_color
+	bulb_mat.emission_energy_multiplier = 1.6
+	var top_y := board_def.wall_height + 0.05
+	var x_edge := board_def.width / 2.0 + board_def.wall_thickness / 2.0
+	var z_edge := board_def.length / 2.0 + board_def.wall_thickness / 2.0
+	for side in [-1.0, 1.0]:
+		var z := -board_def.length / 2.0 + 0.25
+		while z <= board_def.length / 2.0:
+			_place_bulb(Vector3(side * x_edge, top_y, z), bulb_mesh, bulb_mat)
+			z += 0.5
+	var x := -board_def.width / 2.0 + 0.25
+	while x <= board_def.width / 2.0 + 0.01:
+		_place_bulb(Vector3(x, top_y, z_edge), bulb_mesh, bulb_mat)
+		x += 0.5
+
+
+func _place_bulb(pos: Vector3, mesh: SphereMesh, mat: StandardMaterial3D) -> void:
+	var bulb := MeshInstance3D.new()
+	bulb.mesh = mesh
+	bulb.material_override = mat
+	bulb.position = pos
+	board.add_child(bulb)
+
+
+func _paint_material(color: Color) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
-	mat.roughness = 0.85
+	mat.roughness = 0.8
 	return mat

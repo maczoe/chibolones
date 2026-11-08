@@ -38,6 +38,34 @@ extends Resource
 ## reaching this score. Used from M1 on.
 @export var objective_target: int = 0
 
+@export_group("Theme style")
+## Play surface color (the pinball-cabinet interior).
+@export var board_color: Color = Color("5b34a6")
+## Cabinet frame and walls.
+@export var frame_color: Color = Color("2e1b58")
+## Emissive rim glow around notches.
+@export var notch_glow_color: Color = Color("4deeea")
+## Fair bulbs along the cabinet edges.
+@export var bulb_color: Color = Color("ffe066")
+## Tint of the spotlight over the board.
+@export var light_color: Color = Color("ff9fd6")
+## Ambient brightness of the scene (dark = dramatic).
+@export var ambient_energy: float = 0.55
+
+@export_group("Backdrop")
+## Psychedelic moving backdrop: three cycling colors, speed and scale.
+@export var backdrop_color_a: Color = Color("3a1f6e")
+@export var backdrop_color_b: Color = Color("ff6fb5")
+@export var backdrop_color_c: Color = Color("4deeea")
+@export var backdrop_speed: float = 0.6
+@export var backdrop_scale: float = 3.0
+
+@export_group("Floor")
+## Circus checker floor, tinted per theme.
+@export var floor_checker_a: Color = Color("f2f2f7")
+@export var floor_checker_b: Color = Color("14102a")
+@export var floor_checker_size: float = 8.0
+
 
 func launch_z() -> float:
 	return -length / 2.0 + launch_depth
