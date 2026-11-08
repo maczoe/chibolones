@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "fire"
+display_name = "Canica de Fuego"
+category = 0
+single_use = false
+flavor = "Surreal: arde pero no se consume; tira mas rapido de lo que deberia."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.25
+style = &"fire"
+palette = Array[Color]([Color(0.98, 0.42, 0.12, 1), Color(1, 0.65, 0.2, 1)])
+price = 0
+effects = Array[StringName]([])
+break_chance = 0.0

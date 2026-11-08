@@ -42,6 +42,23 @@ godot --path .
    never take a second marble. The score is added the moment the marble
    embeds. After the 5th throw the round total is shown; R restarts.
 
+### Sample content (M0.5)
+
+While aiming, **Up/Down** swap the marble in the bag; the HUD shows the
+selected marble under the score, and a flash line describes its effect.
+
+| Marble | Look | Effect now |
+| --- | --- | --- |
+| Canica Comun | solid palette color | none (the POC marble) |
+| Canica de Fuego | dark core, glowing ember | launch speed x1.25 |
+| Canica de Vidrio | translucent, glossy | visual only (break chance lands in M2) |
+
+Prizes are permanent run modifiers. **Trompo de Madera** multiplies the
+throw's embed value by x1.5 for every wall the marble hits during that
+throw (two walls = x2.25), and is shown as a badge in the top-right corner.
+Content lives in `data/marbles/*.tres` and `data/prizes/*.tres`, so a new
+marble or prize is a resource file, not a code change.
+
 ## Platforms
 
 - **Scaling**: 1920x1080 base viewport with `canvas_items` stretch and
@@ -58,6 +75,7 @@ godot --path .
 | Input | Keyboard | Gamepad |
 | --- | --- | --- |
 | Move aim / lean tilt guide | Left-Right arrows, A/D | Left stick, D-pad |
+| Swap marble in the bag (while aiming) | Up-Down arrows, W/S | D-pad up/down |
 | Shoot / lock steps (1st-3rd) | Space or Enter | A / Cross |
 | Camera mode (free view) | Z | LB |
 | Cancel / step back | X | B |
@@ -70,7 +88,7 @@ godot --path .
 autoload/    EventBus (gameplay events), ContentDB (Def registry), Game (run flow)
 scripts/     core/ Def resources - board/ board scene, HUD, marble factory - scoring/
 scenes/      board/board.tscn (main scene)
-data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs
+data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs - prizes/ prize defs
 tests/       headless SceneTree tests (smoke round, physics probe)
 docs/        GDD (docs/gdd) and architecture plan
 ```

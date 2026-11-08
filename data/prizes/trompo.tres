@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "trompo"
+display_name = "Trompo de Madera"
+rarity = "common"
+price = 0
+flavor = "Gira y gira; cada pared que golpeas le da vueltas a tu favor."
+wall_hit_mult = 1.5

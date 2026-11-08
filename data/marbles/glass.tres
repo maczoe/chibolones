@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "glass"
+display_name = "Canica de Vidrio"
+category = 0
+single_use = false
+flavor = "Clara y fragil; por ahora solo brilla."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"glass"
+palette = Array[Color]([Color(0.75, 0.9, 1, 0.55)])
+price = 0
+effects = Array[StringName]([])
+break_chance = 0.0

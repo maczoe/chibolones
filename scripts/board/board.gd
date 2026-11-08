@@ -13,7 +13,14 @@ enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 
 var board_def: BoardDef
 var rules: ShootingRules
+## Base marble def: it drives the board geometry (notch size) and is the
+## fallback when the run has no bag yet (headless tests, no start_run).
 var marble_def: MarbleDef
+## Bag slot of the marble the next throw uses; Up/Down swaps it while aiming.
+var selected_bag_index := 0
+## This throw's prize multiplier: every wall the marble hits multiplies it.
+var wall_mult := 1.0
+var wall_mult_announced := false
 
 var state: ThrowState = ThrowState.AIM
 var shots_left := 0
@@ -54,6 +61,11 @@ func _ready() -> void:
 	board_def = ContentDB.board_def(Game.board_index)
 	rules = ContentDB.rules()
 	marble_def = ContentDB.marble_def("common")
+	# Temporary bootstrapping until M1 adds the menu: a board opened with
+	# no run in progress starts one, so the bag and prizes exist in play.
+	if Game.bag.is_empty() and Game.prizes.is_empty():
+		Game.start_run()
+	selected_bag_index = _common_bag_index()
 	shots_left = rules.shots_per_board
 	aim_limit = board_def.width / 2.0 - board_def.aim_limit_margin
 	_build_environment()
@@ -64,8 +76,11 @@ func _ready() -> void:
 	add_child(hud)
 	score_engine.score_changed.connect(hud.set_score)
 	EventBus.embed.connect(_on_embed_celebrate)
+	EventBus.wall_hit.connect(_on_wall_hit)
 	add_child(preload("res://scripts/board/juice.gd").new())
 	hud.set_shots(shots_left, rules.shots_per_board)
+	hud.set_prizes(Game.prizes)
+	hud.set_selected_marble(_selected_marble_def().display_name)
 	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 
 
@@ -94,6 +109,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			_:
 				pass
 		return
+	# Marble bag: edge-triggered on the vertical arrows while aiming, so
+	# holding a direction never cycles (the sideways arrows are held for
+	# aiming; these two are taps instead).
+	if state == ThrowState.AIM:
+		if event.is_action_pressed("move_up"):
+			_cycle_bag(-1)
+			return
+		if event.is_action_pressed("move_down"):
+			_cycle_bag(1)
+			return
 	if event.is_action_pressed("camera_mode"):
 		# Camera mode: free the view to read the whole board; only from AIM
 		# so a throw flow is never interrupted mid-decision.
@@ -210,6 +235,40 @@ func _apply_camera() -> void:
 # --- Shooting ----------------------------------------------------------------
 
 
+## Marble the next throw uses: the selected bag entry, or the base def when
+## the run has no bag yet (headless tests build the board without a run).
+func _selected_marble_def() -> MarbleDef:
+	if Game.bag.is_empty():
+		return marble_def
+	return Game.bag[selected_bag_index % Game.bag.size()]
+
+
+## Bag slot of the common marble: the run always starts on it, so the first
+## throw keeps the POC feel.
+func _common_bag_index() -> int:
+	for i in Game.bag.size():
+		if Game.bag[i].id == "common":
+			return i
+	return 0
+
+
+func _cycle_bag(step: int) -> void:
+	var count := Game.bag.size()
+	if count > 0:
+		selected_bag_index = (selected_bag_index + step + count) % count
+	var def := _selected_marble_def()
+	hud.set_selected_marble(def.display_name)
+	hud.flash("%s: %s" % [def.display_name, _marble_hint(def)])
+
+
+## One-line effect hint for the bag flash: the launch speed when the marble
+## changes it, otherwise its flavor line.
+func _marble_hint(def: MarbleDef) -> String:
+	if not is_equal_approx(def.speed_mult, 1.0):
+		return "Velocidad x%.2f" % def.speed_mult
+	return def.flavor if def.flavor != "" else "Sin efecto especial"
+
+
 func _update_tilt_limits() -> void:
 	# The guide pivots at the launch spot; clamp each side so its far end
 	# stays inside the walls even at the far edge of the board.
@@ -220,12 +279,16 @@ func _update_tilt_limits() -> void:
 
 
 func _launch(tilt_deg: float, power_value: float) -> void:
-	var marble := MarbleFactory.make(marble_def, throw_index)
+	# Prize effects are per throw: the wall multiplier starts neutral.
+	wall_mult = 1.0
+	wall_mult_announced = false
+	var def := _selected_marble_def()
+	var marble := MarbleFactory.make(def, throw_index)
 	throw_index += 1
 	# Marble is a child of the tilted board so local coordinates stay handy.
 	# Spawn clear of the surface: a marble born intersecting the board can
 	# escape through it in the physics engine.
-	marble.position = Vector3(aim_x, marble_def.radius + 0.05, board_def.launch_z())
+	marble.position = Vector3(aim_x, def.radius + 0.05, board_def.launch_z())
 	marble.body_entered.connect(_on_marble_body_entered.bind(marble))
 	board.add_child(marble)
 	var tilt_rad := deg_to_rad(tilt_deg)
@@ -233,7 +296,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	# player's left on screen, exactly like the guide line showed.
 	var dir := (board.global_transform.basis * Vector3(sin(tilt_rad), 0.0, 1.0)).normalized()
 	var speed := lerpf(rules.min_speed, rules.max_speed, power_value / 100.0) \
-			* marble_def.speed_mult
+			* def.speed_mult
 	marble.apply_central_impulse(dir * speed * marble.mass)
 	active_marbles.append(marble)
 	settle_times.clear()
@@ -243,7 +306,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	shots_left -= 1
 	state = ThrowState.FLIGHT
 	hud.set_shots(shots_left, rules.shots_per_board)
-	EventBus.throw_started.emit(marble_def.id)
+	EventBus.throw_started.emit(def.id)
 
 
 func _update_flight(delta: float) -> void:
@@ -339,8 +402,12 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
 	marble.add_to_group("embedded")
 	marble.set_meta("notch_index", hole.index)
-	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, hole.score]
-	EventBus.embed.emit(hole.index, hole.score)
+	# Prize effects land here: the wall multiplier boosts the painted notch
+	# value for this throw only. The boosted value is what the bus carries,
+	# so the HUD message, the popup and the ScoreEngine all agree.
+	var boosted := roundi(float(hole.score) * wall_mult)
+	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, boosted]
+	EventBus.embed.emit(hole.index, boosted)
 	EventBus.throw_ended.emit(&"embedded")
 
 
@@ -359,6 +426,23 @@ func _on_marble_body_entered(other: Node, marble: RigidBody3D) -> void:
 		EventBus.wall_hit.emit(other.get_meta("side"), impact)
 	elif other.is_in_group("embedded"):
 		EventBus.embedded_marble_hit.emit(other.get_meta("notch_index"), impact)
+
+
+func _on_wall_hit(_side: StringName, _impact_speed: float) -> void:
+	# Prize effects: each wall the marble bounces off stacks its wall-hit
+	# multiplier onto this throw (Trompo alone = x1.5 per wall). A prize-less
+	# run stays at x1.0, so the pipeline sees the painted value untouched.
+	var step := 1.0
+	for prize in Game.prizes:
+		step *= prize.wall_hit_mult
+	if is_equal_approx(step, 1.0):
+		return
+	wall_mult *= step
+	if not wall_mult_announced:
+		# Announced once per throw, on the first wall: readable feedback
+		# without a wall-hit spam of messages.
+		wall_mult_announced = true
+		hud.flash("Trompo %s!" % PrizeDef.format_mult(wall_mult))
 
 
 # --- Construction ------------------------------------------------------------

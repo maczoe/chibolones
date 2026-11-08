@@ -7,6 +7,7 @@ const BALANCE_RULES := "res://data/balance/shooting_rules.tres"
 const DEFAULT_MARBLE := "common"
 
 var _marbles: Array[MarbleDef] = []
+var _prizes: Array[PrizeDef] = []
 var _boards: Array[BoardDef] = []
 var _rules: ShootingRules
 
@@ -16,10 +17,14 @@ func _ready() -> void:
 	for def in _load_defs("res://data/marbles"):
 		if def is MarbleDef:
 			_marbles.append(def)
+	for def in _load_defs("res://data/prizes"):
+		if def is PrizeDef:
+			_prizes.append(def)
 	for def in _load_defs("res://data/boards"):
 		if def is BoardDef:
 			_boards.append(def)
 	_marbles.sort_custom(func(a, b): return a.id < b.id)
+	_prizes.sort_custom(func(a, b): return a.id < b.id)
 	_boards.sort_custom(func(a, b): return a.theme_name < b.theme_name)
 
 
@@ -37,6 +42,18 @@ func marble_def(id: String) -> MarbleDef:
 			return def
 	push_warning("MarbleDef not found: %s, falling back to first" % id)
 	return _marbles[0] if not _marbles.is_empty() else null
+
+
+func prizes() -> Array[PrizeDef]:
+	return _prizes.duplicate()
+
+
+func prize_def(id: String) -> PrizeDef:
+	for def in _prizes:
+		if def.id == id:
+			return def
+	push_warning("PrizeDef not found: %s, falling back to first" % id)
+	return _prizes[0] if not _prizes.is_empty() else null
 
 
 func board_count() -> int:

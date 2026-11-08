@@ -21,6 +21,10 @@ enum Category { COMMON, MAGIC }
 @export var speed_mult: float = 1.0
 
 @export_group("Identity & economy")
+## Material style MarbleFactory builds for the shared 3D model: "swirl"
+## (solid palette color, the POC look), "fire" (glowing core) or "glass"
+## (translucent). A new look is a def, not a code change.
+@export var style: StringName = &"swirl"
 ## Shot colors for the common set (index = shot number in M0).
 @export var palette: Array[Color] = [Color.WHITE]
 @export var price: int = 0

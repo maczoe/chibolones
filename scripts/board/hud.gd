@@ -5,6 +5,8 @@ extends CanvasLayer
 
 var label_shots: Label
 var label_score: Label
+var label_marble: Label
+var prize_box: VBoxContainer
 var label_msg: Label
 var power_bar: PowerBar
 var end_overlay: ColorRect
@@ -50,6 +52,25 @@ func set_score(value: int) -> void:
 	label_score.text = "Puntaje: %d" % value
 
 
+func set_selected_marble(marble_name: String) -> void:
+	label_marble.text = "Canica: %s" % marble_name
+
+
+## Active prizes as stacked badges in the top-right corner: the prize name
+## plus the multiplier it applies, in the same candy style as the stat
+## labels. Called again replaces the whole list.
+func set_prizes(list: Array[PrizeDef]) -> void:
+	for badge in prize_box.get_children():
+		prize_box.remove_child(badge)
+		badge.queue_free()
+	for prize in list:
+		var badge := _candy_label(24)
+		badge.text = "%s %s" % [prize.display_name,
+				PrizeDef.format_mult(prize.wall_hit_mult)]
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		prize_box.add_child(badge)
+
+
 func flash(text: String) -> void:
 	if msg_tween and msg_tween.is_valid():
 		msg_tween.kill()
@@ -78,9 +99,15 @@ func show_game_over(score: int, possible: int) -> void:
 
 
 func _stat_label(pos: Vector2) -> Label:
-	var label := Label.new()
+	var label := _candy_label(24)
 	label.position = pos
-	label.add_theme_font_size_override("font_size", 24)
+	return label
+
+
+## Candy-style label: yellow text with a dark outline, the board's stat look.
+func _candy_label(font_size: int) -> Label:
+	var label := Label.new()
+	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", Color("ffe066"))
 	label.add_theme_color_override("font_outline_color", Color("120b26"))
 	label.add_theme_constant_override("outline_size", 6)
@@ -93,6 +120,23 @@ func _build() -> void:
 
 	label_score = _stat_label(Vector2(16, 44))
 	add_child(label_score)
+
+	# Selected marble, right under the score: small, so the score stays the
+	# loudest number on screen.
+	label_marble = _candy_label(18)
+	label_marble.position = Vector2(16, 78)
+	add_child(label_marble)
+
+	# Prize badges stack downward from the top-right corner. The container is
+	# fixed-width and right-anchored, so long names still hug the edge.
+	prize_box = VBoxContainer.new()
+	prize_box.anchor_left = 1.0
+	prize_box.anchor_right = 1.0
+	prize_box.offset_left = -460
+	prize_box.offset_right = -16
+	prize_box.offset_top = 10
+	prize_box.offset_bottom = 140
+	add_child(prize_box)
 
 	label_msg = Label.new()
 	label_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
