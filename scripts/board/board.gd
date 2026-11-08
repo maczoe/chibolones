@@ -70,6 +70,9 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("restart"):
+		Game.restart_board()
+		return
 	if event.is_action_pressed("cancel"):
 		# X / B: step back one stage of the throw flow.
 		match state:
@@ -113,6 +116,9 @@ func _unhandled_input(event: InputEvent) -> void:
 					shot_tilt = 0.0
 					_update_tilt_limits()
 					shot_guide.visible = true
+					# Starting the next throw cancels any leftover celebration
+					# so the bulbs drop to the slow chase right away.
+					celebrate_left = 0.0
 					hud.flash("Inclina con <- -> y apreta ESPACIO para fijar")
 			ThrowState.TILT:
 				state = ThrowState.POWER
@@ -724,7 +730,7 @@ func _place_bulb(pos: Vector3, mesh: SphereMesh) -> void:
 
 
 func _on_embed_celebrate(_notch_index: int, _value: int) -> void:
-	celebrate_left = 5.0
+	celebrate_left = 3.0
 
 
 func _animate_bulbs(delta: float) -> void:
