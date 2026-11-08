@@ -103,6 +103,7 @@ T5 (S8): Marble effects needing new systems: Agata (wind steady),
 T6 (S1,S3,S5): Content data: remaining 7 marbles + 9 prizes .tres with
     price/rarity/flavor; random weighted stock; shop v1 UI functional
     (buy, reroll, extra pack, money, caps). Route: inline.
+    Commit: 18dc742 feat(shop): functional shop and wave-3 content
     Commit: feat(shop): functional shop and wave-3 content
 T7 (S10): End-to-end verification: extend tests/run_loop.gd (economy,
     purchases, caps, single-use, effects), full suite green, manual run.
@@ -148,3 +149,9 @@ L8: T5 implementado (ea87266): wind_steady_scale por canica en el theme,
     corregida: con 10 canicas, debug_setup excedia 1080px -> Scroll
     Container de tamano fijo. Aprendizaje: modifier_override debe
     asignarse ANTES de add_child (el _ready construye el theme con el).
+L9: T6 implementado (18dc742): 9 premios .tres, Boleto Retro
+    (first_throw_replay, restore_ammo), stock ponderado 60/30/10 con
+    seed determinista, shop_screen v1 comprable (buy/pack/reroll/caps),
+    debug test actualizado (picked + extras de Globo), prize row que
+    envuelve (HFlowContainer). Nota: pool desbloqueado = todo el
+    contenido; el filtro de unlocks es M4.
