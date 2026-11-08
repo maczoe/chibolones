@@ -27,6 +27,10 @@ float _seg_dist(vec2 p, vec2 a, vec2 b) {
 float _wind_chevrons(vec2 uv, float t) {
 	vec2 q = vec2(fract(uv.x * 9.0 - t * 0.4 * wind_dir),
 			fract(uv.y * 4.0));
+	// Mirror the chevron with the flow sign: the shape must point the same
+	// way it drifts, or a -1 wind shows arrows leaning the wrong way
+	// (user report, 2026-11-08).
+	q.x = wind_dir >= 0.0 ? q.x : 1.0 - q.x;
 	float d = min(
 			_seg_dist(q, vec2(0.32, 0.30), vec2(0.68, 0.50)),
 			_seg_dist(q, vec2(0.68, 0.50), vec2(0.32, 0.70)));
