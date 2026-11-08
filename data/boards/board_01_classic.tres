@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="BoardDef" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/ufo.svg" id="2_ufo"]
 
 [resource]
 script = ExtResource("1_board")
@@ -12,7 +13,7 @@ first_row_z = -0.5
 spacing_z = 1.1
 row_scores = Array[int]([10, 20, 30, 50])
 width = 4.2
-length = 7.0
+length = 8.0
 thickness = 0.12
 tilt_deg = 6.0
 wall_height = 0.22
@@ -36,4 +37,6 @@ backdrop_speed = 0.6
 backdrop_scale = 3.0
 floor_checker_a = Color(0.949, 0.949, 0.969, 1)
 floor_checker_b = Color(0.078, 0.063, 0.165, 1)
-floor_checker_size = 8.0
+floor_checker_size = 14.0
+deck_art = ExtResource("2_ufo")
+deck_art_width = 1.6

@@ -66,6 +66,12 @@ extends Resource
 @export var floor_checker_b: Color = Color("14102a")
 @export var floor_checker_size: float = 8.0
 
+@export_group("Deck art")
+## Decorative art printed on the play surface between the launch zone and
+## the notch rows, centered on X and on that band (null = none).
+@export var deck_art: Texture2D
+@export var deck_art_width: float = 1.6
+
 
 func launch_z() -> float:
 	return -length / 2.0 + launch_depth

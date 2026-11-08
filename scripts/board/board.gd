@@ -415,6 +415,7 @@ func _build_board() -> void:
 			"back")
 
 	_add_fair_bulbs()
+	_add_deck_art()
 
 	for row in board_def.rows:
 		for col in board_def.cols:
@@ -524,6 +525,27 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	board.add_child(label)
 
 	holes.append({"pos": pos, "score": score, "occupied": false, "index": index})
+
+
+func _add_deck_art() -> void:
+	# Theme art printed on the play surface, centered on the band between
+	# the launch/guide zone and the first notch row. Purely decorative.
+	if board_def.deck_art == null:
+		return
+	var quad := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(board_def.deck_art_width, board_def.deck_art_width)
+	quad.mesh = q
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_texture = board_def.deck_art
+	quad.material_override = mat
+	var band_start := board_def.launch_z() + 0.35
+	var band_end := board_def.first_row_z - 0.35
+	quad.rotation_degrees = Vector3(-90, 0, 0)
+	quad.position = Vector3(0, 0.013, (band_start + band_end) / 2.0)
+	board.add_child(quad)
 
 
 func _add_fair_bulbs() -> void:
