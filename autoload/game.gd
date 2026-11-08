@@ -189,6 +189,34 @@ func restore_ammo(def: MarbleDef) -> void:
 		ammo.append(def)
 
 
+## W3b shop sales. Rescue value = half the current list price (Economy),
+## paid through money_changed. The last marble in the bag cannot be sold
+## (a run without ammo is unplayable); prizes sell freely.
+
+
+## Sell one copy of a marble def from the run bag.
+func sell_marble(def: MarbleDef) -> bool:
+	if def == null or inventory.size() <= 1:
+		return false
+	if not _take_marble(inventory, def):
+		return false
+	var rescue := Economy.rescue_price(def.price, block)
+	money += rescue
+	money_changed.emit(money)
+	return true
+
+
+## Sell one owned prize from the run shelf.
+func sell_prize(def: PrizeDef) -> bool:
+	if def == null or not prizes.has(def):
+		return false
+	prizes.erase(def)
+	var rescue := Economy.rescue_price(def.price, block)
+	money += rescue
+	money_changed.emit(money)
+	return true
+
+
 func start_run() -> void:
 	debug_mode = false
 	board_index = 0
@@ -209,6 +237,7 @@ func start_run() -> void:
 	endless_mode = false
 	run_won = false
 	run_active = true
+	_draw_board_order()
 	begin_board()
 	_enter(Phase.BOARD)
 	run_started.emit()
@@ -320,15 +349,50 @@ func is_boss(n: int) -> bool:
 	return n % BOARDS_PER_BLOCK == 0
 
 
-## BoardDef index of run board `n`: boards and defs map one to one in
-## filename order (board_01 -> def 0). ContentDB clamps, so endless boards
-## (21+) keep rendering the last def and their last identity.
+## BoardDef index of run board `n`. W3b (S5): board 1 is always the basic
+## board, bosses keep their own def and difficulty tier, and every other
+## board rolls a random no-repeat permutation of its block's non-boss defs.
+## The order is drawn once per run and stays stable for the whole run.
+## Endless boards (21+) roll a random boss-tier def. A debug match renders
+## the picked board, whatever run board the single-board match is on.
+var run_board_order := {}
+
+
 func board_def_index(n: int) -> int:
 	if debug_mode:
 		# A debug match renders the picked board (S2), whatever run board the
 		# single-board match is on.
 		return clampi(debug_board_index, 0, maxi(ContentDB.board_count() - 1, 0))
-	return n - 1
+	if n <= 1:
+		return 0
+	if is_boss(n):
+		return n - 1
+	if n > BOARDS_PER_RUN:
+		# Endless: a random boss-tier def (the last def of a block).
+		var boss_tiers: Array = []
+		for block in range(1, BLOCKS + 1):
+			boss_tiers.append(block * BOARDS_PER_BLOCK - 1)
+		return boss_tiers[randi() % boss_tiers.size()]
+	return int(run_board_order.get(n, n - 1))
+
+
+## Draw the run's board order at run start: one shuffled permutation of the
+## non-boss defs inside every block.
+func _draw_board_order() -> void:
+	run_board_order.clear()
+	for block in range(1, BLOCKS + 1):
+		var first: int = (block - 1) * BOARDS_PER_BLOCK + 1
+		var normals: Array = []
+		for n in range(first, first + BOARDS_PER_BLOCK):
+			if not is_boss(n):
+				normals.append(n - 1)
+		normals.shuffle()
+		var cursor := 0
+		for n in range(first, first + BOARDS_PER_BLOCK):
+			if is_boss(n):
+				continue
+			run_board_order[n] = normals[cursor]
+			cursor += 1
 
 
 ## Bonificadores of board `n`. Since M2.5 the list comes from the board's

@@ -10,6 +10,7 @@ const PENDING_TAG := "(en camino, M3)"  # retired: kept for save-game compat rea
 ## One stock card's buy state, so money/cap changes can re-evaluate it.
 var _buy_buttons: Array[Dictionary] = []
 var _stock_box: GridContainer
+var _inventory_box: GridContainer
 var _label_money: Label
 var _label_caps: Label
 var _label_msg: Label
@@ -71,6 +72,16 @@ func _build() -> void:
 	column.add_child(_stock_box)
 	_refresh_stock()
 
+	# W3b: the run's inventory with rescue sales, so a clogged bag can swap
+	# items for synergy.
+	column.add_child(_candy_label("Tu inventario", 26, Color("4deeea")))
+	_inventory_box = GridContainer.new()
+	_inventory_box.columns = 2
+	_inventory_box.add_theme_constant_override("h_separation", 16)
+	_inventory_box.add_theme_constant_override("v_separation", 10)
+	column.add_child(_inventory_box)
+	_refresh_inventory()
+
 	_pack_button = _menu_button("Paquete de canica extra (+1 tiro) - $%d"
 			% Economy.extra_marble_pack_price(Game.block))
 	_pack_button.pressed.connect(_on_pack_pressed)
@@ -88,6 +99,64 @@ func _build() -> void:
 	continue_button.grab_focus()
 
 
+## Rebuild the inventory rows: one line per owned marble def (with the
+## copy count) and one per owned prize, each with a VENDER action.
+func _refresh_inventory() -> void:
+	for child in _inventory_box.get_children():
+		child.queue_free()
+	var counts := {}
+	for def in Game.inventory:
+		counts[def.id] = int(counts.get(def.id, 0)) + 1
+	for def in Game.inventory:
+		if not counts.has(def.id):
+			continue
+		var copies := int(counts[def.id])
+		counts.erase(def.id)
+		_inventory_box.add_child(_inventory_row("Canica", def,
+				"x%d" % copies if copies > 1 else "", def.price))
+	for def in Game.prizes:
+		_inventory_box.add_child(_inventory_row("Premio", def, "", def.price))
+
+
+## One inventory line: kind, name (+ copies), rescue price, VENDER.
+func _inventory_row(kind: String, def: Resource, extra: String, base_price: int) -> PanelContainer:
+	var row := PanelContainer.new()
+	row.add_theme_stylebox_override("panel", _card_style())
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 10)
+	row.add_child(line)
+	var name_line := _candy_label("%s: %s%s" % [kind, def.display_name, extra],
+			22, Color("ffe066"))
+	name_line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	line.add_child(name_line)
+	line.add_child(_candy_label("$%d" % Economy.rescue_price(base_price, Game.block),
+			20, Color("ff6fb5")))
+	var sell := _menu_button("VENDER")
+	sell.custom_minimum_size = Vector2(160, 48)
+	sell.add_theme_font_size_override("font_size", 20)
+	sell.pressed.connect(_on_sell_pressed.bind(kind, def))
+	line.add_child(sell)
+	return row
+
+
+## One sale: the Game API validates the last-marble guard; the inventory
+## rebuilds and the money row follows through money_changed.
+func _on_sell_pressed(kind: String, def: Resource) -> void:
+	var ok := false
+	if kind == "Canica":
+		ok = Game.sell_marble(def)
+	else:
+		ok = Game.sell_prize(def)
+	if ok:
+		flash("Vendido: %s" % def.display_name)
+	else:
+		flash("No podes vender tu ultima canica") if kind == "Canica" else flash("No se puede vender")
+	_refresh_inventory()
+	_refresh_stock()
+	_update_buy_states()
+	_restore_focus()
+
+
 ## Rebuild the stock cards from a fresh draw (first open or a reroll).
 func _refresh_stock() -> void:
 	for child in _stock_box.get_children():
@@ -102,6 +171,32 @@ func _refresh_stock() -> void:
 				int(entry["price"])))
 
 
+## W3b (spec S4): after any purchase/sale/reroll, focus returns to the
+## first enabled control, so the whole shop stays mouse-free. Disabled
+## controls stay out of the focus cycle.
+func _restore_focus() -> void:
+	var owner_node := get_viewport().gui_get_focus_owner()
+	if owner_node != null and owner_node is Button and not (owner_node as Button).disabled:
+		return
+	for button in _find_focusables(self):
+		if not button.disabled:
+			button.grab_focus()
+			return
+
+
+## Every enabled Button in the tree, depth-first: built rows first, pack,
+## reroll and CONTINUAR last.
+func _find_focusables(node: Node) -> Array[Button]:
+	var out: Array[Button] = []
+	if node is Button:
+		var button := node as Button
+		if not button.disabled:
+			out.append(button)
+	for child in node.get_children():
+		out.append_array(_find_focusables(child))
+	return out
+
+
 func _stock_card(kind: String, def: Resource, price: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", _card_style())
@@ -110,6 +205,11 @@ func _stock_card(kind: String, def: Resource, price: int) -> PanelContainer:
 	card.add_child(column)
 	column.add_child(_candy_label(kind, 18, Color("4deeea")))
 	column.add_child(_candy_label(def.display_name, 26, Color("ffe066")))
+	# W3b: the effect line, so buying is an informed decision.
+	var effect_line := _candy_label(def.effect_description(), 17, Color("a99bc9"))
+	effect_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	effect_line.custom_minimum_size = Vector2(300, 0)
+	column.add_child(effect_line)
 	column.add_child(_candy_label("$%d" % price, 24, Color("ff6fb5")))
 	var buy := _menu_button("COMPRAR")
 	buy.custom_minimum_size = Vector2(240, 48)
@@ -135,6 +235,7 @@ func _on_buy_pressed(kind: String, def: Resource, price: int, button: Button) ->
 	else:
 		flash(_buy_block_reason(kind, price))
 	_update_buy_states()
+	_restore_focus()
 
 
 ## Why a buy is blocked right now, for the flash message.
@@ -192,6 +293,7 @@ func _on_reroll_pressed() -> void:
 	else:
 		flash("Te falta plata para el reroll")
 	_update_buy_states()
+	_restore_focus()
 
 
 func _on_continue_pressed() -> void:

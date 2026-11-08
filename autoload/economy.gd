@@ -57,6 +57,12 @@ func base_price_for(def_id: String) -> int:
 	return 0
 
 
+## W3b rescue value when selling an item back: half the CURRENT list price
+## (block-scaled), rounded up. Selling is a stopgap, not an economy.
+func rescue_price(def_base_price: int, block: int) -> int:
+	return ceili(marble_price(def_base_price, block) / 2.0)
+
+
 ## Placeholder shop stock for a block: the two marbles, two prizes, the
 ## extra-throw pack and the reroll the real shop will sell in M3. Prizes
 ## wrap around when the content pool is smaller than the stock, so the

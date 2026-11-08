@@ -36,3 +36,36 @@ enum Category { COMMON, MAGIC }
 @export var effects: Array[StringName] = []
 ## Chance [0..1] of the marble breaking when thrown (glass).
 @export var break_chance: float = 0.0
+
+
+## W3b: what this marble does, one readable line for the shop. Driven by
+## the effects ids plus the physics fields the marble itself owns.
+func effect_description() -> String:
+	var parts: Array[String] = []
+	for effect in effects:
+		match effect:
+			&"wind_steady":
+				parts.append("No la mueve el viento")
+			&"center_pull":
+				parts.append("Curva hacia el centro del tablero")
+			&"homing":
+				parts.append("Elige tu muesca con la mira: va sola hacia ella")
+			&"side_refund":
+				parts.append("Si sale por un costado, vuelve y no se gasta")
+			&"embed_anywhere":
+				parts.append("Se clava en cualquier muesca, aunque pase rapido")
+			&"copy_prev":
+				parts.append("Vale lo mismo que tu tiro anterior (si hizo mas de 0)")
+			_:
+				parts.append(str(effect))
+	if not is_equal_approx(speed_mult, 1.0):
+		parts.append("Sale x%s de velocidad" % PrizeDef.format_mult(speed_mult))
+	if not is_equal_approx(score_mult, 1.0):
+		parts.append("Puntua x%s" % PrizeDef.format_mult(score_mult))
+	if break_chance > 0.0:
+		parts.append("Puede romperse al tirar (%d%%)" % roundi(break_chance * 100))
+	if single_use:
+		parts.append("De un solo uso")
+	if parts.is_empty():
+		parts.append("Sin efectos: la canica clasica")
+	return " ".join(parts)

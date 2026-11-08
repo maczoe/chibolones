@@ -73,6 +73,33 @@ func on_event(event: StringName, ctx: Dictionary) -> void:
 							* float(params.get("mult", 1.0))
 
 
+## W3b: what this prize does, one readable line for the shop and the HUD.
+func effect_description() -> String:
+	match effect:
+		&"wall_mult":
+			return "Puntua x%s por cada pared que golpea el tiro" % format_mult(float(params.get("mult", 1.0)))
+		&"board_end_flat":
+			return "+%d puntos al terminar cada tablero" % int(params.get("flat", 0))
+		&"refund_money":
+			return "+$%d cada vez que la feria te devuelve un tiro" % int(params.get("amount", 0))
+		&"score_mult_all":
+			return "Todo puntua x%s" % format_mult(float(params.get("mult", 1.0)))
+		&"bounce_scale":
+			return "Las canicas rebotan x%s" % format_mult(float(params.get("bounce", 1.0)))
+		&"fire_speed_mult":
+			return "Las canicas de fuego salen x%s de velocidad" % format_mult(float(params.get("mult", 1.0)))
+		&"extra_throw":
+			return "+%d tiro por tablero" % int(params.get("per_board", 1))
+		&"skip_speed_scale":
+			return "Las canicas lentas se quedan antes (umbral de empotrado x%s)" % format_mult(float(params.get("scale", 1.0)))
+		&"first_throw_replay":
+			return "Si tu primer tiro del tablero hace 0, se repite"
+		&"bag_slots":
+			return "+%d lugar para canicas en el bolso" % int(params.get("slots", 1))
+		_:
+			return ""
+
+
 ## M2 hook contract, part 2: edit one embed's score. `ctx` carries the
 ## shared `adds` / `mults` dictionaries (source name -> value), the board
 ## node and this throw's facts (`ctx.throw`: marble, notch, wall_hits,

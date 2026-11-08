@@ -33,6 +33,8 @@ func _run() -> void:
 	await _test_continue_focus()
 	await _test_buttons_keyboard_reachable()
 	await _test_buy_flow()
+	await _test_effect_descriptions()
+	await _test_inventory_section()
 	print("SHOP_FOCUS FAIL" if failed else "SHOP_FOCUS OK")
 	quit(1 if failed else 0)
 
@@ -89,6 +91,11 @@ func _test_buy_flow() -> void:
 			"a buy should add exactly one item to the run")
 	_check(game.money < money_before, "a buy should charge money")
 	_check(buys[0].disabled, "a bought card's buy button should disable")
+	# W3b (spec S4): focus must survive the purchase.
+	await process_frame
+	var owner_node := root.gui_get_focus_owner()
+	_check(owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
+			"focus should return to an enabled control after buying, owner is %s" % owner_node)
 	# Unaffordable: no money, every buy button disabled.
 	game.money = 0
 	var shop_broke := _open_shop()
@@ -121,6 +128,65 @@ func _test_buy_flow() -> void:
 					func(b: Button): return b.disabled),
 			"a full bag should disable at least one buy")
 	shop_full.queue_free()
+	shop.queue_free()
+	await process_frame
+
+
+## W3b (spec S3): every shop card shows what the item does.
+func _test_effect_descriptions() -> void:
+	var content := root.get_node("ContentDB")
+	# Def level: every effect id has a readable description.
+	for def in content.marbles() + content.prizes():
+		var text: String = def.effect_description()
+		_check(text != "", "%s (%s) should describe its effect, got ''"
+				% [def.id, def.display_name])
+		_check(text != def.display_name,
+				"%s description must not repeat the name" % def.id)
+	# The cards carry the description text: with a random draw we ask for
+	# any known effect line, which every drawn def produces.
+	var possible: Array = []
+	for def in content.marbles() + content.prizes():
+		possible.append(def.effect_description())
+	var shop_game := root.get_node("Game")
+	shop_game.start_run()
+	shop_game.money = 30
+	var shop := _open_shop()
+	await process_frame
+	await process_frame
+	var descriptions: String = ""
+	for label in shop.find_children("*", "Label", true, false):
+		descriptions += (label as Label).text + "\n"
+	var shown := false
+	for text in possible:
+		if descriptions.contains(text):
+			shown = true
+	_check(shown, "the shop cards should show effect descriptions, screen has:\n%s" % descriptions)
+	shop.queue_free()
+	await process_frame
+
+
+## W3b (spec S2): the shop lists the run's inventory with a VENDER action
+## per item, and selling pays the rescue value through Game.
+func _test_inventory_section() -> void:
+	var game := root.get_node("Game")
+	game.start_run()
+	game.money = 0
+	var shop := _open_shop()
+	await process_frame
+	await process_frame
+	var sellers := _find_buttons(shop).filter(
+				func(b: Button): return b.text == "VENDER")
+	_check(sellers.size() >= 2,
+			"the inventory should offer VENDER for marbles and prizes, got %d"
+			% sellers.size())
+	if sellers.is_empty():
+		shop.queue_free()
+		await process_frame
+		return
+	var money_before: int = game.money
+	sellers[0].pressed.emit()
+	_check(game.money > money_before,
+			"selling from the shop should pay the rescue value")
 	shop.queue_free()
 	await process_frame
 

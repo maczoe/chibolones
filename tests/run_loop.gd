@@ -49,6 +49,12 @@ func _run() -> void:
 	_test_stock_draw()
 	if failed:
 		return quit(1)
+	_test_rescue_sales()
+	if failed:
+		return quit(1)
+	_test_board_order()
+	if failed:
+		return quit(1)
 	_test_progression()
 	if failed:
 		return quit(1)
@@ -269,6 +275,106 @@ func _test_stock_draw() -> void:
 	game.money = 0
 	_check(not game.reroll_shop(), "an unaffordable reroll must fail")
 	_check(game.money == 0, "a failed reroll must not charge")
+
+
+# --- (a5) Rescue sales (W3b, spec S2) --------------------------------------
+
+
+## W3b: rescue value = half the CURRENT list price, rounded up. The last
+## marble in the bag cannot be sold; prizes sell freely.
+func _test_rescue_sales() -> void:
+	# Price math: block scale applies, then half, then ceil.
+	_check(economy.rescue_price(2, 1) == 1,
+			"rescue of $2 at block 1 should be 1, got %d" % economy.rescue_price(2, 1))
+	_check(economy.rescue_price(3, 1) == 2,
+			"rescue of $3 at block 1 should be ceil(1.5) = 2, got %d" % economy.rescue_price(3, 1))
+	_check(economy.rescue_price(7, 5) == 9,
+			"rescue of $7 at block 5 should be ceil(8.4) = 9, got %d" % economy.rescue_price(7, 5))
+	# The last marble guard.
+	game.start_run()
+	while game.inventory.size() > 1:
+		game.inventory.remove_at(game.inventory.size() - 1)
+	game.money = 0
+	_check(not game.sell_marble(game.inventory[0]),
+			"the last marble in the bag cannot be sold")
+	_check(game.money == 0, "a blocked sale must not pay")
+	_check(game.inventory.size() == 1, "a blocked sale must keep the marble")
+	# Selling one copy of a def: pays the rescue, removes exactly one copy.
+	game.inventory.append(content.marble_def("fire"))
+	var money_before: int = game.money
+	_check(game.sell_marble(content.marble_def("fire")),
+			"selling a non-last marble should succeed")
+	_check(game.money == money_before + economy.rescue_price(3, 1),
+			"the sale should pay the rescue value")
+	var fire_copies := 0
+	for def in game.inventory:
+		if def.id == "fire":
+			fire_copies += 1
+	_check(fire_copies == 0, "the sale should remove the fire copy")
+	_check(game.inventory.size() == 1, "the sale should remove exactly one marble")
+	_check(not game.sell_marble(null), "selling null must fail")
+	# Prizes sell freely, at their own rescue.
+	game.start_run()
+	game.money = 0
+	_check(game.sell_prize(content.prize_def("trompo")),
+			"a prize sells freely (no last-guard)")
+	_check(game.money == economy.rescue_price(4, 1),
+			"the prize sale should pay its rescue, money is %d" % game.money)
+	_check(game.prizes.is_empty(), "the sold prize should leave the shelf")
+	_check(not game.sell_prize(null), "selling a null prize must fail")
+
+
+# --- (a6) Random board order (W3b, spec S5) ---------------------------------
+
+
+## W3b: board 1 is always the basic board, bosses keep their def and tier,
+## the other boards shuffle within their block without repeats.
+func _test_board_order() -> void:
+	var block1_orders := {}
+	for trial in 6:
+		game.start_run()
+		_check(game.board_def_index(1) == 0,
+				"board 1 must always render the basic board, got %d"
+				% game.board_def_index(1))
+		for n in [4, 8, 12, 16, 20]:
+			_check(game.board_def_index(n) == n - 1,
+					"boss board %d must keep its def, got %d"
+					% [n, game.board_def_index(n)])
+		# Every block's normal boards are a permutation of that block's
+		# non-boss defs (no repeats, nothing foreign).
+		for block in range(1, game.BLOCKS + 1):
+			var first: int = (block - 1) * game.BOARDS_PER_BLOCK + 1
+			var idxs: Array = []
+			for n in range(first, first + game.BOARDS_PER_BLOCK):
+				if not game.is_boss(n):
+					idxs.append(game.board_def_index(n))
+			idxs.sort()
+			var expected: Array = []
+			for n in range(first, first + game.BOARDS_PER_BLOCK):
+				if not game.is_boss(n):
+					expected.append(n - 1)
+			_check(idxs == expected,
+					"block %d normal boards should be a permutation of %s, got %s"
+					% [block, str(expected), str(idxs)])
+		var order := str([game.board_def_index(2), game.board_def_index(3)])
+		block1_orders[order] = true
+	_check(block1_orders.size() > 1,
+			"the block-1 order should vary across runs, got %s" % str(block1_orders.keys()))
+	# Endless boards roll random boss-tier defs (3, 7, 11, 15, 19).
+	game.start_run()
+	game.current_board_in_run = 20
+	game.board_won(0, 0)
+	game.win_screen_continue()
+	game.start_endless()
+	game.current_board_in_run = 21
+	var endless: int = game.board_def_index(21)
+	_check([3, 7, 11, 15, 19].has(endless),
+			"an endless board should render a boss-tier def, got %d" % endless)
+	# Debug keeps its picked board, no randomness.
+	game.start_debug_run({"board_index": 2, "prizes": [], "marbles": [
+			content.marble_def("common")]})
+	_check(game.board_def_index(1) == 2,
+			"debug mode must render the picked board, got %d" % game.board_def_index(1))
 
 
 # --- (b) Progression helpers (5 blocks of 4, boss every 4th) ---------------
