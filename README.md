@@ -60,6 +60,7 @@ godot --path .
 | Move aim / lean tilt guide | Left-Right arrows, A/D | Left stick, D-pad |
 | Shoot / lock steps (1st-3rd) | Space or Enter | A / Cross |
 | Camera mode (free view) | Z | LB |
+| Cancel / step back | X | B |
 | Move camera (in camera mode) | Arrows, WASD | Stick, D-pad |
 | Restart round | R | Start |
 

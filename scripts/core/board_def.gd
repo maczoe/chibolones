@@ -50,6 +50,8 @@ extends Resource
 @export var notch_glow_color: Color = Color("4deeea")
 ## Fair bulbs along the cabinet edges.
 @export var bulb_color: Color = Color("ffe066")
+## Chase speed of the pinball bulb pattern while preparing a throw.
+@export var bulb_pattern_speed: float = 8.0
 ## Tint of the spotlight over the board.
 @export var light_color: Color = Color("ff9fd6")
 ## Ambient brightness of the scene (dark = dramatic).

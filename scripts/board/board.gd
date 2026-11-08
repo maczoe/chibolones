@@ -34,6 +34,11 @@ var hud: CanvasLayer
 var launch_marker: MeshInstance3D
 var shot_guide: Node3D
 var skirt: MeshInstance3D
+var bulbs: Array[MeshInstance3D] = []
+var bulb_on_mat: StandardMaterial3D
+var bulb_off_mat: StandardMaterial3D
+var bulbs_animating := false
+var bulb_clock := 0.0
 var cam: Camera3D
 var cam_look_target: Vector3
 var cam_orbit_radius := 8.0
@@ -64,8 +69,26 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("restart"):
-		Game.restart_board()
+	if event.is_action_pressed("cancel"):
+		# X / B: step back one stage of the throw flow.
+		match state:
+			ThrowState.TILT:
+				state = ThrowState.AIM
+				shot_tilt = 0.0
+				shot_guide.visible = false
+				hud.flash("Tiro cancelado: movi y apreta ESPACIO de nuevo")
+			ThrowState.POWER:
+				state = ThrowState.TILT
+				power = 0.0
+				power_dir = 1.0
+				hud.set_power_visible(false)
+				hud.flash("Inclina con <- ->; X vuelve atras")
+			ThrowState.CAMERA:
+				state = ThrowState.AIM
+				launch_marker.visible = true
+				hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+			_:
+				pass
 		return
 	if event.is_action_pressed("camera_mode"):
 		# Camera mode: free the view to read the whole board; only from AIM
@@ -105,6 +128,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_animate_bulbs(delta)
 	match state:
 		ThrowState.AIM:
 			var move := 0.0
@@ -339,13 +363,18 @@ func _build_environment() -> void:
 	# board theme can relight the whole scene.
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("14102a")
+	env.background_color = Color("0d0920")
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("3a1f6e")
 	env.ambient_light_energy = board_def.ambient_energy
 	env.fog_enabled = true
-	env.fog_light_color = Color("2e1b58")
-	env.fog_density = 0.012
+	env.fog_light_color = Color("1d1240")
+	env.fog_density = 0.02
+	# Neon feel: emissive bulbs and rings bloom into the dark room.
+	env.glow_enabled = true
+	env.glow_intensity = 0.9
+	env.glow_bloom = 0.05
+	env.glow_hdr_threshold = 1.0
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
@@ -581,7 +610,7 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	ring_mat.albedo_color = board_def.notch_glow_color.darkened(0.4)
 	ring_mat.emission_enabled = true
 	ring_mat.emission = board_def.notch_glow_color
-	ring_mat.emission_energy_multiplier = 1.2
+	ring_mat.emission_energy_multiplier = 2.0
 	ring.material_override = ring_mat
 	ring.position = pos + Vector3(0, 0.011, 0)
 	board.add_child(ring)
@@ -660,31 +689,54 @@ func _add_fair_bulbs() -> void:
 	var bulb_mesh := SphereMesh.new()
 	bulb_mesh.radius = 0.05
 	bulb_mesh.height = 0.1
-	var bulb_mat := StandardMaterial3D.new()
-	bulb_mat.albedo_color = board_def.bulb_color
-	bulb_mat.emission_enabled = true
-	bulb_mat.emission = board_def.bulb_color
-	bulb_mat.emission_energy_multiplier = 1.6
+	bulb_on_mat = StandardMaterial3D.new()
+	bulb_on_mat.albedo_color = board_def.bulb_color
+	bulb_on_mat.emission_enabled = true
+	bulb_on_mat.emission = board_def.bulb_color
+	bulb_on_mat.emission_energy_multiplier = 2.2
+	bulb_off_mat = StandardMaterial3D.new()
+	bulb_off_mat.albedo_color = board_def.bulb_color.darkened(0.75)
+	bulb_off_mat.emission_enabled = true
+	bulb_off_mat.emission = board_def.bulb_color
+	bulb_off_mat.emission_energy_multiplier = 0.08
 	var top_y := board_def.wall_height + 0.05
 	var x_edge := board_def.width / 2.0 + board_def.wall_thickness / 2.0
 	var z_edge := board_def.length / 2.0 + board_def.wall_thickness / 2.0
 	for side in [-1.0, 1.0]:
 		var z := -board_def.length / 2.0 + 0.25
 		while z <= board_def.length / 2.0:
-			_place_bulb(Vector3(side * x_edge, top_y, z), bulb_mesh, bulb_mat)
+			_place_bulb(Vector3(side * x_edge, top_y, z), bulb_mesh)
 			z += 0.5
 	var x := -board_def.width / 2.0 + 0.25
 	while x <= board_def.width / 2.0 + 0.01:
-		_place_bulb(Vector3(x, top_y, z_edge), bulb_mesh, bulb_mat)
+		_place_bulb(Vector3(x, top_y, z_edge), bulb_mesh)
 		x += 0.5
 
 
-func _place_bulb(pos: Vector3, mesh: SphereMesh, mat: StandardMaterial3D) -> void:
+func _place_bulb(pos: Vector3, mesh: SphereMesh) -> void:
 	var bulb := MeshInstance3D.new()
 	bulb.mesh = mesh
-	bulb.material_override = mat
+	bulb.material_override = bulb_on_mat
 	bulb.position = pos
 	board.add_child(bulb)
+	bulbs.append(bulb)
+
+
+func _animate_bulbs(delta: float) -> void:
+	# Pinball light show: while the player prepares a throw, the bulbs run
+	# a chase (faster on the power step); otherwise they sit steady on.
+	if state != ThrowState.TILT and state != ThrowState.POWER:
+		if bulbs_animating:
+			bulbs_animating = false
+			for b in bulbs:
+				b.material_override = bulb_on_mat
+		return
+	bulbs_animating = true
+	bulb_clock += delta
+	var speed := board_def.bulb_pattern_speed * (2.0 if state == ThrowState.POWER else 1.0)
+	for i in bulbs.size():
+		var on := fmod(bulb_clock * speed + float(i) * 0.7, 1.0) < 0.55
+		bulbs[i].material_override = bulb_on_mat if on else bulb_off_mat
 
 
 func _paint_material(color: Color, emission := 0.0) -> StandardMaterial3D:

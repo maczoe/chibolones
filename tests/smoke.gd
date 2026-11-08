@@ -64,6 +64,28 @@ func _run() -> void:
 				return _fail("expected AIM after leaving camera mode")
 			if board.cam.position != panned:
 				return _fail("camera was reset on exit; it must keep the player's angle")
+		# Exercise cancel once: X steps the throw flow back one stage.
+		if attempts == 3:
+			_tap("shoot")
+			await _frames(3)
+			_tap("cancel")
+			await _frames(3)
+			if board.state != board.ThrowState.AIM:
+				return _fail("cancel from TILT should return to AIM")
+			_tap("shoot")
+			await _frames(3)
+			_tap("shoot")
+			await _frames(3)
+			if board.state != board.ThrowState.POWER:
+				return _fail("expected POWER before cancel test")
+			_tap("cancel")
+			await _frames(3)
+			if board.state != board.ThrowState.TILT:
+				return _fail("cancel from POWER should return to TILT")
+			_tap("cancel")
+			await _frames(3)
+			if board.state != board.ThrowState.AIM:
+				return _fail("second cancel from TILT should return to AIM")
 		# Move the aim sideways a little on every shot so covers differ.
 		Input.action_press("move_right")
 		await _frames(10)
