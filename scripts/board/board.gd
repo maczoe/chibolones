@@ -363,7 +363,7 @@ func _build_environment() -> void:
 	spot.omni_range = 13.0
 	add_child(spot)
 
-	_build_backdrop()
+	_build_room()
 	_build_floor()
 
 	cam = Camera3D.new()
@@ -381,14 +381,10 @@ func _build_environment() -> void:
 	_apply_camera()
 
 
-func _build_backdrop() -> void:
-	# Psychedelic animated wall behind the cabinet; colors and speed are
-	# board data, so each theme paints its own moving void.
-	var mesh_i := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.orientation = PlaneMesh.FACE_Z
-	plane.size = Vector2(160, 34)
-	mesh_i.mesh = plane
+func _build_room() -> void:
+	# Compact closed room: back wall plus both side walls share the
+	# psychedelic shader, so orbiting the cabinet always shows the same
+	# living void with no visible edges. The player side is open.
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/board/shaders/backdrop.gdshader")
 	mat.set_shader_parameter("color_a", board_def.backdrop_color_a)
@@ -396,9 +392,25 @@ func _build_backdrop() -> void:
 	mat.set_shader_parameter("color_c", board_def.backdrop_color_c)
 	mat.set_shader_parameter("speed", board_def.backdrop_speed)
 	mat.set_shader_parameter("pattern_scale", board_def.backdrop_scale)
-	mesh_i.material_override = mat
-	mesh_i.position = Vector3(0, 8.0, board_def.length + 6.0)
-	add_child(mesh_i)
+	var wall_h := 16.0
+	var room_half := 14.0
+	var back_z := board_def.length / 2.0 + 10.0
+	var floor_y := -board_def.skirt_height - 0.1
+	for def in [
+		# [yaw degrees, position]
+		[0.0, Vector3(0, floor_y + wall_h / 2.0, back_z)],                # back
+		[90.0, Vector3(-room_half, floor_y + wall_h / 2.0, back_z - room_half)],  # left
+		[-90.0, Vector3(room_half, floor_y + wall_h / 2.0, back_z - room_half)],  # right
+	]:
+		var wall := MeshInstance3D.new()
+		var plane := PlaneMesh.new()
+		plane.orientation = PlaneMesh.FACE_Z
+		plane.size = Vector2(room_half * 2.0 + 8.0, wall_h)
+		wall.mesh = plane
+		wall.material_override = mat
+		wall.rotation_degrees = Vector3(0, def[0], 0)
+		wall.position = def[1]
+		add_child(wall)
 
 
 func _build_floor() -> void:
