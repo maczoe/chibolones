@@ -39,6 +39,11 @@ var throw_index := 0
 var board: Node3D
 var score_engine: ScoreEngine
 var hud: CanvasLayer
+## Run objective for this board: 0 when the board is played outside a run
+## (headless tests, --script mode), which keeps the plain POC round over.
+var run_objective := 0
+## The win/loss of this board was already reported to the Game run flow.
+var board_result_sent := false
 var launch_marker: MeshInstance3D
 var shot_guide: Node3D
 var skirt: MeshInstance3D
@@ -62,10 +67,12 @@ func _ready() -> void:
 	board_def = ContentDB.board_def(Game.board_index)
 	rules = ContentDB.rules()
 	marble_def = ContentDB.marble_def("common")
-	# Temporary bootstrapping until M1 adds the menu: a board opened with
-	# no run in progress starts one, so the bag and prizes exist in play.
-	if Game.bag.is_empty() and Game.prizes.is_empty():
-		Game.start_run()
+	# Run context: a board played inside a run aims at that board's objective
+	# and reports its result to Game. A board opened without a run (headless
+	# tests) has no objective and keeps the plain round-over overlay.
+	if Game.in_run() and Game.phase == Game.Phase.BOARD:
+		run_objective = Game.objective_for_board(Game.current_board_in_run,
+				board_def.objective_target if board_def.objective_target > 0 else 60)
 	selected_bag_index = _common_bag_index()
 	shots_left = rules.shots_per_board
 	aim_limit = board_def.width / 2.0 - board_def.aim_limit_margin
@@ -80,6 +87,9 @@ func _ready() -> void:
 	EventBus.wall_hit.connect(_on_wall_hit)
 	add_child(preload("res://scripts/board/juice.gd").new())
 	hud.set_shots(shots_left, rules.shots_per_board)
+	hud.set_target(run_objective)
+	hud.set_money(Game.money)
+	Game.money_changed.connect(hud.set_money)
 	hud.set_prizes(Game.prizes)
 	hud.set_selected_marble(_selected_marble_def().display_name)
 	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
@@ -365,6 +375,10 @@ func _update_flight(delta: float) -> void:
 				settle_times.erase(marble)
 				pending_result = "La canica se quedo quieta: 0 puntos"
 				EventBus.throw_ended.emit(&"settled")
+		# Run board: reaching the objective wins the board right here, no
+		# need to wait for the marble to settle.
+		if _run_win_reached():
+			return
 	# End the volley once every marble stopped, sank, or the timeout hit.
 	if active_marbles.is_empty() or launch_timer >= rules.flight_timeout:
 		if launch_timer >= rules.flight_timeout and not active_marbles.is_empty():
@@ -419,9 +433,43 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 
 func _round_over() -> void:
 	state = ThrowState.ROUND_OVER
+	if board_result_sent:
+		return
 	var possible: int = rules.shots_per_board * board_def.row_scores[board_def.rows - 1]
+	if run_objective > 0 and score_engine.total < run_objective:
+		# Run board lost: the shots ran out under the objective, so the run
+		# is over. Game owns the run summary screen.
+		board_result_sent = true
+		hud.show_defeat(score_engine.total, run_objective)
+		EventBus.board_ended.emit(score_engine.total)
+		Game.board_lost.call_deferred()
+		return
 	hud.show_game_over(score_engine.total, possible)
 	EventBus.board_ended.emit(score_engine.total)
+
+
+## Run objective reached during the throw. The remaining marbles are frozen
+## and freed here, and Game is called one frame later so the physics frame
+## finishes before the scene changes to the shop.
+func _run_win_reached() -> bool:
+	if board_result_sent or run_objective <= 0:
+		return false
+	if score_engine.total < run_objective:
+		return false
+	board_result_sent = true
+	for marble in active_marbles.duplicate():
+		if is_instance_valid(marble):
+			marble.freeze = true
+			marble.queue_free()
+	active_marbles.clear()
+	settle_times.clear()
+	launch_marker.visible = false
+	hud.set_power_visible(false)
+	state = ThrowState.ROUND_OVER
+	hud.flash("Tablero superado!")
+	EventBus.board_ended.emit(score_engine.total)
+	Game.board_won.call_deferred(shots_left, 0)
+	return true
 
 
 func _on_marble_body_entered(other: Node, marble: RigidBody3D) -> void:

@@ -59,6 +59,39 @@ throw (two walls = x2.25), and is shown as a badge in the top-right corner.
 Content lives in `data/marbles/*.tres` and `data/prizes/*.tres`, so a new
 marble or prize is a resource file, not a code change.
 
+## The run
+
+**JUGAR** in the title screen starts a run; the library button stays
+disabled until M4. A run is **20 boards in 5 blocks of 4**, a boss board on
+every 4th (4, 8, 12, 16, 20). Until the content waves land, the classic
+board backs all of them and what escalates is the objective: the board
+target scaled by the block factor (x1, x1.15, x1.3, x1.5, x1.75), with boss
+boards aiming at 100 before that factor. The HUD shows the objective under
+the score and the money in the run.
+
+- **Board won** — reaching the objective wins the board on the spot and the
+  run pays `base(block) + per_marble(block) * canicas restantes + bonus`,
+  i.e. `3 + block*2` plus `1 + block` per marble left.
+- **Board lost** — running out of shots under the objective ends the run:
+  the summary shows the boards cleared, the money and which board beat you,
+  with **REINTENTAR** and **MENU**.
+- **Shop (placeholder)** — after every won board the shop lists the stock a
+  real shop sells from M3: 2 marbles, 2 prizes, an extra-marble pack (+1
+  throw, $4..$8 by block) and a reroll ($2), every price scaled by the block
+  (`1 + 0.35 * (block - 1)`). Everything is disabled and marked
+  "(en camino, M3)"; in M1 the screen only shows the run's prices.
+  **CONTINUAR** moves to the next board.
+- **Run won** — clearing board 20 shows the summary and offers
+  **CONTINUAR** into endless mode (GDD D6): boards 21+ keep the block-5
+  prices and pay $1 extra per board won, and the summary counts the run
+  boards plus the endless ones.
+- **No interest** (D4): income comes only from boards won, so unspent money
+  never grows on its own.
+
+The run state (money, bag, prizes, board, phase) lives in the `Game`
+autoload and the money numbers in the `Economy` autoload; the screens are
+`Game` phases routed through `scripts/run/run_flow.gd`.
+
 ## Platforms
 
 - **Scaling**: 1920x1080 base viewport with `canvas_items` stretch and
@@ -85,11 +118,11 @@ marble or prize is a resource file, not a code change.
 ## Project layout
 
 ```
-autoload/    EventBus (gameplay events), ContentDB (Def registry), Game (run flow)
-scripts/     core/ Def resources - board/ board scene, HUD, marble factory - scoring/
-scenes/      board/board.tscn (main scene)
+autoload/    EventBus (gameplay events), ContentDB (Def registry), Game (run flow), Economy (money math)
+scripts/     core/ Def resources - board/ board scene, HUD, marble factory - scoring/ - run/ phase routing - ui/ menu, shop, summary
+scenes/      menu/ (main scene), board/, shop/, run/ (run summary)
 data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs - prizes/ prize defs
-tests/       headless SceneTree tests (smoke round, physics probe)
+tests/       headless SceneTree tests (smoke round, physics probe, run loop)
 docs/        GDD (docs/gdd) and architecture plan
 ```
 
@@ -103,8 +136,8 @@ throw is scored (multipliers, notch rerolls, marble properties). For that:
   the EventBus `embed` event into `ScoreEngine`, the natural seam for scoring
   modifiers (M2 hook contract in `docs/architecture.md`).
 - The round loop (`Aim -> Tilt -> Power -> Flight -> x5 -> total`) is a plain
-  state machine inside the board scene; the run loop (shop, escalation) is the
-  `Game` autoload phase machine, ready to wrap it.
+  state machine inside the board scene; the run loop (menu, shop,
+  escalation) is the `Game` autoload phase machine, which wraps it since M1.
 - Physics is honest: real rigidbody marbles on a tilted board, so future
   modifiers can act on marble material, board tilt, or hole geometry.
 
@@ -116,8 +149,14 @@ refund returns throws without consuming them):
 
 ```
 godot --headless --path . --script res://tests/smoke.gd
+godot --headless --path . --script res://tests/run_loop.gd
 godot --headless --path . --script res://tests/physics_probe.gd
 ```
+
+`tests/run_loop.gd` covers M1 without rendering: economy math, the 20-board
+progression helpers, the `Game` phase machine (win, loss, shop, endless) and
+the board's run wiring (objective/money in the HUD, board win and loss
+reaching `Game`, no double reward).
 
 `tests/physics_probe.gd` guards a physics gotcha found during development:
 a rigidbody that spawns intersecting the board collider can escape through

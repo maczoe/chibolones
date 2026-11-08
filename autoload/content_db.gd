@@ -60,8 +60,9 @@ func board_count() -> int:
 	return _boards.size()
 
 
-## Boards are indexed by data file order (alphabetical) until M1 defines
-## the run progression explicitly.
+## Boards are indexed by data file order (alphabetical). M1 runs every board
+## of the run on the single classic BoardDef (Game.board_index stays 0); the
+## content wave replaces this with per-board defs.
 func board_def(index: int) -> BoardDef:
 	if _boards.is_empty():
 		push_error("No BoardDef resources under data/boards")

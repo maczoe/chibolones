@@ -5,6 +5,8 @@ extends CanvasLayer
 
 var label_shots: Label
 var label_score: Label
+var label_target: Label
+var label_money: Label
 var label_marble: Label
 var prize_box: VBoxContainer
 var label_msg: Label
@@ -52,6 +54,17 @@ func set_score(value: int) -> void:
 	label_score.text = "Puntaje: %d" % value
 
 
+## Run objective for this board, right under the score. Boards played
+## without a run (headless tests) pass 0 and show no objective line.
+func set_target(value: int) -> void:
+	label_target.text = "Objetivo: %d" % value
+	label_target.visible = value > 0
+
+
+func set_money(value: int) -> void:
+	label_money.text = "$: %d" % value
+
+
 func set_selected_marble(marble_name: String) -> void:
 	label_marble.text = "Canica: %s" % marble_name
 
@@ -95,6 +108,13 @@ func show_game_over(score: int, possible: int) -> void:
 	flash("Fin de la ronda")
 
 
+## Board lost inside a run: same overlay, the run objective as the measure.
+func show_defeat(score: int, objective: int) -> void:
+	label_final.text = "Puntaje total: %d de %d necesarios" % [score, objective]
+	end_overlay.visible = true
+	flash("Te vencio el tablero")
+
+
 # --- Construction ----------------------------------------------------------
 
 
@@ -121,10 +141,21 @@ func _build() -> void:
 	label_score = _stat_label(Vector2(16, 44))
 	add_child(label_score)
 
-	# Selected marble, right under the score: small, so the score stays the
+	# Run objective and money, stacked under the score: what the board asks
+	# and what the player has to spend in the next shop.
+	label_target = _candy_label(20)
+	label_target.position = Vector2(16, 78)
+	label_target.visible = false
+	add_child(label_target)
+
+	label_money = _candy_label(20)
+	label_money.position = Vector2(16, 110)
+	add_child(label_money)
+
+	# Selected marble, under the run stats: small, so the score stays the
 	# loudest number on screen.
 	label_marble = _candy_label(18)
-	label_marble.position = Vector2(16, 78)
+	label_marble.position = Vector2(16, 142)
 	add_child(label_marble)
 
 	# Prize badges stack downward from the top-right corner. The container is
