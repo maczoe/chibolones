@@ -377,19 +377,20 @@ func board_def_index(n: int) -> int:
 
 
 ## Draw the run's board order at run start: one shuffled permutation of the
-## non-boss defs inside every block.
+## non-boss defs inside every block. Board 1 always renders the basic def
+## (0), so block 1's draw pool excludes it: boards 2 and 3 share [1, 2].
 func _draw_board_order() -> void:
 	run_board_order.clear()
 	for block in range(1, BLOCKS + 1):
 		var first: int = (block - 1) * BOARDS_PER_BLOCK + 1
 		var normals: Array = []
 		for n in range(first, first + BOARDS_PER_BLOCK):
-			if not is_boss(n):
+			if not is_boss(n) and n > 1:
 				normals.append(n - 1)
 		normals.shuffle()
 		var cursor := 0
 		for n in range(first, first + BOARDS_PER_BLOCK):
-			if is_boss(n):
+			if is_boss(n) or n <= 1:
 				continue
 			run_board_order[n] = normals[cursor]
 			cursor += 1

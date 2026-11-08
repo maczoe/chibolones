@@ -375,6 +375,8 @@ func _test_board_order() -> void:
 			content.marble_def("common")]})
 	_check(game.board_def_index(1) == 2,
 			"debug mode must render the picked board, got %d" % game.board_def_index(1))
+	# Leave a clean state: the sections after this one run plain math.
+	game.start_run()
 
 
 # --- (b) Progression helpers (5 blocks of 4, boss every 4th) ---------------
