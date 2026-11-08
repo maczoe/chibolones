@@ -15,6 +15,9 @@ const BOSS_BASE_OBJECTIVE := 100
 ## Difficulty factor per block (docs/gdd/content-plan.md §3).
 const BLOCK_OBJECTIVE_FACTORS := [1.0, 1.15, 1.3, 1.5, 1.75]
 const START_MONEY := 5
+## W3 bag caps: marble slots per run (Carpa adds), prize shelf slots.
+const MARBLE_CAP := 10
+const PRIZE_CAP := 2
 ## Endless mode pays one extra dollar per board won on top of the block-5
 ## rate (content-plan §2).
 const ENDLESS_BONUS := 1
@@ -57,6 +60,21 @@ var run_active := false
 var current_board_in_run := 0
 ## 1..BLOCKS, and stays BLOCKS in endless.
 var block := 1
+
+
+## Marble slots this run: the base cap plus every owned bag_slots prize
+## (Carpa en Miniatura adds one each).
+func marble_cap() -> int:
+	var cap := MARBLE_CAP
+	for prize in prizes:
+		if prize != null and prize.effect == &"bag_slots":
+			cap += int(prize.params.get("slots", 1))
+	return cap
+
+
+## Prize shelf slots this run (fixed in W3, no prize expands it).
+func prize_cap() -> int:
+	return PRIZE_CAP
 var boards_cleared := 0
 ## Endless opt-in from the run-won screen (GDD D6).
 var endless_mode := false
@@ -106,6 +124,51 @@ func _on_refund_event() -> void:
 	if delta != 0:
 		money += delta
 		money_changed.emit(money)
+
+
+## W3 shop purchases. Every buy validates money and cap, charges the
+## block-scaled price and signals money_changed. Returns false and touches
+## nothing when blocked.
+
+
+## Buy one marble def into the run bag.
+func buy_marble(def: MarbleDef) -> bool:
+	if def == null or inventory.size() >= marble_cap():
+		return false
+	var price := Economy.marble_price(def.price, block)
+	if money < price:
+		return false
+	money -= price
+	inventory.append(def)
+	money_changed.emit(money)
+	return true
+
+
+## Buy one prize def onto the run shelf.
+func buy_prize(def: PrizeDef) -> bool:
+	if def == null or prizes.size() >= prize_cap():
+		return false
+	if money < Economy.marble_price(def.price, block):
+		return false
+	money -= Economy.marble_price(def.price, block)
+	prizes.append(def)
+	money_changed.emit(money)
+	return true
+
+
+## Extra-throw pack: one more common marble for the rest of the run,
+## subject to the same marble cap. The pack has its own price formula
+## (EXTRA_PACK_BASE + block), not the common's list price.
+func buy_extra_pack() -> bool:
+	if inventory.size() >= marble_cap():
+		return false
+	var price := Economy.extra_marble_pack_price(block)
+	if money < price:
+		return false
+	money -= price
+	inventory.append(ContentDB.marble_def("common"))
+	money_changed.emit(money)
+	return true
 
 
 func start_run() -> void:

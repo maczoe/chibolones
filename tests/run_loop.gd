@@ -43,6 +43,9 @@ func _run() -> void:
 	_test_item_pricing()
 	if failed:
 		return quit(1)
+	_test_purchases()
+	if failed:
+		return quit(1)
 	_test_progression()
 	if failed:
 		return quit(1)
@@ -136,6 +139,81 @@ func _test_item_pricing() -> void:
 	var stock: Dictionary = economy.shop_stock(1)
 	for entry in stock["marbles"] + stock["prizes"]:
 		_check(int(entry["price"]) > 0, "stock price must be positive: %s" % str(entry))
+
+
+# --- (a3) Bag caps and purchase APIs (W3, spec S6) -------------------------
+
+
+## W3: the bag caps at 10 marble slots and 2 prize slots; Carpa en Miniatura
+## adds marble slots; every purchase charges the block-scaled def price and
+## is blocked over cap or without money.
+func _test_purchases() -> void:
+	_check(game.MARBLE_CAP == 10, "the marble bag should cap at 10")
+	_check(game.PRIZE_CAP == 2, "the prize shelf should cap at 2")
+	game.start_run()
+	_check(game.marble_cap() == 10, "a fresh run should have 10 marble slots")
+	_check(game.prize_cap() == 2, "a fresh run should have 2 prize slots")
+	# Carpa en Miniatura: +1 marble slot per copy owned.
+	var carpa := PrizeDef.new()
+	carpa.id = "carpa"
+	carpa.display_name = "Carpa en Miniatura"
+	carpa.effect = &"bag_slots"
+	carpa.params = {"slots": 1}
+	game.prizes.append(carpa)
+	_check(game.marble_cap() == 11, "carpa should add one marble slot, got %d"
+			% game.marble_cap())
+	_check(game.prize_cap() == 2, "carpa must not change the prize cap")
+	# Happy path: affordable, under cap, charges the block-scaled price.
+	var fire: Resource = content.marble_def("fire")
+	game.money = 10
+	var inv_before: int = game.inventory.size()
+	_check(game.buy_marble(fire), "an affordable under-cap buy should succeed")
+	_check(game.money == 10 - economy.marble_price(fire.price, game.block),
+			"the buy should charge the scaled def price")
+	_check(game.inventory.size() == inv_before + 1,
+			"the bought marble should join the bag")
+	_check(game.inventory.back().id == "fire", "the bought def should be the one asked")
+	# Unaffordable: rejected, bag untouched.
+	game.money = 0
+	_check(not game.buy_marble(fire), "an unaffordable buy must fail")
+	_check(game.inventory.size() == inv_before + 1, "a failed buy must not touch the bag")
+	# Over cap: rejected with money intact.
+	game.money = 100
+	while game.inventory.size() < game.marble_cap():
+		game.inventory.append(content.marble_def("common"))
+	_check(not game.buy_marble(fire), "a buy over the marble cap must fail")
+	_check(game.money == 100, "a cap-blocked buy must not charge")
+	# Null def: rejected.
+	game.money = 10
+	_check(not game.buy_marble(null), "buying a null def must fail")
+	# Prize purchases with their own cap.
+	game.start_run()
+	var osito := PrizeDef.new()
+	osito.id = "osito"
+	osito.display_name = "Osito de Peluche"
+	osito.price = 3
+	game.money = 20
+	_check(game.buy_prize(osito), "an affordable under-cap prize buy should succeed")
+	_check(game.money == 20 - osito.price, "the prize buy should charge its price")
+	_check(game.prizes.size() == 2, "the bought prize should join the shelf")
+	game.money = 20
+	_check(not game.buy_prize(osito), "a prize buy over the cap must fail")
+	_check(game.money == 20, "a cap-blocked prize buy must not charge")
+	# Extra-throw pack: one more common for the rest of the run, cap-aware.
+	game.start_run()
+	game.money = 10
+	var pack_price: int = economy.extra_marble_pack_price(game.block)
+	_check(game.buy_extra_pack(), "the extra pack should be buyable")
+	_check(game.money == 10 - pack_price,
+			"the pack should cost extra_marble_pack_price (%d), money is %d"
+			% [pack_price, game.money])
+	_check(game.inventory.size() == 6, "the pack should add one common marble")
+	_check(game.inventory.back().id == "common", "the pack marble should be a common")
+	game.money = 10
+	while game.inventory.size() < game.marble_cap():
+		game.inventory.append(content.marble_def("common"))
+	_check(not game.buy_extra_pack(), "the pack must respect the marble cap")
+	_check(game.money == 10, "a cap-blocked pack must not charge")
 
 
 # --- (b) Progression helpers (5 blocks of 4, boss every 4th) ---------------

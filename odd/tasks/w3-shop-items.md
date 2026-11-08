@@ -47,10 +47,13 @@ S6: Decision del usuario (verbatim): «Implementar tope, 2 slot de bolso
     marble slot in the bag)»). Los slots de premios quedan fijos en 2
     para W3.
 
-S7: Canicas mágicas son single-use (MarbleDef.single_use, hoy sin usar):
-    una canica mágica se consume del ammo al jugarse (D1: consumible
-    dentro del tablero, inventario restaurado al inicio de cada tablero;
-    solo la rotura de Vidrio la quita para el resto de la run).
+S7: (Corregido con D1 revisado del GDD): toda canica jugada sale del ammo
+    al resolverse el throw (S4, ya implementado y probado en
+    tests/inventory.gd) y el inventario completo se restaura al inicio de
+    cada tablero; solo la rotura de Vidrio la quita para el resto de la
+    run. La distincion common/magic es de comportamiento del efecto, no
+    de consumo por tirada: single_use queda como marcador de categoria,
+    sin logica nueva.
 
 S8: Efectos de canicas (content-plan §4.1, verbatim resumido en Log L2):
     Común (baseline), Fuego speed x1.25, Vidrio score x2 + break 20%,
@@ -85,7 +88,7 @@ T2 (S4): Implement on_event hook contract (architecture.md:61-75):
     case. Route: inline. Commit: 80bc06d feat(hooks): M3 on_event contract
 T3 (S9): Prize effects: Osito, Billete, Muñeco, Pelota, Rayo, Corona,
     Globo (extra_throws wiring). Route: inline.
-    Commit: feat(prizes): wave-3 prize effects
+    Commit: 26608fe feat(prizes): wave-3 prize effects
 T4 (S6,S7): Bag caps + purchase APIs in Game (buy_marble/buy_prize,
     caps 10/2, Carpa +1 marble slot, single-use consumption on throw).
     Route: inline. Commit: feat(run): bag caps and purchase APIs
@@ -121,3 +124,12 @@ L4: T2 implementado: PrizeDef effect+params (EFFECT_EVENTS),
     Nota de slice: 547 lineas en 2 commits (307f6ad + 80bc06d) — al
     cerrar la feature, evaluar chained PRs; proximo commit inicia slice
     nuevo.
+L5: T3 implementado: efectos Globo (extra_throw), Pelota (bounce_scale
+    via ctx marble_spawn), Rayo (fire_speed_mult condicionado a def.id),
+    Muñeco (skip_speed_scale, board.effective_skip_speed), Corona
+    (score_mult_all: embeds + total final). Osito/Billete ya en T2.
+    Aprendizaje: apply_central_impulse no se refleja en linear_velocity
+    hasta el proximo physics step (los tests deben await 1 frame).
+L6: Correccion de S7 al reconciliar con D1 revisado del GDD (decision
+    de usuario 2026-11-08): el consumo por tirada ya es el comportamiento
+    del ammo para TODAS las canicas; single_use sin logica nueva.
