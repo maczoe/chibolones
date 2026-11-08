@@ -107,6 +107,9 @@ T6 (S1,S3,S5): Content data: remaining 7 marbles + 9 prizes .tres with
     Commit: feat(shop): functional shop and wave-3 content
 T7 (S10): End-to-end verification: extend tests/run_loop.gd (economy,
     purchases, caps, single-use, effects), full suite green, manual run.
+    Route: inline. Commit: 2981fac test(w3): end-to-end acceptance flow
+    (verificacion automatica completa en tests/w3_flow.gd; la partida
+    manual punta a punta queda para el usuario)
 
 ## Log
 
@@ -155,3 +158,8 @@ L9: T6 implementado (18dc742): 9 premios .tres, Boleto Retro
     debug test actualizado (picked + extras de Globo), prize row que
     envuelve (HFlowContainer). Nota: pool desbloqueado = todo el
     contenido; el filtro de unlocks es M4.
+L10: T7 implementado (2981fac): ciclo completo automatizado en
+     tests/w3_flow.gd (ganar -> tienda -> comprar -> efecto en tablero
+     siguiente); suite de 16 tests en verde; pendiente del usuario: una
+     partida manual de gusto. 2458 lineas en 7 commits -> cerrar la
+     feature con chained PRs.
