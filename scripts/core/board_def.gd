@@ -22,6 +22,9 @@ extends Resource
 @export var tilt_deg: float = 6.0
 @export var wall_height: float = 0.22
 @export var wall_thickness: float = 0.1
+## Cabinet drop below the play surface: how tall the box stands (a small
+## person's height at marble scale).
+@export var skirt_height: float = 1.2
 
 @export_group("Aim & capture")
 ## How far inside the walls the aim marker and tilt guide stay.

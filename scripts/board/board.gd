@@ -387,7 +387,7 @@ func _build_backdrop() -> void:
 	var mesh_i := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.orientation = PlaneMesh.FACE_Z
-	plane.size = Vector2(60, 28)
+	plane.size = Vector2(160, 34)
 	mesh_i.mesh = plane
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/board/shaders/backdrop.gdshader")
@@ -405,7 +405,7 @@ func _build_floor() -> void:
 	# Circus checker floor below the cabinet, seen in perspective.
 	var mesh_i := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
-	plane.size = Vector2(80, 80)
+	plane.size = Vector2(160, 160)
 	mesh_i.mesh = plane
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://scripts/board/shaders/checker_floor.gdshader")
@@ -413,7 +413,7 @@ func _build_floor() -> void:
 	mat.set_shader_parameter("col_b", board_def.floor_checker_b)
 	mat.set_shader_parameter("checker_size", board_def.floor_checker_size)
 	mesh_i.material_override = mat
-	mesh_i.position = Vector3(0, -0.65, 2.0)
+	mesh_i.position = Vector3(0, -board_def.skirt_height - 0.1, 2.0)
 	add_child(mesh_i)
 
 
@@ -451,10 +451,10 @@ func _build_board() -> void:
 	skirt = MeshInstance3D.new()
 	var skirt_mesh := BoxMesh.new()
 	skirt_mesh.size = Vector3(board_def.width + 2.0 * board_def.wall_thickness,
-			0.55, board_def.length + 2.0 * board_def.wall_thickness)
+			board_def.skirt_height, board_def.length + 2.0 * board_def.wall_thickness)
 	skirt.mesh = skirt_mesh
 	skirt.material_override = _paint_material(board_def.frame_color)
-	skirt.position.y = -0.275 - board_def.thickness / 2.0
+	skirt.position.y = -board_def.skirt_height / 2.0 - board_def.thickness / 2.0
 	body.add_child(skirt)
 
 	# Side and back walls are back. They are low, so a marble with enough
@@ -617,7 +617,7 @@ func _add_side_deck_art() -> void:
 	# the camera orbits to the sides. 0 disables.
 	if board_def.deck_art == null or board_def.deck_art_side_width <= 0.0:
 		return
-	var skirt_y := -0.275 - board_def.thickness / 2.0
+	var skirt_y := -board_def.skirt_height / 2.0 - board_def.thickness / 2.0
 	var x := board_def.width / 2.0 + board_def.wall_thickness + 0.005
 	for side in [-1.0, 1.0]:
 		var quad := MeshInstance3D.new()
