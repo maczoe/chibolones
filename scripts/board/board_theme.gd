@@ -112,6 +112,13 @@ func has_decision_timer() -> bool:
 	return decision_timer_sec > 0.0
 
 
+## The side the NEXT throw will drift toward: on_throw_started flips the
+## stored side at launch, so while the player aims the upcoming throw uses
+## the opposite of what is stored. Boards without wind stay at 0.
+func upcoming_wind_direction() -> float:
+	return -wind_direction if wind_strength > 0.0 else 0.0
+
+
 # --- Per-throw rules --------------------------------------------------------
 
 

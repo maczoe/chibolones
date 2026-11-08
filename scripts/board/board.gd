@@ -112,6 +112,10 @@ const ABDUCT_HEIGHT := 2.6
 const ABDUCT_TIME := 1.2
 const ABDUCT_COLOR := Color(0.35, 0.9, 1.0)
 var shot_guide: Node3D
+## Backdrop material of the back wall: the only one that carries the wind
+## chevron arrows (Ventoso), driven by wind_dir / wind_arrow uniforms.
+var backdrop_arrows_mat: ShaderMaterial
+var wind_fade_tween: Tween
 var skirt: MeshInstance3D
 var bulbs: Array[MeshInstance3D] = []
 var bulb_on_mat: StandardMaterial3D
@@ -191,6 +195,9 @@ func _ready() -> void:
 	# (_tick_idle).
 	_queue_announcement("Tablero %d: %s" % [_board_number(), board_def.theme_name])
 	board_theme.announce()
+	# Ventoso cue: the arrows turn on for the whole aiming turn and the queue
+	# carries the text the same way the other board-start cues do.
+	_show_wind_indicator(true)
 	# The board opens in AIM, so the Cronometrado clock starts with it (boards
 	# without the rule ignore this).
 	_reset_step_timer()
@@ -453,6 +460,27 @@ func _reset_step_timer() -> void:
 		board_theme.reset_decision()
 
 
+## Turn-start wind cue (user request, 2026-11-08): on Ventoso boards the
+## backdrop arrows turn on pointing where the NEXT throw will drift, and the
+## board-start text joins the announcement queue. The screen mapping is the
+## aim convention: wind_direction +1 pushes toward world +X, which reads as
+## screen-left.
+func _show_wind_indicator(announce_text: bool) -> void:
+	if backdrop_arrows_mat == null or board_theme == null \
+				or board_theme.wind_strength <= 0.0:
+		return
+	# A fade-out from the previous launch may still be running: it must not
+	# fight the turn-start turn-on.
+	if wind_fade_tween != null and wind_fade_tween.is_valid():
+		wind_fade_tween.kill()
+	var dir: float = board_theme.upcoming_wind_direction()
+	backdrop_arrows_mat.set_shader_parameter("wind_dir", dir)
+	backdrop_arrows_mat.set_shader_parameter("wind_arrow", 1.0)
+	if announce_text:
+		_queue_announcement("Viento hacia la %s"
+				% ("izquierda" if dir > 0.0 else "derecha"))
+
+
 ## --- Pause (ESC / Start) ---------------------------------------------------
 
 
@@ -573,6 +601,14 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 		# a side, Mochila covers a notch, Cronometrado restarts its clock.
 		board_theme.on_throw_started()
 	var def := _selected_marble_def()
+	# The throw commits the wind side it will fly with: fade the indicator
+	# arrows out until the next turn.
+	if backdrop_arrows_mat != null:
+		if wind_fade_tween != null and wind_fade_tween.is_valid():
+			wind_fade_tween.kill()
+		wind_fade_tween = create_tween()
+		wind_fade_tween.tween_property(backdrop_arrows_mat,
+				"shader_parameter/wind_arrow", 0.0, 0.6)
 	# Glass durability (S3): one roll per throw, before the marble exists. A
 	# broken marble leaves the ammo and the throw goes on with the next one.
 	if _try_break(def):
@@ -691,6 +727,9 @@ func _update_flight(delta: float) -> void:
 			state = ThrowState.AIM
 			launch_marker.visible = true
 			_reset_step_timer()
+			# New turn: the arrows come back pointing where the next throw
+			# will drift (the stored side flipped at launch).
+			_show_wind_indicator(false)
 			if pending_result != "":
 				# Resolution messages would otherwise be overwritten by the
 				# next-throw prompt in the same frame, so flash them here.
@@ -1175,24 +1214,28 @@ func _build_environment() -> void:
 func _build_room() -> void:
 	# Compact closed room: back wall plus both side walls share the board's
 	# psychedelic backdrop, so orbiting the cabinet always shows the same
-	# living void with no visible edges. The player side is open.
+	# living void with no visible edges. The player side is open. The back
+	# wall (the one the camera faces) gets its own material so it alone can
+	# carry the wind chevron arrows (Ventoso indicator).
 	var mat := _build_backdrop()
+	var wind_mat := _build_backdrop()
+	backdrop_arrows_mat = wind_mat
 	var wall_h := 16.0
 	var room_half := 14.0
 	var back_z := board_def.length / 2.0 + 10.0
 	var floor_y := -board_def.skirt_height - 0.1
 	for def in [
-		# [yaw degrees, position]
-		[0.0, Vector3(0, floor_y + wall_h / 2.0, back_z)],                # back
-		[90.0, Vector3(-room_half, floor_y + wall_h / 2.0, back_z - room_half)],  # left
-		[-90.0, Vector3(room_half, floor_y + wall_h / 2.0, back_z - room_half)],  # right
+		# [yaw degrees, position, material]
+		[0.0, Vector3(0, floor_y + wall_h / 2.0, back_z), wind_mat],       # back
+		[90.0, Vector3(-room_half, floor_y + wall_h / 2.0, back_z - room_half), mat],  # left
+		[-90.0, Vector3(room_half, floor_y + wall_h / 2.0, back_z - room_half), mat],  # right
 	]:
 		var wall := MeshInstance3D.new()
 		var plane := PlaneMesh.new()
 		plane.orientation = PlaneMesh.FACE_Z
 		plane.size = Vector2(room_half * 2.0 + 8.0, wall_h)
 		wall.mesh = plane
-		wall.material_override = mat
+		wall.material_override = def[2]
 		wall.rotation_degrees = Vector3(0, def[0], 0)
 		wall.position = def[1]
 		add_child(wall)
