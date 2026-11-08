@@ -19,6 +19,8 @@ enum Category { COMMON, MAGIC }
 @export var friction: float = 0.6
 ## Multiplier applied to the launch speed.
 @export var speed_mult: float = 1.0
+## Scoring multiplier applied to notch values embedded by this marble.
+@export var score_mult: float = 1.0
 
 @export_group("Identity & economy")
 ## Material style MarbleFactory builds for the shared 3D model: "swirl"

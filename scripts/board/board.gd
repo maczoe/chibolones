@@ -21,6 +21,7 @@ var selected_bag_index := 0
 ## This throw's prize multiplier: every wall the marble hits multiplies it.
 var wall_mult := 1.0
 var wall_mult_announced := false
+var launched_def: MarbleDef  # def of the marble in flight, for score_mult
 
 var state: ThrowState = ThrowState.AIM
 var shots_left := 0
@@ -266,6 +267,8 @@ func _cycle_bag(step: int) -> void:
 func _marble_hint(def: MarbleDef) -> String:
 	if not is_equal_approx(def.speed_mult, 1.0):
 		return "Velocidad x%.2f" % def.speed_mult
+	if not is_equal_approx(def.score_mult, 1.0):
+		return "Puntos x%s" % PrizeDef.format_mult(def.score_mult)
 	return def.flavor if def.flavor != "" else "Sin efecto especial"
 
 
@@ -283,6 +286,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	wall_mult = 1.0
 	wall_mult_announced = false
 	var def := _selected_marble_def()
+	launched_def = def
 	var marble := MarbleFactory.make(def, throw_index)
 	throw_index += 1
 	# Marble is a child of the tilted board so local coordinates stay handy.
@@ -402,10 +406,12 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
 	marble.add_to_group("embedded")
 	marble.set_meta("notch_index", hole.index)
-	# Prize effects land here: the wall multiplier boosts the painted notch
-	# value for this throw only. The boosted value is what the bus carries,
-	# so the HUD message, the popup and the ScoreEngine all agree.
-	var boosted := roundi(float(hole.score) * wall_mult)
+	# Prize and marble effects land here: the wall multiplier and the
+	# launched marble's score_mult boost the painted notch value for this
+	# throw only. The boosted value is what the bus carries, so the HUD
+	# message, the popup and the ScoreEngine all agree.
+	var marble_mult := launched_def.score_mult if launched_def != null else 1.0
+	var boosted := roundi(float(hole.score) * wall_mult * marble_mult)
 	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, boosted]
 	EventBus.embed.emit(hole.index, boosted)
 	EventBus.throw_ended.emit(&"embedded")

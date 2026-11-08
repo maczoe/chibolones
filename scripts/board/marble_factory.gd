@@ -54,10 +54,18 @@ static func _make_material(def: MarbleDef, variant: int) -> StandardMaterial3D:
 			mat.emission = FIRE_EMISSION_COLOR
 			mat.emission_energy_multiplier = FIRE_EMISSION_ENERGY
 		&"glass":
+			# Crystal: brighter tint, hard gloss, rim sparkle and a faint
+			# inner glow so it reads against any board color.
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			mat.albedo_color = Color(tint.r, tint.g, tint.b, GLASS_ALPHA)
-			mat.metallic = 0.2
-			mat.roughness = 0.05
+			mat.albedo_color = Color(tint.r, tint.g, tint.b, 0.78)
+			mat.metallic = 0.6
+			mat.roughness = 0.03
+			mat.rim_enabled = true
+			mat.rim = 0.6
+			mat.rim_tint = 0.2
+			mat.emission_enabled = true
+			mat.emission = Color(tint.r, tint.g, tint.b) * 0.4
+			mat.emission_energy_multiplier = 0.5
 		_:
 			# Default "swirl": the POC look, one solid palette color.
 			mat.albedo_color = tint
