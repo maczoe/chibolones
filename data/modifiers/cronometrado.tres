@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BoardModifierDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_modifier_def.gd" id="1_modifier"]
+
+[resource]
+script = ExtResource("1_modifier")
+id = &"cronometrado"
+display_name = "Cronometrado"
+description = "Tenes 4 segundos por paso: si no elegis, el tablero tira por vos."
+decision_timer_sec = 4.0

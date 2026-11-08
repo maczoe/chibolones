@@ -51,13 +51,49 @@ selected marble under the score, and a flash line describes its effect.
 | --- | --- | --- |
 | Canica Comun | solid palette color | none (the POC marble) |
 | Canica de Fuego | dark core, glowing ember | launch speed x1.25 |
-| Canica de Vidrio | translucent, glossy | visual only (break chance lands in M2) |
+| Canica de Vidrio | translucent, glossy | Puntos x2; the break roll is live (M2) but the 20% lands with the data in M3 |
 
 Prizes are permanent run modifiers. **Trompo de Madera** multiplies the
 throw's embed value by x1.5 for every wall the marble hits during that
 throw (two walls = x2.25), and is shown as a badge in the top-right corner.
 Content lives in `data/marbles/*.tres` and `data/prizes/*.tres`, so a new
 marble or prize is a resource file, not a code change.
+
+### Bonificadores (M2)
+
+A bonificador is the board's own rule, the fairness twist of the round. The
+10 of the content plan are data (`data/modifiers/*.tres`) and one runtime
+(`scripts/board/board_theme.gd`), so a board is a theme plus its rules:
+
+| Bonificador | Effect in play |
+| --- | --- |
+| Cuerda | walls bounce more and every wall you hit adds x1.2 to the embed |
+| Mojado | wet floor: the marble barely slows down (friction x0.45) |
+| Borracho | the notch values are reshuffled at every throw |
+| Espejo | the center column pays x2 |
+| Ventoso | a cross wind pushes the marble, changing side every throw |
+| Mochila | one random notch is covered and cannot take a marble |
+| Fantasma | one notch phases in and out every 2 seconds |
+| Iman | an embedded marble pulls the rolling one when it comes within 1 unit |
+| Trapecio | the whole notch grid sways sideways while you aim |
+| Cronometrado | 4 seconds per step: if you don't choose, the board throws for you |
+
+Normal boards carry none or one bonificador; boss boards (4, 8, 12, 16, 20)
+run the themed pair of their block — block 1 opens with **Borracho**, then
+Ventoso + Espejo, Fantasma + Iman, Mojado + Cuerda and Trapecio +
+Cronometrado. The board announces them at start, one flash every 1.2 seconds,
+and `Game.board_modifiers(n)` decides the list from the board number (so a run
+is replayable). A board played outside a run has none, which keeps the plain
+round untouched.
+
+### Score math on screen
+
+Every embed value comes out of one pipeline
+(`ScoreEngine.evaluate_embed`): the painted notch value, then flat adds, then
+multipliers, rounded once. When a prize, marble or bonificador changed the
+value, the HUD prints the math under the messages — `20 +5 (Osito) x1.5
+(Trompo de Madera)` — so a big number always explains itself. A clean throw
+shows no line at all.
 
 ## The run
 
@@ -121,8 +157,8 @@ autoload and the money numbers in the `Economy` autoload; the screens are
 autoload/    EventBus (gameplay events), ContentDB (Def registry), Game (run flow), Economy (money math)
 scripts/     core/ Def resources - board/ board scene, HUD, marble factory - scoring/ - run/ phase routing - ui/ menu, shop, summary
 scenes/      menu/ (main scene), board/, shop/, run/ (run summary)
-data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs - prizes/ prize defs
-tests/       headless SceneTree tests (smoke round, physics probe, run loop)
+data/        balance/ shooting rules - boards/ level defs - marbles/ marble defs - prizes/ prize defs - modifiers/ bonificadores
+tests/       headless SceneTree tests (smoke round, physics probe, run loop, M2 hooks)
 docs/        GDD (docs/gdd) and architecture plan
 ```
 
@@ -150,6 +186,7 @@ refund returns throws without consuming them):
 ```
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/run_loop.gd
+godot --headless --path . --script res://tests/hooks.gd
 godot --headless --path . --script res://tests/physics_probe.gd
 ```
 
@@ -157,6 +194,13 @@ godot --headless --path . --script res://tests/physics_probe.gd
 progression helpers, the `Game` phase machine (win, loss, shop, endless) and
 the board's run wiring (objective/money in the HUD, board win and loss
 reaching `Game`, no double reward).
+
+`tests/hooks.gd` covers the M2 hook contract: the breakdown math (flats then
+multipliers, one round at the end), the trompo contributing through the
+pipeline, the 10 bonificadores loading with their designed values, Borracho
+shuffling without losing a value, Cronometrado auto-advancing a step, the
+glass break roll taking a marble out of the bag, Espejo doubling the center
+column, and the M1 wall math still holding.
 
 `tests/physics_probe.gd` guards a physics gotcha found during development:
 a rigidbody that spawns intersecting the board collider can escape through

@@ -8,6 +8,9 @@ extends Node3D
 const MarbleFactory := preload("res://scripts/board/marble_factory.gd")
 const ScoreEngineScript := preload("res://scripts/scoring/score_engine.gd")
 const HudScript := preload("res://scripts/board/hud.gd")
+const BoardThemeScript := preload("res://scripts/board/board_theme.gd")
+## Seconds between two bonificador announcements at board start.
+const ANNOUNCE_DELAY := 1.2
 
 enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 
@@ -18,7 +21,12 @@ var rules: ShootingRules
 var marble_def: MarbleDef
 ## Bag slot of the marble the next throw uses; Up/Down swaps it while aiming.
 var selected_bag_index := 0
-## This throw's prize multiplier: every wall the marble hits multiplies it.
+## Walls the marble hit this throw: prizes multiply their own score once per
+## wall from this count, inside the hook contract.
+var wall_hits := 0
+## Bonificador wall multiplier accumulated this throw (Cuerda = x1.2 per
+## wall). The pipeline reads it as one mult source, so the total math is the
+## same product the M1 board computed inline.
 var wall_mult := 1.0
 var wall_mult_announced := false
 var launched_def: MarbleDef  # def of the marble in flight, for score_mult
@@ -39,6 +47,16 @@ var throw_index := 0
 var board: Node3D
 var score_engine: ScoreEngine
 var hud: CanvasLayer
+## Bonificadores of this board (BoardModifierDef). Tests and future board
+## defs inject the list before the node enters the tree; otherwise the run
+## asks Game for the board's modifiers.
+var modifier_override: Array[BoardModifierDef] = []
+var board_theme: BoardTheme
+## Parent of the notch visuals: Trapecio sways this node and the hole
+## positions together, so capture keeps working in board-local space.
+var notch_root: Node3D
+var announce_timer: Timer
+var modifier_queue: Array[StringName] = []
 ## Run objective for this board: 0 when the board is played outside a run
 ## (headless tests, --script mode), which keeps the plain POC round over.
 var run_objective := 0
@@ -76,6 +94,12 @@ func _ready() -> void:
 	selected_bag_index = _common_bag_index()
 	shots_left = rules.shots_per_board
 	aim_limit = board_def.width / 2.0 - board_def.aim_limit_margin
+	# Bonificadores first: the wall bounce rule must be in place before the
+	# walls are built, and every other rule reads the same state later.
+	board_theme = BoardThemeScript.new()
+	board_theme.name = "BoardTheme"
+	add_child(board_theme)
+	board_theme.setup(self, _board_modifiers())
 	_build_environment()
 	_build_board()
 	score_engine = ScoreEngineScript.new()
@@ -93,6 +117,19 @@ func _ready() -> void:
 	hud.set_prizes(Game.prizes)
 	hud.set_selected_marble(_selected_marble_def().display_name)
 	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+	# Bonificador announcements: one cue per modifier, queued so a boss board
+	# with two rules still reads (the board emits modifier_active once each).
+	announce_timer = Timer.new()
+	announce_timer.one_shot = true
+	announce_timer.wait_time = ANNOUNCE_DELAY
+	announce_timer.timeout.connect(_on_announce_timeout)
+	add_child(announce_timer)
+	EventBus.modifier_active.connect(_on_modifier_active)
+	EventBus.throw_timer_tick.connect(hud.set_timer)
+	board_theme.announce()
+	# The board opens in AIM, so the Cronometrado clock starts with it (boards
+	# without the rule ignore this).
+	_reset_step_timer()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -112,6 +149,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				power = 0.0
 				power_dir = 1.0
 				hud.set_power_visible(false)
+				_reset_step_timer()
 				hud.flash("Inclina con <- ->; X vuelve atras")
 			ThrowState.CAMERA:
 				state = ThrowState.AIM
@@ -147,31 +185,26 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("shoot"):
 		match state:
 			ThrowState.AIM:
-				if shots_left > 0:
-					state = ThrowState.TILT
-					shot_tilt = 0.0
-					_update_tilt_limits()
-					shot_guide.visible = true
-					# Starting the next throw cancels any leftover celebration
-					# so the bulbs drop to the slow chase right away.
-					celebrate_left = 0.0
-					hud.flash("Inclina con <- -> y apreta ESPACIO para fijar")
+				_begin_tilt()
 			ThrowState.TILT:
-				state = ThrowState.POWER
-				power = 0.0
-				power_dir = 1.0
-				hud.set_power_visible(true)
-				hud.flash("Apreta ESPACIO para disparar con esta potencia")
+				_begin_power()
 			ThrowState.POWER:
-				hud.set_power_visible(false)
-				shot_guide.visible = false
-				_launch(shot_tilt, power)
+				_fire()
 			_:
 				pass
 
 
 func _physics_process(delta: float) -> void:
 	_animate_bulbs(delta)
+	# Cronometrado: every decision step runs on a clock; on expiry the board
+	# takes the step with whatever the player had chosen so far.
+	if board_theme != null and board_theme.has_decision_timer():
+		match state:
+			ThrowState.AIM, ThrowState.TILT, ThrowState.POWER:
+				if board_theme.tick_decision(delta):
+					_auto_advance()
+			_:
+				pass
 	match state:
 		ThrowState.AIM:
 			var move := 0.0
@@ -246,6 +279,58 @@ func _apply_camera() -> void:
 # --- Shooting ----------------------------------------------------------------
 
 
+## Throw flow steps as plain methods: the input handler and the Cronometrado
+## auto-advance both drive them, so a forced step is never a second code
+## path with its own rules.
+func _begin_tilt() -> void:
+	if shots_left <= 0:
+		return
+	state = ThrowState.TILT
+	shot_tilt = 0.0
+	_update_tilt_limits()
+	shot_guide.visible = true
+	# Starting the next throw cancels any leftover celebration so the bulbs
+	# drop to the slow chase right away.
+	celebrate_left = 0.0
+	_reset_step_timer()
+	hud.flash("Inclina con <- -> y apreta ESPACIO para fijar")
+
+
+func _begin_power() -> void:
+	state = ThrowState.POWER
+	power = 0.0
+	power_dir = 1.0
+	hud.set_power_visible(true)
+	_reset_step_timer()
+	hud.flash("Apreta ESPACIO para disparar con esta potencia")
+
+
+func _fire() -> void:
+	hud.set_power_visible(false)
+	hud.set_timer(-1)
+	shot_guide.visible = false
+	_launch(shot_tilt, power)
+
+
+## Cronometrado ran out on this step: take it with the current choice.
+func _auto_advance() -> void:
+	match state:
+		ThrowState.AIM:
+			_begin_tilt()
+		ThrowState.TILT:
+			_begin_power()
+		ThrowState.POWER:
+			_fire()
+		_:
+			pass
+
+
+## Restart the decision clock of a step (no-op on boards without the rule).
+func _reset_step_timer() -> void:
+	if board_theme != null:
+		board_theme.reset_decision()
+
+
 ## Marble the next throw uses: the selected bag entry, or the base def when
 ## the run has no bag yet (headless tests build the board without a run).
 func _selected_marble_def() -> MarbleDef:
@@ -295,10 +380,22 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	# Prize effects are per throw: the wall multiplier starts neutral.
 	wall_mult = 1.0
 	wall_mult_announced = false
+	wall_hits = 0
+	if board_theme != null:
+		# Per-throw rules first: Borracho reshuffles the values, Ventoso picks
+		# a side, Mochila covers a notch, Cronometrado restarts its clock.
+		board_theme.on_throw_started()
 	var def := _selected_marble_def()
+	# Glass durability (S3): one roll per throw, before the marble exists. A
+	# broken marble leaves the bag and the throw goes on with the next one.
+	if _try_break(def):
+		def = _selected_marble_def()
 	launched_def = def
 	var marble := MarbleFactory.make(def, throw_index)
 	throw_index += 1
+	if board_theme != null:
+		# Mojado: the spawned marble rolls with the board's friction.
+		board_theme.apply_marble(marble)
 	# Marble is a child of the tilted board so local coordinates stay handy.
 	# Spawn clear of the surface: a marble born intersecting the board can
 	# escape through it in the physics engine.
@@ -356,8 +453,10 @@ func _update_flight(delta: float) -> void:
 		var reach: float = board_def.capture_radius
 		for hole in holes:
 			# An occupied notch already holds an embedded marble: shots can
-			# only bounce off it, never fall into the same spot.
-			if hole.occupied:
+			# only bounce off it, never fall into the same spot. Mochila
+			# covers one notch and Fantasma hides another: neither can take a
+			# marble while its rule is on.
+			if hole.occupied or hole.covered or hole.phase_hidden:
 				continue
 			var d := Vector2(local.x - hole.pos.x, local.z - hole.pos.z).length()
 			if d <= reach:
@@ -391,6 +490,7 @@ func _update_flight(delta: float) -> void:
 		if shots_left > 0:
 			state = ThrowState.AIM
 			launch_marker.visible = true
+			_reset_step_timer()
 			if pending_result != "":
 				# Resolution messages would otherwise be overwritten by the
 				# next-throw prompt in the same frame, so flash them here.
@@ -420,19 +520,39 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	marble.position = Vector3(hole.pos.x, 0.0, hole.pos.z)
 	marble.add_to_group("embedded")
 	marble.set_meta("notch_index", hole.index)
-	# Prize and marble effects land here: the wall multiplier and the
-	# launched marble's score_mult boost the painted notch value for this
-	# throw only. The boosted value is what the bus carries, so the HUD
-	# message, the popup and the ScoreEngine all agree.
-	var marble_mult := launched_def.score_mult if launched_def != null else 1.0
-	var boosted := roundi(float(hole.score) * wall_mult * marble_mult)
+	# One seam for every score edit (M2): the pipeline applies flats, then
+	# multipliers, then rounds once. The boosted value is what the bus
+	# carries, so the HUD message, the popup and the ScoreEngine agree.
+	var breakdown := score_engine.evaluate_embed(hole.score, _score_context(hole))
+	var boosted := breakdown.final()
 	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, boosted]
+	if breakdown.acted():
+		hud.set_breakdown(breakdown.describe())
 	EventBus.embed.emit(hole.index, boosted)
 	EventBus.throw_ended.emit(&"embedded")
 
 
+## Facts the hook contract reads for one embed: the board node plus this
+## throw's state. Every contribution lands in the breakdown, never here.
+func _score_context(hole: Dictionary) -> Dictionary:
+	return {
+		"board": self,
+		"throw": {
+			"marble": launched_def,
+			"notch": hole,
+			"wall_hits": wall_hits,
+			"wall_mult": wall_mult,
+			"wall_source": wall_source_name(),
+			"center": _is_center_hole(hole),
+			"tilt": shot_tilt,
+			"power": power,
+		},
+	}
+
+
 func _round_over() -> void:
 	state = ThrowState.ROUND_OVER
+	hud.set_timer(-1)
 	if board_result_sent:
 		return
 	var possible: int = rules.shots_per_board * board_def.row_scores[board_def.rows - 1]
@@ -483,20 +603,156 @@ func _on_marble_body_entered(other: Node, marble: RigidBody3D) -> void:
 
 
 func _on_wall_hit(_side: StringName, _impact_speed: float) -> void:
-	# Prize effects: each wall the marble bounces off stacks its wall-hit
-	# multiplier onto this throw (Trompo alone = x1.5 per wall). A prize-less
-	# run stays at x1.0, so the pipeline sees the painted value untouched.
-	var step := 1.0
-	for prize in Game.prizes:
-		step *= prize.wall_hit_mult
-	if is_equal_approx(step, 1.0):
+	# Wall rules: prizes multiply once per wall through the hook contract, so
+	# only the bonificador part accumulates here (Cuerda x1.2 per wall).
+	# Neither rule in play leaves every value at x1.0, exactly like M1.
+	wall_hits += 1
+	if board_theme != null:
+		var step := board_theme.wall_step()
+		if not is_equal_approx(step, 1.0):
+			wall_mult *= step
+	if wall_mult_announced:
 		return
-	wall_mult *= step
-	if not wall_mult_announced:
-		# Announced once per throw, on the first wall: readable feedback
-		# without a wall-hit spam of messages.
-		wall_mult_announced = true
-		hud.flash("Trompo %s!" % PrizeDef.format_mult(wall_mult))
+	# Announced once per throw, on the first wall: readable feedback without
+	# a wall-hit spam of messages.
+	var total := wall_total()
+	if is_equal_approx(total, 1.0):
+		return
+	wall_mult_announced = true
+	hud.flash("%s %s!" % [wall_source_name(), PrizeDef.format_mult(total)])
+
+
+## Combined wall multiplier of this throw: the bonificador accumulation the
+## board keeps plus each prize's own per-wall factor.
+func wall_total() -> float:
+	var total := wall_mult
+	for prize in Game.prizes:
+		total *= pow(prize.wall_hit_mult, wall_hits)
+	return total
+
+
+## Name the HUD credits for a wall multiplier: the active bonificador first,
+## then the prize carrying the rule.
+func wall_source_name() -> String:
+	if board_theme != null and not is_equal_approx(board_theme.wall_hit_mult, 1.0):
+		return String(board_theme.wall_source)
+	for prize in Game.prizes:
+		if not is_equal_approx(prize.wall_hit_mult, 1.0):
+			return prize.display_name
+	return "Paredes"
+
+
+# --- Bonificadores (M2 rules) ------------------------------------------------
+
+
+## Bonificadores of this board: a test/board override wins, otherwise the run
+## asks Game. Without a run there are none, which keeps the plain POC round
+## (headless tests) untouched.
+func _board_modifiers() -> Array[BoardModifierDef]:
+	if not modifier_override.is_empty():
+		return modifier_override
+	if Game.in_run() and Game.phase == Game.Phase.BOARD:
+		return Game.board_modifiers(Game.current_board_in_run)
+	return []
+
+
+## The board's active bonificadores, asked by ScoreEngine for their score
+## contributions through the hook contract.
+func active_modifiers() -> Array[BoardModifierDef]:
+	return board_theme.modifiers if board_theme != null else []
+
+
+## Center column of an odd grid: Espejo pays it double.
+func _is_center_hole(hole: Dictionary) -> bool:
+	if board_def.cols % 2 == 0:
+		return false
+	return int(hole.col) == (board_def.cols - 1) / 2
+
+
+## Trapecio: move the notch grid sideways in board-local space. Hole
+## positions and the marbles already embedded in them follow, so capture and
+## rendering keep agreeing while the grid sways.
+func apply_grid_offset(offset: float) -> void:
+	if notch_root == null:
+		return
+	notch_root.position.x = offset
+	for hole in holes:
+		hole.pos = Vector3(hole.base.x + offset, hole.base.y, hole.base.z)
+	for child in board.get_children():
+		if not (child is RigidBody3D) or not child.is_in_group("embedded"):
+			continue
+		var notch: int = int(child.get_meta("notch_index", -1))
+		if notch < 0 or notch >= holes.size():
+			continue
+		child.position.x = holes[notch].pos.x
+
+
+## Notch visuals follow the rule flags: a covered (Mochila) or hidden
+## (Fantasma) notch drops its neon rim and fades its number, so the player
+## reads at a glance which notch cannot take a marble right now.
+func paint_hole(hole: Dictionary) -> void:
+	var open: bool = not hole.covered and not hole.phase_hidden
+	hole.ring.visible = open
+	if open:
+		hole.label.modulate = Color(0.95, 0.9, 0.75)
+	else:
+		hole.label.modulate = Color(0.7, 0.65, 0.55, 0.3)
+
+
+## Glass durability (S3): one roll per throw, before the marble spawns. A
+## broken marble leaves the bag and the throw goes on with the next bag
+## marble. The bag never empties here: if the break would leave it empty the
+## break does not happen, so the last marble always survives.
+func _try_break(def: MarbleDef) -> bool:
+	if def == null or not Game.in_run():
+		return false
+	if def.break_chance <= 0.0 or Game.bag.size() <= 1:
+		return false
+	if randf() >= def.break_chance:
+		return false
+	return _remove_from_bag(def)
+
+
+## Drop the first bag entry with this def and keep the selection on a marble
+## that still exists; the HUD flashes the break.
+func _remove_from_bag(def: MarbleDef) -> bool:
+	for i in Game.bag.size():
+		var entry: MarbleDef = Game.bag[i]
+		if entry != def and entry.id != def.id:
+			continue
+		Game.bag.remove_at(i)
+		if selected_bag_index > i:
+			selected_bag_index -= 1
+		selected_bag_index %= Game.bag.size()
+		EventBus.marble_removed.emit(def.id, &"broke")
+		hud.flash("Tu canica de vidrio se rompio!")
+		hud.set_selected_marble(_selected_marble_def().display_name)
+		return true
+	return false
+
+
+## Bonificador banner at board start: queue the cues and flash them one by
+## one (a boss board announces two rules and both must be readable).
+func _on_modifier_active(id: StringName) -> void:
+	modifier_queue.append(id)
+	if announce_timer != null and announce_timer.is_stopped():
+		_announce_next()
+
+
+func _announce_next() -> void:
+	if modifier_queue.is_empty():
+		return
+	var id: StringName = modifier_queue.pop_front()
+	var def: BoardModifierDef = board_theme.modifier_by_id(id) if board_theme != null else null
+	if def == null:
+		def = ContentDB.modifier_def(id)
+	if def != null:
+		hud.flash("%s: %s" % [def.display_name, def.description])
+	announce_timer.start(ANNOUNCE_DELAY)
+
+
+func _on_announce_timeout() -> void:
+	_announce_next()
 
 
 # --- Construction ------------------------------------------------------------
@@ -662,6 +918,12 @@ func _build_board() -> void:
 	_add_fair_bulbs()
 	_add_deck_art()
 
+	# Notch visuals live under one parent so Trapecio can sway the grid as a
+	# unit; positions stay board-local (notch_root starts at the origin).
+	notch_root = Node3D.new()
+	notch_root.name = "NotchRoot"
+	board.add_child(notch_root)
+
 	for row in board_def.rows:
 		for col in board_def.cols:
 			var pos := Vector3(
@@ -712,6 +974,13 @@ func _add_wall(pos: Vector3, size: Vector3, side: String) -> void:
 	wall.name = "Wall"
 	wall.add_to_group("walls")
 	wall.set_meta("side", side)
+	# Cuerda: a bonificador raises the wall restitution. Without the rule the
+	# walls keep the engine default, exactly like M1.
+	if board_theme != null and board_theme.wall_bounciness > 0.0:
+		var physics := PhysicsMaterial.new()
+		physics.bounce = board_theme.wall_bounciness
+		physics.friction = 0.4
+		wall.physics_material_override = physics
 	board.add_child(wall)
 	var collider := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -743,7 +1012,7 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	mat.albedo_color = Color(0.05, 0.04, 0.03)
 	mat.roughness = 1.0
 	disc.material_override = mat
-	board.add_child(disc)
+	notch_root.add_child(disc)
 
 	# Emissive rim around the notch: the neon ring of the circus look.
 	var ring := MeshInstance3D.new()
@@ -758,7 +1027,7 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	ring_mat.emission_energy_multiplier = 2.0
 	ring.material_override = ring_mat
 	ring.position = pos + Vector3(0, 0.011, 0)
-	board.add_child(ring)
+	notch_root.add_child(ring)
 
 	var label := Label3D.new()
 	label.text = str(score)
@@ -773,9 +1042,25 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	# lay-down alone points the text top toward the player (reads upside
 	# down on screen); the 180 Y turn points it away so it reads normally.
 	label.rotation_degrees = Vector3(-90, 180, 0)
-	board.add_child(label)
+	notch_root.add_child(label)
 
-	holes.append({"pos": pos, "score": score, "occupied": false, "index": index})
+	# The hole keeps everything the rules need: its board-local position and
+	# the one it was carved at (Trapecio sways the grid), the current value
+	# (Borracho rewrites it), the rule flags and the visuals to repaint.
+	holes.append({
+		"pos": pos,
+		"base": pos,
+		"score": score,
+		"occupied": false,
+		"covered": false,
+		"phase_hidden": false,
+		"index": index,
+		"col": index % board_def.cols,
+		"row": index / board_def.cols,
+		"disc": disc,
+		"ring": ring,
+		"label": label,
+	})
 
 
 func _add_deck_art() -> void:

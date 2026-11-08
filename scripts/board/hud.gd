@@ -8,6 +8,8 @@ var label_score: Label
 var label_target: Label
 var label_money: Label
 var label_marble: Label
+var label_breakdown: Label
+var label_timer: Label
 var prize_box: VBoxContainer
 var label_msg: Label
 var power_bar: PowerBar
@@ -67,6 +69,22 @@ func set_money(value: int) -> void:
 
 func set_selected_marble(marble_name: String) -> void:
 	label_marble.text = "Canica: %s" % marble_name
+
+
+## Score math line (S4): the breakdown ScoreEngine produced for the last
+## embed that a prize or bonificador changed. Empty text hides it, so a
+## clean throw shows no arithmetic.
+func set_breakdown(line: String) -> void:
+	label_breakdown.text = line
+	label_breakdown.visible = line != ""
+
+
+## Cronometrado countdown; a negative value hides the line (the step is not
+## on a clock, or the board has no timer rule).
+func set_timer(seconds_left: int) -> void:
+	label_timer.visible = seconds_left >= 0
+	if seconds_left >= 0:
+		label_timer.text = "Tiempo: %d" % seconds_left
 
 
 ## Active prizes as stacked badges in the top-right corner: the prize name
@@ -158,6 +176,13 @@ func _build() -> void:
 	label_marble.position = Vector2(16, 142)
 	add_child(label_marble)
 
+	# Cronometrado countdown, under the marble line: only the boards with the
+	# decision timer rule ever show it.
+	label_timer = _candy_label(20)
+	label_timer.position = Vector2(16, 174)
+	label_timer.visible = false
+	add_child(label_timer)
+
 	# Prize badges stack downward from the top-right corner. The container is
 	# fixed-width and right-anchored, so long names still hug the edge.
 	prize_box = VBoxContainer.new()
@@ -194,6 +219,23 @@ func _build() -> void:
 	power_bar.offset_bottom = -46
 	power_bar.visible = false
 	add_child(power_bar)
+
+	# Score math line, small and chalk-white under the flash messages: it
+	# explains the value the marble just scored without stealing the scene.
+	label_breakdown = Label.new()
+	label_breakdown.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_breakdown.anchor_left = 0.0
+	label_breakdown.anchor_right = 1.0
+	label_breakdown.anchor_top = 1.0
+	label_breakdown.anchor_bottom = 1.0
+	label_breakdown.offset_top = -102
+	label_breakdown.offset_bottom = -84
+	label_breakdown.add_theme_font_size_override("font_size", 18)
+	label_breakdown.add_theme_color_override("font_color", Color(0.93, 0.93, 0.95))
+	label_breakdown.add_theme_color_override("font_outline_color", Color("120b26"))
+	label_breakdown.add_theme_constant_override("outline_size", 4)
+	label_breakdown.visible = false
+	add_child(label_breakdown)
 
 	end_overlay = ColorRect.new()
 	end_overlay.color = Color(0.08, 0.06, 0.16, 0.8)

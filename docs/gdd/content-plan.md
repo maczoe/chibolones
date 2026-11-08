@@ -106,17 +106,27 @@ Carpa en Miniatura (+1 marble slot in the bag), Rayo (fire marbles
 speed x1.5), Corona del Circo (x1.1 to everything, rare). Rarities:
 6 common, 3 uncommon, 1 rare.
 
-### 4.3 Bonificadores (M2) — 10
+### 4.3 Bonificadores (M2) — 10 — implemented (W2)
 Cuerda (bouncy walls +mult), Mojado (low friction), Borracho (value
 shuffle), Espejo (x2 center), Ventoso (cross wind), Mochila (covered
 notch), Fantasma (phasing notch), Iman (embedded attraction), Trapecio
 (swinging grid), Cronometrado (decision timer). Each = rule edit +
 event hooks + HUD cue, per the M2 hook contract.
 
+All ten ship as data (`data/modifiers/*.tres` -> `BoardModifierDef`) with
+`scripts/board/board_theme.gd` as their runtime and
+`ScoreEngine.evaluate_embed()` as the scoring seam; the board announces
+them at board start and shows the score math when a rule changed the
+value. Boss boards run their block's pair (block 1 opens with Borracho)
+and normal boards carry none or one. Numbers live in the .tres files; the
+assignment lives in `Game.board_modifiers(n)`.
+
 ## 5. Open for the next refinement round
 
 - Exact objective numbers after the M5 balance sim (targets above are
   design estimates from the POC feel).
-- Marble break rules once M2 adds durability events (glass 20%).
+- Marble break rules once M2 adds durability events (glass 20%): the roll
+  and the bag event are live since M2, the 20% value lands with the M3
+  marble data.
 - Unlock pool split for first runs (M4): which 6 marbles / 6 prizes
   are available before any unlock.

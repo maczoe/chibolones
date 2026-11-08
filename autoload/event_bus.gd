@@ -19,3 +19,19 @@ signal refund()
 signal throw_ended(outcome: StringName)
 ## The board round finished (after every throw resolved).
 signal board_ended(score: int)
+
+## M2 vocabulary: durability, board rules and their HUD cues.
+
+## A marble left the bag: def id and why (&"broke" = durability roll,
+## &"thrown" = consumed by the throw). Game owns the bag itself.
+signal marble_removed(def_id: String, reason: StringName)
+## A bonificador is active on this board: the cue for the board-start
+## announcements (one event per modifier, HUD queues them).
+signal modifier_active(id: StringName)
+## Decision clock of the Cronometrado board: whole seconds left in the
+## current step (AIM/TILT/POWER).
+signal throw_timer_tick(seconds_left: int)
+## The notch values were reshuffled (Borracho); the seed reproduces it.
+signal value_shuffled(board_seed: int)
+## Cross wind of the Ventoso board: +1 right, -1 left, 0 none.
+signal wind_changed(direction: float)

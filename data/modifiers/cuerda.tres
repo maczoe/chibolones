@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BoardModifierDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_modifier_def.gd" id="1_modifier"]
+
+[resource]
+script = ExtResource("1_modifier")
+id = &"cuerda"
+display_name = "Cuerda"
+description = "Las paredes rebotan como cuerda: cada pared que golpeas suma x1.2 al tiro."
+wall_bounciness = 0.15
+wall_hit_mult = 1.2

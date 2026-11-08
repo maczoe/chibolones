@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BoardModifierDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_modifier_def.gd" id="1_modifier"]
+
+[resource]
+script = ExtResource("1_modifier")
+id = &"mochila"
+display_name = "Mochila"
+description = "La mochila tapa una muesca al azar en cada tiro: esa no toma canicas."
+cover_notch = true

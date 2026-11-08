@@ -57,18 +57,29 @@ tests/                # headless SceneTree tests (smoke.gd pattern)
 - `BoardModifierDef` (Resource): rule edits (wall bounce, friction, moving
   notches, value shuffle…) + event hooks + HUD cue.
 
-**Modifier hook contract** (shared by prizes and modifiers):
+**Modifier hook contract** (shared by prizes and modifiers, delivered in M2):
 
 ```gdscript
 class_name DefHooks
 func interested_in() -> Array[StringName]   # events this def reacts to
 func on_event(event: StringName, ctx: Dictionary) -> void  # trigger effects
-func edit_score(current: float, ctx: Dictionary) -> float  # scoring pass
+func contribute_embed(base: int, ctx: Dictionary) -> void  # scoring pass
 ```
 
-`ScoreEngine` pipeline per scoring moment: collect add/mult from all
-interested defs → apply flat adds → apply multipliers → publish breakdown
-(for HUD "score math" display and debug overlay).
+M2 ships the scoring half of it: `PrizeDef` and `BoardModifierDef` declare
+the events they react to (`interested_in()`, today `embed`) and edit the
+breakdown of one embed (`contribute_embed()`), while `MarbleDef.score_mult`
+and the board's wall accumulation enter the same pass as plain mult sources.
+`on_event()` (per-event triggers beyond scoring) is M3+ work; the pipeline is
+already the single seam it will plug into.
+
+`ScoreEngine.evaluate_embed(base, ctx)` is that pipeline, per scoring
+moment: it collects adds and mults from every interested def into a
+`ScoreBreakdown`, applies flat adds to the base, then the multipliers, then
+rounds once — and the breakdown itself renders the HUD "score math" line and
+the debug overlay. `ctx` keys: `adds`, `mults` (the shared dictionaries),
+`board` (the board node, which owns the active bonificadores) and `throw`
+(the throw's facts: marble, notch, `wall_hits`, `wall_mult`, `center`).
 
 ## 4. Migration from the POC (M0)
 
@@ -93,7 +104,7 @@ interested defs → apply flat adds → apply multipliers → publish breakdown
 | **M0** | DELIVERED (commits 5446263, eab1943): POC split into autoloads + board scene + ScoreEngine + HUD; Defs and balance data extracted; cross-device InputMap and scaling set up | smoke + probe green; smoke asserts event/score consistency |
 | **M0.5** | DELIVERED: circo-surreal style in engine (cabinet, room, bulbs, neon), orbit camera + cancel QoL, seed juices (thunk + popup + bulb show), sample content (3 marbles, trompo prize, bag selection); style rules in `docs/gdd/style-guide.md` | feel accepted by the user playing; smoke + probe green throughout |
 | **M1** | DELIVERED, see git log: run skeleton — menu → board → win/lose → shop placeholder → run summary; 20 boards in 5 blocks of 4 with a boss every 4th and the block objective factor; economy v1 in the `Economy` autoload (rewards, price scale, stock); endless opt-in from the run-won screen | `tests/run_loop.gd`: economy math, progression helpers, phase machine, board win/loss and HUD wiring; smoke + probe still green |
-| **M2** | Scoring engine + event bus + hook contract; 5 bonificadores and 5 premios working | scoring pipeline unit tests with fake defs |
+| **M2** | DELIVERED: hook contract live — `PrizeDef.interested_in()` / `contribute_embed()` and `BoardModifierDef` rules flow through `ScoreEngine.evaluate_embed()` into one `ScoreBreakdown` (HUD score-math line, announcements at board start); 10 bonificadores as data with their board runtime (walls, friction, wind, shuffle, covered/phasing notches, magnet, swinging grid, decision timer); glass durability roll wired (`marble_removed`, bag update) with the 20% waiting for the M3 data wave | `tests/hooks.gd`: breakdown math, trompo through the pipeline, 10 defs loaded, Borracho shuffle, Cronometrado timer, glass break, Espejo center, wind/swing wiring, M1 wall math preserved; smoke + run_loop + probe still green |
 | **M3** | Content wave 1: 10 canicas, 10 premios, 10 board defs; shop v1 with stock/reroll | shop stock + pricing tests, content lint (all defs valid, prices in curve) |
 | **M4** | Library + persistence (per D3), unlock pool if chosen | save/load round-trip test |
 | **M5** | Full 20-board run + difficulty curve + board variety pass; balance harness (scripted-throw sim per board) | balance sim asserts win-rate bands per board |

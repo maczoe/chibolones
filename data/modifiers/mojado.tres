@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BoardModifierDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_modifier_def.gd" id="1_modifier"]
+
+[resource]
+script = ExtResource("1_modifier")
+id = &"mojado"
+display_name = "Mojado"
+description = "El piso esta mojado: la canica casi no frena y se desliza de largo."
+friction_scale = 0.45

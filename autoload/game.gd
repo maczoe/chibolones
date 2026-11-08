@@ -22,6 +22,18 @@ const ENDLESS_BONUS := 1
 ## Sample marbles the run starts with, in bag order (M3 grows the pool).
 const SAMPLE_MARBLES := ["common", "fire", "glass"]
 const SAMPLE_PRIZE := "trompo"
+## Bonificadores available per block (content-plan §4.3): normal boards take
+## the first or the second of their block, boss boards take the pair (block
+## 1's boss is the drunk board instead).
+const MODIFIER_PAIRS := [
+	[&"cuerda", &"mojado"],
+	[&"espejo", &"ventoso"],
+	[&"fantasma", &"iman"],
+	[&"mojado", &"cuerda"],
+	[&"trapecio", &"cronometrado"],
+]
+## Block 1 boss: the reference drunk board from the GDD.
+const BOSS_FIRST_MODIFIER := &"borracho"
 
 signal phase_changed(phase: Phase)
 signal money_changed(money: int)
@@ -100,6 +112,40 @@ func block_of(n: int) -> int:
 ## Boss boards are the last board of every block: 4, 8, 12, 16, 20 (24...).
 func is_boss(n: int) -> bool:
 	return n % BOARDS_PER_BLOCK == 0
+
+
+## Bonificadores of board `n` (content-plan §4.3). Boss boards are the
+## themed pair of their block; normal boards carry none or one, picked
+## deterministically from the board number so a run is always replayable.
+func board_modifiers(n: int) -> Array[BoardModifierDef]:
+	var result: Array[BoardModifierDef] = []
+	for id in modifier_ids(n):
+		var def: BoardModifierDef = ContentDB.modifier_def(id)
+		if def != null:
+			result.append(def)
+	return result
+
+
+## Ids behind board_modifiers(), without loading the defs: the run board
+## asks here and the tests check the assignment cheaply.
+func modifier_ids(n: int) -> Array[StringName]:
+	var ids: Array[StringName] = []
+	var pair: Array = MODIFIER_PAIRS[block_of(n) - 1]
+	if is_boss(n):
+		if block_of(n) == 1:
+			ids.append(BOSS_FIRST_MODIFIER)
+		else:
+			ids.append(pair[0])
+			ids.append(pair[1])
+		return ids
+	match n % 3:
+		1:
+			ids.append(pair[0])
+		2:
+			ids.append(pair[1])
+		_:
+			pass
+	return ids
 
 
 ## Score a board must reach: bosses use their own base target, then the
