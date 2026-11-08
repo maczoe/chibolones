@@ -38,7 +38,10 @@ func _run() -> void:
 	await _test_win_hosts_overlay_on_board()
 	await _test_restart_blocked_during_win()
 	await _test_restart_still_works_in_play()
+	await _test_loss_hosts_result_overlay()
+	await _test_run_won_summary_hosts_result_overlay()
 	await _test_win_screen_is_translucent()
+	await _test_result_screen_is_translucent()
 	print("WIN_FLOW FAIL" if failed else "WIN_FLOW OK")
 	quit(1 if failed else 0)
 
@@ -87,15 +90,23 @@ func _resting_marble(board: Node3D) -> RigidBody3D:
 	return marble
 
 
-func _find_win_screen(node: Node) -> Control:
+func _find_script_screen(node: Node, script_suffix: String) -> Control:
 	var script: Script = node.get_script()
-	if script != null and str(script.resource_path).ends_with("win_screen.gd"):
+	if script != null and str(script.resource_path).ends_with(script_suffix):
 		return node
 	for child in node.get_children():
-		var found := _find_win_screen(child)
+		var found := _find_script_screen(child, script_suffix)
 		if found != null:
 			return found
 	return null
+
+
+func _find_win_screen(node: Node) -> Control:
+	return _find_script_screen(node, "win_screen.gd")
+
+
+func _find_result_screen(node: Node) -> Control:
+	return _find_script_screen(node, "result_screen.gd")
 
 
 func _discard(board: Node3D) -> void:
@@ -165,7 +176,86 @@ func _test_restart_still_works_in_play() -> void:
 	game.run_active = false
 
 
-# --- (c) The win screen shows the game behind it ------------------------------
+# --- (d) Losing keeps the board and hosts the result overlay on it -----------
+
+func _lose_the_board() -> Node3D:
+	var board := _start_run()
+	await physics_frame
+	board.shots_left = 0
+	board.state = board.ThrowState.FLIGHT
+	board.launch_timer = board.rules.flight_timeout
+	await physics_frame
+	await physics_frame
+	return board
+
+
+func _test_loss_hosts_result_overlay() -> void:
+	var board := await _lose_the_board()
+	_check(game.phase == game.Phase.RESULT,
+			"a lost board should enter the result phase, phase is %s" % game.phase)
+	_check(is_instance_valid(board) and board.is_inside_tree(),
+			"the board should stay in the tree behind the result overlay")
+	var overlay := _find_result_screen(board)
+	_check(overlay != null,
+			"the board should host the result screen as an overlay")
+	var restart := InputEventAction.new()
+	restart.action = "restart"
+	restart.pressed = true
+	board._unhandled_input(restart)
+	await process_frame
+	_check(current_scene == board and board.is_inside_tree(),
+			"restart must not reload the board during the result overlay")
+	if overlay != null:
+		_check(overlay.get_parent() is CanvasLayer,
+				"the result overlay should sit in its own CanvasLayer")
+		_check(not overlay.summary_visible(),
+				"the resumen should wait behind the title beat, like the win flow")
+		# TITLE_DELAY is 2.5 s: after it the resumen and its buttons show.
+		await create_timer(2.7).timeout
+		_check(overlay.summary_visible(),
+				"the result resumen should appear after the title beat")
+		_check(root.gui_get_focus_owner() != null
+					and root.gui_get_focus_owner() is Button,
+				"the result resumen should hand focus to its first button")
+	_check(current_scene == board,
+			"the scene must not switch while the result overlay plays")
+	await _discard(board)
+
+
+# --- (e) The run-won summary also plays over the live board ------------------
+
+func _test_run_won_summary_hosts_result_overlay() -> void:
+	# Board 20 (def 19) won through the real seam, like tests/run_loop.gd:
+	# the run reports board 20 while the board scene itself is the first def.
+	var board := _start_run()
+	game.current_board_in_run = 20
+	await physics_frame
+	root.get_node("EventBus").embed.emit(0, board.run_objective)
+	board.state = board.ThrowState.FLIGHT
+	board.launch_timer = 0.0
+	board.active_marbles.append(_resting_marble(board))
+	await physics_frame
+	await physics_frame
+	_check(game.run_won, "winning board 20 should set run_won")
+	var win_overlay := _find_win_screen(board)
+	_check(win_overlay != null, "board 20 should host the win overlay first")
+	if win_overlay != null:
+		await create_timer(2.7).timeout
+		win_overlay._on_continue()
+		await process_frame
+		await process_frame
+	var overlay := _find_result_screen(board)
+	_check(overlay != null,
+			"the run-won summary should host on the live board too")
+	_check(current_scene == board,
+			"the scene must not switch while the run-won summary plays")
+	if win_overlay != null:
+		_check(not win_overlay.visible or not is_instance_valid(win_overlay),
+				"the win overlay should close when the summary takes over")
+	await _discard(board)
+
+
+# --- (f) Both screens show the game behind them -------------------------------
 
 func _test_win_screen_is_translucent() -> void:
 	var win: Control = (load("res://scenes/run/win.tscn") as PackedScene).instantiate()
@@ -181,4 +271,21 @@ func _test_win_screen_is_translucent() -> void:
 				"the win background must let the live board read through, "
 				+ "alpha is %s" % background.color.a)
 	win.queue_free()
+	await process_frame
+
+
+func _test_result_screen_is_translucent() -> void:
+	var result: Control = (load("res://scenes/run/result.tscn") as PackedScene).instantiate()
+	root.add_child(result)
+	await process_frame
+	var background: ColorRect = null
+	for child in result.get_children():
+		if child is ColorRect:
+			background = child
+	_check(background != null, "the result screen should keep a dim background")
+	if background != null:
+		_check(background.color.a < 0.7,
+				"the result background must let the live board read through, "
+				+ "alpha is %s" % background.color.a)
+	result.queue_free()
 	await process_frame

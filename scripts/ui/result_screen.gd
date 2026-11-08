@@ -2,14 +2,35 @@ extends Control
 ## Run summary (M1): the RESULT phase screen. Lost runs show what the player
 ## reached and offer a fresh run; a run that cleared board 20 offers the
 ## endless opt-in (GDD D6). State is read from Game, never passed around.
+## Like the win screen (user request, 2026-11-08): translucent over the live
+## board, the title plays alone for TITLE_DELAY seconds, then the resumen
+## and its buttons appear with focus on the first one.
+
+## Seconds the title stays alone before the resumen appears.
+const TITLE_DELAY := 2.5
+
+var summary_box: VBoxContainer
+
 
 func _ready() -> void:
 	_build()
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = TITLE_DELAY
+	timer.timeout.connect(_show_summary)
+	add_child(timer)
+	timer.start()
+
+
+## Test/read seam: the resumen appears after the title beat.
+func summary_visible() -> bool:
+	return summary_box != null and summary_box.visible
 
 
 func _build() -> void:
+	# Translucent dim: the live board stays visible behind the summary.
 	var background := ColorRect.new()
-	background.color = Color("120a26")
+	background.color = Color(0.07, 0.04, 0.15, 0.45)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 
@@ -31,23 +52,43 @@ func _build() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
+	summary_box = VBoxContainer.new()
+	summary_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	summary_box.add_theme_constant_override("separation", 14)
+	summary_box.visible = false
+	column.add_child(summary_box)
+
+	var first_button: Button = null
 	for line in _summary_lines():
 		var label := _candy_label(line, 28, Color("ff6fb5"))
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		column.add_child(label)
+		summary_box.add_child(label)
 
 	if Game.run_won:
 		var keep_going := _menu_button("CONTINUAR (modo infinito)")
 		keep_going.pressed.connect(_on_endless_pressed)
-		column.add_child(keep_going)
+		summary_box.add_child(keep_going)
+		first_button = keep_going
 	else:
 		var retry := _menu_button("REINTENTAR")
 		retry.pressed.connect(_on_retry_pressed)
-		column.add_child(retry)
+		summary_box.add_child(retry)
+		first_button = retry
 
 	var back := _menu_button("MENU")
 	back.pressed.connect(_on_menu_pressed)
-	column.add_child(back)
+	summary_box.add_child(back)
+	# Focus lands when the resumen shows, mirroring the win screen.
+	set_meta("first_button", first_button)
+
+
+## After the title beat: reveal the resumen and hand focus to its first
+## button, so keyboard/gamepad reach it right away.
+func _show_summary() -> void:
+	summary_box.visible = true
+	var first_button: Button = get_meta("first_button", null)
+	if first_button != null:
+		first_button.grab_focus()
 
 
 ## Summary lines: what the run achieved, and how it ended when it was lost.

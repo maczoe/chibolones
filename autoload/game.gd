@@ -291,21 +291,22 @@ func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 	# win screen as a translucent overlay so the game stays visible and alive
 	# behind GANADOR and the resumen. A scene that cannot host (or a headless
 	# test with no current scene) falls back to the plain scene switch.
-	if not _host_win_overlay():
+	if not _host_overlay(&"host_win_overlay"):
 		change_to_current_scene()
 
 
-## Offer the current scene the chance to host the win overlay in place.
-## Returns false when there is no host, so the caller keeps the old scene
-## switch. Never touches run state: the phase and routing stay the same.
-func _host_win_overlay() -> bool:
+## Offer the current scene the chance to host a screen overlay in place
+## (win sequence, run summary). Returns false when there is no host, so the
+## caller keeps the old scene switch. Never touches run state: the phase and
+## routing stay the same.
+func _host_overlay(host_method: StringName) -> bool:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
 		return false
 	var scene := tree.current_scene
-	if not scene.has_method("host_win_overlay"):
+	if not scene.has_method(host_method):
 		return false
-	scene.call("host_win_overlay")
+	scene.call(host_method)
 	return true
 
 
@@ -316,10 +317,14 @@ func win_screen_continue() -> void:
 	if phase != Phase.WIN:
 		return
 	if run_won:
+		# The run summary also plays over the live board (user request,
+		# 2026-11-08): the board hosts it in place of the win overlay.
 		_enter(Phase.RESULT)
+		if not _host_overlay(&"host_result_overlay"):
+			change_to_current_scene()
 	else:
 		_enter(Phase.SHOP)
-	change_to_current_scene()
+		change_to_current_scene()
 
 
 ## The shots ran out without reaching the objective: the run is over.
@@ -339,7 +344,10 @@ func board_lost() -> void:
 	board_lost_sig.emit()
 	_enter(Phase.RESULT)
 	run_lost_sig.emit()
-	change_to_current_scene()
+	# The defeat screen plays over the live board too, like the win sequence
+	# (user request, 2026-11-08).
+	if not _host_overlay(&"host_result_overlay"):
+		change_to_current_scene()
 
 
 ## Leave the shop for the next board; endless boards keep block 5.
