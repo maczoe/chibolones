@@ -55,7 +55,7 @@ func _run() -> void:
 			await _frames(10)
 			Input.action_release("move_right")
 			Input.action_release("move_up")
-			var panned := board.cam.position
+			var panned: Vector3 = board.cam.position
 			if board.cam_azimuth_deg == 0.0 and board.cam_elev_deg == board.cam_default_elev_deg:
 				return _fail("camera mode orbit did not move the camera")
 			_tap("camera_mode")
