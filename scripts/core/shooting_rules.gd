@@ -8,6 +8,26 @@ extends Resource
 
 @export_group("Tilt guide")
 @export var tilt_speed: float = 70.0
+## Acceleration (user request, 2026-11-08): a fresh press starts at
+## tilt_speed_min so taps give fine adjustment, and holding ramps up to
+## tilt_speed over tilt_accel_time seconds. The gamepad axis scales the
+## whole curve analogically, so a gentle stick deflection moves slow.
+@export var tilt_speed_min: float = 14.0
+@export var tilt_accel_time: float = 0.7
+## Wider shot angles than the wall-derived guide limits: the per-side caps
+## from the board geometry multiply by this (capped at 80 degrees so the
+## guide can never spin backwards).
+@export var tilt_range_mult: float = 1.6
+
+## Speed of one tilt frame under acceleration: keys ramp by held time,
+## the gamepad axis scales the result, releasing or reversing resets the
+## ramp on the board side (fine adjust). hold_time is seconds the same
+## direction has been held.
+func tilt_frame_speed(axis_value: float, hold_time: float) -> float:
+	var ramp := clampf(hold_time / tilt_accel_time, 0.0, 1.0)
+	# Smoothstep keeps the middle of the ramp gradual instead of linear.
+	ramp = ramp * ramp * (3.0 - 2.0 * ramp)
+	return lerpf(tilt_speed_min, tilt_speed, ramp) * absf(axis_value)
 
 @export_group("Power & launch")
 @export var min_speed: float = 2.2

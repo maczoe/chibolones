@@ -42,6 +42,11 @@ var throw_consumed := false
 var aim_x := 0.0
 var aim_limit := 0.0
 var shot_tilt := 0.0
+## Tilt acceleration (user request, 2026-11-08): how long the current
+## direction has been held, and which direction that is. Releasing or
+## reversing resets both, so taps and reversals give fine adjustment.
+var tilt_hold_time := 0.0
+var tilt_last_dir := 0.0
 var tilt_max_left := 0.0    # per-side aim limits, so the guide cannot point
 var tilt_max_right := 0.0   # past the side walls from this launch spot
 var power := 0.0
@@ -265,15 +270,22 @@ func _physics_process(delta: float) -> void:
 			launch_marker.position.x = aim_x
 			shot_guide.position.x = aim_x
 		ThrowState.TILT:
-			var turn := 0.0
-			if Input.is_action_pressed("move_left"):
-				turn -= 1.0
-			if Input.is_action_pressed("move_right"):
-				turn += 1.0
+			# Analog-aware: the same actions fire from keys (±1.0) and the
+			# gamepad stick (0..1 magnitude), so one path covers both inputs.
+			var turn := Input.get_axis("move_left", "move_right")
 			# Screen directions: the camera looks down +Z, so world +X shows on
 			# the player's LEFT. Invert the sign so each arrow leans the guide
 			# the way it points on screen, clamped so it never aims off-board.
-			shot_tilt = clampf(shot_tilt - turn * rules.tilt_speed * delta,
+			var move_dir := -signf(turn)
+			if move_dir != 0.0 and move_dir == tilt_last_dir:
+				# Same direction held: keep ramping toward full speed.
+				tilt_hold_time += delta
+			else:
+				# Released or reversed: the next press starts fine again.
+				tilt_hold_time = 0.0
+				tilt_last_dir = move_dir
+			var speed := rules.tilt_frame_speed(turn, tilt_hold_time)
+			shot_tilt = clampf(shot_tilt + move_dir * speed * delta,
 					-tilt_max_left, tilt_max_right)
 			shot_guide.rotation.y = deg_to_rad(shot_tilt)
 		ThrowState.POWER:
@@ -333,6 +345,8 @@ func _begin_tilt() -> void:
 		return
 	state = ThrowState.TILT
 	shot_tilt = 0.0
+	tilt_hold_time = 0.0
+	tilt_last_dir = 0.0
 	_update_tilt_limits()
 	shot_guide.visible = true
 	# Starting the next throw cancels any leftover celebration so the bulbs
@@ -474,11 +488,16 @@ func _marble_hint(def: MarbleDef) -> String:
 
 func _update_tilt_limits() -> void:
 	# The guide pivots at the launch spot; clamp each side so its far end
-	# stays inside the walls even at the far edge of the board.
+	# stays inside the walls even at the far edge of the board. tilt_range_mult
+	# widens the playable angles past the wall-derived values (user request,
+	# 2026-11-08); 80 degrees is the hard ceiling so the guide can never
+	# spin backwards.
 	var dist_to_far := board_def.length / 2.0 - board_def.launch_z()
 	var side_margin := board_def.width / 2.0 - board_def.aim_limit_margin
-	tilt_max_left = rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
-	tilt_max_right = rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
+	tilt_max_left = minf(rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
+			* rules.tilt_range_mult, 80.0)
+	tilt_max_right = minf(rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
+			* rules.tilt_range_mult, 80.0)
 
 
 func _launch(tilt_deg: float, power_value: float) -> void:
