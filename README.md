@@ -265,6 +265,7 @@ refund returns throws without consuming them):
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/run_loop.gd
 godot --headless --path . --script res://tests/hooks.gd
+godot --headless --path . --script res://tests/marbles_w3.gd
 godot --headless --path . --script res://tests/themes.gd
 godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/debug_mode.gd

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "espejo"
+display_name = "Canica Espejo"
+rarity = "rare"
+category = 1
+single_use = true
+flavor = "Refleja tu mejor tiro: vale lo que valio el anterior."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"glass"
+palette = Array[Color]([Color(0.85, 0.92, 1, 0.6)])
+price = 7
+effects = Array[StringName]([&"copy_prev"])
+break_chance = 0.0

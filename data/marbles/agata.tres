@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "agata"
+display_name = "Canica Agata"
+rarity = "common"
+category = 0
+single_use = false
+flavor = "Piedra de las serpientes: pesada, serena, el viento le da igual."
+radius = 0.09
+mass = 1.5
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"swirl"
+palette = Array[Color]([Color(0.55, 0.45, 0.65, 1), Color(0.85, 0.82, 0.9, 1)])
+price = 3
+effects = Array[StringName]([&"wind_steady"])
+break_chance = 0.0

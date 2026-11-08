@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "nitro"
+display_name = "Canica Nitro"
+rarity = "rare"
+category = 1
+single_use = true
+flavor = "Un solo disparo, una sola chance: sale como bala de feria."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.6
+style = &"fire"
+palette = Array[Color]([Color(1, 0.35, 0.1, 1), Color(1, 0.8, 0.2, 1)])
+price = 7
+effects = Array[StringName]([])
+break_chance = 0.0

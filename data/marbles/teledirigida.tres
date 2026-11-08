@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "teledirigida"
+display_name = "Canica Teledirigida"
+rarity = "uncommon"
+category = 1
+single_use = true
+flavor = "Elige tu muesca: esta canica encuentra el solo el camino."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"swirl"
+palette = Array[Color]([Color(0.95, 0.9, 0.3, 1), Color(0.3, 0.3, 0.35, 1)])
+price = 5
+effects = Array[StringName]([&"homing"])
+break_chance = 0.0

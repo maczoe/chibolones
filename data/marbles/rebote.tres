@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "rebote"
+display_name = "Canica Rebote"
+rarity = "common"
+category = 1
+single_use = true
+flavor = "Pega y vuelve: hasta un tiro al costado vuelve a tu mano."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"swirl"
+palette = Array[Color]([Color(0.3, 0.8, 0.4, 1), Color(0.95, 0.95, 0.9, 1)])
+price = 3
+effects = Array[StringName]([&"side_refund"])
+break_chance = 0.0

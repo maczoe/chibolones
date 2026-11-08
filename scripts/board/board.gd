@@ -11,6 +11,10 @@ const HudScript := preload("res://scripts/board/hud.gd")
 const BoardThemeScript := preload("res://scripts/board/board_theme.gd")
 ## Seconds between two bonificador announcements at board start.
 const ANNOUNCE_DELAY := 1.2
+## W3 marble force constants: Remolino's center pull and Teledirigida's
+## homing steer, both scaled by the marble mass like the wind.
+const REMOLINO_PULL_SCALE := 6.0
+const HOMING_PULL := 8.0
 
 enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 
@@ -30,6 +34,12 @@ var wall_hits := 0
 var wall_mult := 1.0
 var wall_mult_announced := false
 var launched_def: MarbleDef  # def of the marble in flight, for score_mult
+## W3 marble effects: the homing target picked at launch (empty when the
+## throw is not Teledirigida), the score this throw produced and the score
+## the previous throw produced (Espejo copies it, only when > 0).
+var homing_target: Dictionary = {}
+var throw_score := 0
+var last_throw_score := 0
 
 var state: ThrowState = ThrowState.AIM
 ## Throws the board has: the run inventory size at board start (S9), or the
@@ -603,6 +613,15 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 		# a side, Mochila covers a notch, Cronometrado restarts its clock.
 		board_theme.on_throw_started()
 	var def := _selected_marble_def()
+	# W3 throw state: the score slot for Espejo resets, and Teledirigida
+	# picks its target from the aim line before anything flies.
+	throw_score = 0
+	if def != null and def.effects.has(&"homing"):
+		homing_target = _nearest_free_hole(aim_x)
+		if not homing_target.is_empty():
+			hud.flash("Teledirigida: objetivo fila %d" % (int(homing_target["row"]) + 1))
+	else:
+		homing_target = {}
 	# The throw commits the wind side it will fly with: fade the indicator
 	# arrows out until the next turn.
 	if backdrop_arrows_mat != null:
@@ -627,6 +646,8 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	marble.position = Vector3(aim_x, def.radius + 0.05, board_def.launch_z())
 	marble.body_entered.connect(_on_marble_body_entered.bind(marble))
 	board.add_child(marble)
+	# W3: the marble carries its def for per-marble force rules (wind steady).
+	marble.set_meta("def", def)
 	# W3 contract: prizes may still edit the fresh marble's physics (bounce,
 	# speed) before the impulse is applied.
 	var spawn_ctx := {"board": self, "body": marble, "def": def,
@@ -665,7 +686,8 @@ func _update_flight(delta: float) -> void:
 		var speed: float = marble.linear_velocity.length()
 		var local: Vector3 = board.to_local(marble.global_position)
 		# Off-board exits. Only the player-side edge forgives: the throw is
-		# returned so it can be thrown again. Back and side exits lose it.
+		# returned so it can be thrown again. Back and side exits lose it —
+		# unless the marble is a Rebote: its side exits refund too.
 		if local.z < -board_def.length / 2.0 - rules.edge_margin:
 			_discard_marble(marble)
 			pending_result = "Salio por el borde del jugador: se puede volver a tirar"
@@ -676,9 +698,21 @@ func _update_flight(delta: float) -> void:
 				or absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
 				or local.y < -0.05:
 			_discard_marble(marble)
-			_consume_throw()
-			pending_result = "La canica salio del tablero: 0 puntos"
-			EventBus.throw_ended.emit(&"off_board")
+			if absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
+					and _def_has(&"side_refund"):
+				pending_result = "Rebote volvio del costado: se puede volver a tirar"
+				EventBus.refund.emit()
+				EventBus.throw_ended.emit(&"refunded")
+			else:
+				_consume_throw()
+				pending_result = "La canica salio del tablero: 0 puntos"
+				EventBus.throw_ended.emit(&"off_board")
+			continue
+		# Teledirigida: the target notch captures the marble whenever its
+		# center crosses the capture circle, however fast it flies.
+		if _def_has(&"homing") and not homing_target.is_empty() \
+				and local.distance_to(homing_target["pos"]) < board_def.capture_radius:
+			_embed(marble, homing_target, speed)
 			continue
 		# A fast marble hops over the notches, a slow one embeds itself when
 		# its center crosses the capture circle. Skip-speed prizes (Muñeco)
@@ -707,7 +741,7 @@ func _update_flight(delta: float) -> void:
 				continue
 			var d := Vector2(local.x - hole.pos.x, local.z - hole.pos.z).length()
 			if d <= reach:
-				_embed(marble, hole)
+				_embed(marble, hole, speed)
 				break
 		if is_instance_valid(marble) and not marble.freeze:
 			if speed < rules.settle_speed:
@@ -887,7 +921,11 @@ func _consume_throw() -> void:
 	hud.set_selected_marble(_selected_marble_def().display_name)
 
 
-func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
+func _embed(marble: RigidBody3D, hole: Dictionary, speed: float = 0.0) -> void:
+	# W3 capture rule: a marble at or above the skip speed never embeds —
+	# except Trampa, which sticks wherever it touches, any speed.
+	if speed >= effective_skip_speed() and not _def_has(&"embed_anywhere"):
+		return
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
 	hole.occupied = true
@@ -908,9 +946,15 @@ func _embed(marble: RigidBody3D, hole: Dictionary) -> void:
 	# One seam for every score edit (M2): the pipeline applies flats, then
 	# multipliers, then rounds once. The boosted value is what the bus
 	# carries, so the HUD message, the popup and the ScoreEngine agree.
-	var breakdown := score_engine.evaluate_embed(hole.score, _score_context(hole))
+	# W3 Espejo: copies the previous throw's embed score instead of the
+	# notch's own value, but only when that score was above zero.
+	var base_value: int = hole.score
+	if _def_has(&"copy_prev") and last_throw_score > 0:
+		base_value = last_throw_score
+	var breakdown := score_engine.evaluate_embed(base_value, _score_context(hole))
 	var boosted := breakdown.final()
-	pending_result = "Incrustada en muesca de %d: +%d" % [hole.score, boosted]
+	pending_result = "Incrustada en muesca de %d: +%d" % [base_value, boosted]
+	throw_score = boosted
 	if breakdown.acted():
 		hud.set_breakdown(breakdown.describe())
 	EventBus.embed.emit(hole.index, boosted)
@@ -1051,6 +1095,47 @@ func effective_skip_speed() -> float:
 	return board_def.skip_speed * scale
 
 
+## The launched marble carries an effect id (W3 MarbleDef.effects).
+func _def_has(effect: StringName) -> bool:
+	return launched_def != null and launched_def.effects.has(effect)
+
+
+## How much of the wind this marble feels: 1.0 by default, 0.0 for a
+## wind_steady marble (Agata).
+func wind_steady_scale(def: MarbleDef) -> float:
+	if def != null and def.effects.has(&"wind_steady"):
+		return 0.0
+	return 1.0
+
+
+## W3 per-frame steering forces for one marble in flight (board-local):
+## Remolino pulls toward the board's center line, Teledirigida steers
+## toward its picked target. Marbles without those effects feel nothing.
+func marble_force(_marble: RigidBody3D, local: Vector3) -> Vector3:
+	if _def_has(&"homing") and not homing_target.is_empty():
+		var to_target: Vector3 = homing_target["pos"] - local
+		if to_target.length() > 0.001:
+			return to_target.normalized() * HOMING_PULL
+		return Vector3.ZERO
+	if _def_has(&"center_pull"):
+		return Vector3(-local.x, 0.0, 0.0) * REMOLINO_PULL_SCALE
+	return Vector3.ZERO
+
+
+## Nearest notch still able to take a marble, by distance to the aim line.
+func _nearest_free_hole(aim_line_x: float) -> Dictionary:
+	var best: Dictionary = {}
+	var best_dist := INF
+	for hole in holes:
+		if hole.occupied or hole.covered or hole.phase_hidden:
+			continue
+		var dist := absf(hole.pos.x - aim_line_x)
+		if dist < best_dist:
+			best_dist = dist
+			best = hole
+	return best
+
+
 func _dispatch_board_end() -> void:
 	var ctx := {"board": self, "score_bonus": {}, "score_mult_all": 1.0}
 	Game.dispatch_event(&"board_ended", ctx)
@@ -1062,8 +1147,9 @@ func _dispatch_board_end() -> void:
 
 
 ## Relay throw endings to the prize contract with the board in ctx (one
-## connect covers all the emit sites).
+## connect covers all the emit sites). Espejo reads the score afterwards.
 func _on_throw_ended_event(outcome: StringName) -> void:
+	last_throw_score = throw_score
 	Game.dispatch_event(&"throw_ended", {"board": self, "outcome": outcome})
 
 

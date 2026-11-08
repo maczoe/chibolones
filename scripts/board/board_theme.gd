@@ -195,6 +195,9 @@ func _physics_process(delta: float) -> void:
 	# Ventoso: a gentle sideways force while the marble rolls.
 	if wind_strength > 0.0:
 		_apply_wind()
+	# W3 steering: Remolino's center pull, Teledirigida's homing. Runs on
+	# every board, wind or not.
+	_apply_marble_steering()
 	# Iman: embedded marbles pull the rolling one when it comes close.
 	if magnet_strength > 0.0:
 		_apply_magnet(delta)
@@ -205,7 +208,23 @@ func _apply_wind() -> void:
 			* wind_strength * WIND_FORCE_SCALE * wind_direction
 	for marble in board.active_marbles:
 		if is_instance_valid(marble) and not marble.freeze:
-			marble.apply_central_force(force * marble.mass)
+			# W3: a wind_steady marble (Agata) feels none of it.
+			var steady := 1.0
+			if marble.has_meta("def"):
+				steady = board.wind_steady_scale(marble.get_meta("def"))
+			if steady > 0.0:
+				marble.apply_central_force(force * steady * marble.mass)
+
+
+## W3 marble steering forces, applied in board-local space.
+func _apply_marble_steering() -> void:
+	for marble in board.active_marbles:
+		if not is_instance_valid(marble) or marble.freeze:
+			continue
+		var steer: Vector3 = board.marble_force(marble,
+				board.board.to_local(marble.global_position))
+		if steer.length_squared() > 0.0:
+			marble.apply_central_force(board.global_transform.basis * steer)
 
 
 func _apply_magnet(delta: float) -> void:

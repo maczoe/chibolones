@@ -225,9 +225,18 @@ func _build() -> void:
 	panel.add_theme_stylebox_override("panel", _panel_style())
 	center.add_child(panel)
 
+	# The picker content grows with every content wave (10 marbles in W3,
+	# more later): a fixed-size scroll keeps the panel inside the 1920x1080
+	# canvas no matter how long the lists get.
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(1000, 880)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(scroll)
+
 	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 10)
-	panel.add_child(column)
+	scroll.add_child(column)
 
 	var title := _candy_label("MODO DEBUG", 64, Color("ffe066"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -117,9 +117,14 @@ func set_prizes(list: Array[PrizeDef]) -> void:
 		prize_box.add_child(badge)
 
 
+## Last message flashed, readable by tests and the HUD cue assertions.
+var last_flash := ""
+
+
 func flash(text: String) -> void:
 	if msg_tween and msg_tween.is_valid():
 		msg_tween.kill()
+	last_flash = text
 	label_msg.text = text
 	label_msg.modulate.a = 1.0
 	msg_tween = create_tween()

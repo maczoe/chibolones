@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MarbleDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/marble_def.gd" id="1_marble"]
+
+[resource]
+script = ExtResource("1_marble")
+id = "remolino"
+display_name = "Canica Remolino"
+rarity = "common"
+category = 0
+single_use = false
+flavor = "Su espiral jala hacia el centro: donde caiga, caera al medio."
+radius = 0.09
+mass = 1.0
+bounce = 0.2
+friction = 0.6
+speed_mult = 1.0
+style = &"swirl"
+palette = Array[Color]([Color(0.2, 0.6, 0.75, 1), Color(0.9, 0.85, 0.5, 1)])
+price = 3
+effects = Array[StringName]([&"center_pull"])
+break_chance = 0.0

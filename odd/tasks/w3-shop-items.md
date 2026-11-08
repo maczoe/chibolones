@@ -91,7 +91,9 @@ T3 (S9): Prize effects: Osito, Billete, Muñeco, Pelota, Rayo, Corona,
     Commit: 26608fe feat(prizes): wave-3 prize effects
 T4 (S6,S7): Bag caps + purchase APIs in Game (buy_marble/buy_prize,
     caps 10/2, Carpa +1 marble slot, single-use consumption on throw).
-    Route: inline. Commit: feat(run): bag caps and purchase APIs
+    Route: inline. Commit: 786ec69 feat(run): bag caps and purchase APIs
+    (nota: S7 corregido con D1 revisado, consumo por tirada ya existente;
+    single_use sin logica nueva) Commit: feat(run): bag caps and purchase APIs
 T5 (S8): Marble effects needing new systems: Agata (wind steady),
     Remolino (center curve), Teledirigida (homing), Rebote (refund),
     Nitro (one-shot), Trampa (embed anywhere), Espejo (copy prev score).
