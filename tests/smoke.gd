@@ -43,6 +43,26 @@ func _run() -> void:
 	var attempts := 0
 	while board.shots_left > 0 and attempts < 40:
 		attempts += 1
+		# Exercise camera mode once: enter, pan, exit, and confirm the
+		# camera returns to its base spot and the round still flows.
+		if attempts == 2:
+			_tap("camera_mode")
+			await _frames(3)
+			if board.state != board.ThrowState.CAMERA:
+				return _fail("expected CAMERA after Z press")
+			Input.action_press("move_right")
+			Input.action_press("move_up")
+			await _frames(10)
+			Input.action_release("move_right")
+			Input.action_release("move_up")
+			if board.cam_offset == Vector2.ZERO:
+				return _fail("camera mode pan did not move the camera")
+			_tap("camera_mode")
+			await _frames(3)
+			if board.state != board.ThrowState.AIM:
+				return _fail("expected AIM after leaving camera mode")
+			if board.cam_offset != Vector2.ZERO or board.cam.position != board.cam_base_pos:
+				return _fail("camera did not return to its base spot")
 		# Move the aim sideways a little on every shot so covers differ.
 		Input.action_press("move_right")
 		await _frames(10)

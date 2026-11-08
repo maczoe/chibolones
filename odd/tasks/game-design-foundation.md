@@ -33,3 +33,4 @@ Este es el juego base y la complejidad esta en inventarse canicas, premios y tab
 L3 (user decisions): D1 Mixto comunes+magicas; D2 el jugador elige; D3 la biblioteca desbloquea contenido; D4 sin interes.
 L4 (user decisions): D5 orden aleatorio de tableros con tableros de jefe cada 4; D6 si existe modo infinito despues del tablero 20; D7 bloques de 4 + tablero jefe. GDD bumped to v0.3. Next: M0.5 style & game-feel slice, user answers questions to drive it.
 L5: M0.5 answers - camera diagonal (kept), rhythm medium (POC base), juice medium. Art direction: user asked to compare low poly vs Amazing Digital Circus-like style via gentle design mockups -> design/board-art-style/ (01-lowpoly-toy.html, 02-circus-surreal.html).
+L6 (user): cenital-leaning default camera + Z/LB camera mode (arrows pan the view always aiming at board center, clamped); notch labels below with more margin; deck art flipped upright. Camera tuning numbers in ShootingRules.

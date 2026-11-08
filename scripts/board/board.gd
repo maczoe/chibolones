@@ -9,7 +9,7 @@ const MarbleFactory := preload("res://scripts/board/marble_factory.gd")
 const ScoreEngineScript := preload("res://scripts/scoring/score_engine.gd")
 const HudScript := preload("res://scripts/board/hud.gd")
 
-enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER }
+enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 
 var board_def: BoardDef
 var rules: ShootingRules
@@ -34,6 +34,10 @@ var hud: CanvasLayer
 var launch_marker: MeshInstance3D
 var shot_guide: Node3D
 var skirt: MeshInstance3D
+var cam: Camera3D
+var cam_base_pos: Vector3
+var cam_look_target: Vector3
+var cam_offset := Vector2.ZERO  # camera-mode pan (x, z) from the default spot
 var holes: Array[Dictionary] = []          # {pos, score, occupied}
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}                     # marble -> seconds under slow speed
@@ -59,6 +63,21 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart"):
 		Game.restart_board()
+		return
+	if event.is_action_pressed("camera_mode"):
+		# Camera mode: free the view to read the whole board; only from AIM
+		# so a throw flow is never interrupted mid-decision.
+		if state == ThrowState.AIM:
+			state = ThrowState.CAMERA
+			launch_marker.visible = false
+			hud.flash("Modo camara: flechas recorren el tablero, Z para volver")
+		elif state == ThrowState.CAMERA:
+			state = ThrowState.AIM
+			cam_offset = Vector2.ZERO
+			cam.position = cam_base_pos
+			cam.look_at(cam_look_target, Vector3.UP)
+			launch_marker.visible = true
+			hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 		return
 	if event.is_action_pressed("shoot"):
 		match state:
@@ -121,6 +140,26 @@ func _physics_process(delta: float) -> void:
 		ThrowState.FLIGHT:
 			launch_timer += delta
 			_update_flight(delta)
+		ThrowState.CAMERA:
+			# Free view: pan over the board, always aiming at its center,
+			# clamped so the cabinet and backdrop stay inside the frame.
+			var pan := Vector2.ZERO
+			if Input.is_action_pressed("move_left"):
+				pan.x -= 1.0
+			if Input.is_action_pressed("move_right"):
+				pan.x += 1.0
+			if Input.is_action_pressed("move_up"):
+				pan.y += 1.0
+			if Input.is_action_pressed("move_down"):
+				pan.y -= 1.0
+			var limit_x := board_def.width / 2.0 + rules.cam_pan_margin_x
+			var limit_z_front := -rules.cam_pan_front
+			var limit_z_back := board_def.length / 2.0 + rules.cam_pan_back
+			cam_offset += pan * rules.cam_pan_speed * delta
+			cam_offset.x = clampf(cam_offset.x, -limit_x, limit_x)
+			cam_offset.y = clampf(cam_offset.y, limit_z_front, limit_z_back)
+			cam.position = cam_base_pos + Vector3(cam_offset.x, 0.0, cam_offset.y)
+			cam.look_at(cam_look_target, Vector3.UP)
 		_:
 			pass
 
@@ -316,11 +355,14 @@ func _build_environment() -> void:
 	_build_backdrop()
 	_build_floor()
 
-	var cam := Camera3D.new()
+	cam = Camera3D.new()
 	add_child(cam)
 	var length := board_def.length
-	cam.look_at_from_position(Vector3(0, length * 0.61, -length * 0.91),
-			Vector3(0, -0.2, length * 0.2), Vector3.UP)
+	# Cenital-leaning default: high and steep enough that even the far row's
+	# numbers read at a glance, while keeping some diagonal drama.
+	cam_look_target = Vector3(0, -0.2, rules.cam_look_z)
+	cam_base_pos = Vector3(0, rules.cam_height, -length / 2.0 + rules.cam_back)
+	cam.look_at_from_position(cam_base_pos, cam_look_target, Vector3.UP)
 
 
 func _build_backdrop() -> void:
