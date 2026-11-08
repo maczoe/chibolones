@@ -64,9 +64,16 @@ var endless_mode := false
 var run_won := false
 ## Extra throws bought this run (the M3 shop pack; placeholder in M1).
 var extra_throws := 0
+## Debug match (S1, S8): one picked board played with a custom loadout, no
+## economy, the block factor left at x1. True only between start_debug_run()
+## and the end of that board, which returns to the menu.
+var debug_mode := false
+## BoardDef index the debug match renders (0..ContentDB.board_count() - 1).
+var debug_board_index := 0
 
 
 func start_run() -> void:
+	debug_mode = false
 	board_index = 0
 	current_board_in_run = 1
 	block = 1
@@ -90,6 +97,46 @@ func start_run() -> void:
 	run_started.emit()
 	money_changed.emit(money)
 	change_to_current_scene()
+
+
+## Start a single-board debug match (S1, S3, S8): `config` carries the
+## picked BoardDef index, the active prizes and the starting marbles, i.e.
+## what the debug setup screen builds. The board renders its own def with the
+## block factor at x1, the match has no money, and its end returns to the
+## menu. Returns false when the loadout has no marble: a match needs at least
+## one throw, and a rejected launch never touches the run state.
+func start_debug_run(config: Dictionary) -> bool:
+	var marbles: Array[MarbleDef] = []
+	for def in config.get("marbles", []):
+		if def is MarbleDef:
+			marbles.append(def)
+	if marbles.is_empty() or ContentDB.board_count() <= 0:
+		return false
+	debug_mode = true
+	debug_board_index = clampi(int(config.get("board_index", 0)), 0,
+			ContentDB.board_count() - 1)
+	current_board_in_run = 1
+	block = 1
+	boards_cleared = 0
+	# No money economy in a debug match (S8): the board HUD reads $0 and the
+	# shop never opens.
+	money = 0
+	inventory.clear()
+	inventory.assign(marbles)
+	prizes.clear()
+	for def in config.get("prizes", []):
+		if def is PrizeDef and not prizes.has(def):
+			prizes.append(def)
+	extra_throws = 0
+	endless_mode = false
+	run_won = false
+	run_active = true
+	begin_board()
+	_enter(Phase.BOARD)
+	run_started.emit()
+	money_changed.emit(money)
+	change_to_current_scene()
+	return true
 
 
 func restart_board() -> void:
@@ -160,6 +207,10 @@ func is_boss(n: int) -> bool:
 ## filename order (board_01 -> def 0). ContentDB clamps, so endless boards
 ## (21+) keep rendering the last def and their last identity.
 func board_def_index(n: int) -> int:
+	if debug_mode:
+		# A debug match renders the picked board (S2), whatever run board the
+		# single-board match is on.
+		return clampi(debug_board_index, 0, maxi(ContentDB.board_count() - 1, 0))
 	return n - 1
 
 
@@ -187,6 +238,10 @@ func modifier_ids(n: int) -> Array[StringName]:
 ## Score a board must reach: bosses use their own base target, then the
 ## block difficulty factor scales it for every board.
 func objective_for_board(n: int, target_base: int) -> int:
+	if debug_mode:
+		# Debug matches keep the block factor at x1 (S8): the board asks
+		# exactly its own BoardDef base target, with no boss override.
+		return maxi(target_base, 0)
 	var base := BOSS_BASE_OBJECTIVE if is_boss(n) else target_base
 	var factor: float = BLOCK_OBJECTIVE_FACTORS[block_of(n) - 1]
 	return roundi(float(base) * factor)
@@ -198,6 +253,12 @@ func board_won(marbles_left: int, bonus: int) -> void:
 	if not run_active or phase != Phase.BOARD:
 		return
 	boards_cleared += 1
+	if debug_mode:
+		# S8: the debug board is the whole match. No reward, no shop, no
+		# result screen: straight back to the title screen.
+		board_won_sig.emit(marbles_left, bonus)
+		enter_menu()
+		return
 	var reward: int = Economy.reward_for_block_win(block, marbles_left, bonus)
 	if endless_mode:
 		reward += ENDLESS_BONUS
@@ -219,8 +280,14 @@ func board_won(marbles_left: int, bonus: int) -> void:
 func board_lost() -> void:
 	if not run_active:
 		return
-	run_active = false
 	run_won = false
+	if debug_mode:
+		# S8: the lost debug board ends the match at the menu, never at the
+		# run summary.
+		board_lost_sig.emit()
+		enter_menu()
+		return
+	run_active = false
 	board_lost_sig.emit()
 	_enter(Phase.RESULT)
 	run_lost_sig.emit()
@@ -251,6 +318,7 @@ func start_endless() -> void:
 func enter_menu() -> void:
 	run_active = false
 	run_won = false
+	debug_mode = false
 	_enter(Phase.MENU)
 	change_to_current_scene()
 

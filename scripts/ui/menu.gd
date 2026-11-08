@@ -7,6 +7,8 @@ extends Control
 const TITLE := "CHIBOLONES"
 const SUBTITLE := "una noche de feria"
 const HINTS := "Flechas para mover e inclinar  |  ESPACIO para tirar  |  Z camara"
+## Debug match setup (S1): one board played with a custom loadout.
+const DEBUG_SCENE := "res://scenes/debug/debug_setup.tscn"
 
 
 func _ready() -> void:
@@ -44,6 +46,11 @@ func _build() -> void:
 	play.pressed.connect(_on_play_pressed)
 	column.add_child(play)
 
+	# Debug mode (S1): the single-board setup screen, right under the run.
+	var debug := _menu_button("MODO DEBUG")
+	debug.pressed.connect(_on_debug_pressed)
+	column.add_child(debug)
+
 	var library := _menu_button("BIBLIOTECA (M4)")
 	library.disabled = true
 	column.add_child(library)
@@ -52,10 +59,19 @@ func _build() -> void:
 	hints.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(hints)
 
+	# Keyboard/gamepad navigation starts on the run button: arrows move
+	# between the menu entries and SPACE/ENTER activates the focused one.
+	play.grab_focus()
+
 
 func _on_play_pressed() -> void:
 	# Game starts the run and moves to the board scene.
 	Game.start_run()
+
+
+func _on_debug_pressed() -> void:
+	# The setup screen owns the pickers; Game only launches the match.
+	get_tree().change_scene_to_file(DEBUG_SCENE)
 
 
 # --- Candy style -----------------------------------------------------------
