@@ -7,9 +7,9 @@ Design language: the cozy-but-cutthroat atmosphere of a village fair,
 where every marble in your bag has a story and every prize on your shelf
 changes how the next throw plays out.
 
-Status: **v0.3 — core decisions resolved** (D1-D7). Assumptions confirmed
-by the user are marked `A# ✓`. Next: M0.5 style & game-feel slice, then
-content design.
+Status: **v0.4 — M0.5 delivered** (style circo surreal validated in
+engine, camera/juice/QoL, sample content); content refinement plan in
+`content-plan.md`, style rules in `style-guide.md`.
 
 ---
 
