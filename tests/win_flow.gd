@@ -37,6 +37,7 @@ func _run() -> void:
 	await process_frame
 	await _test_win_hosts_overlay_on_board()
 	await _test_restart_blocked_during_win()
+	await _test_restart_still_works_in_play()
 	await _test_win_screen_is_translucent()
 	print("WIN_FLOW FAIL" if failed else "WIN_FLOW OK")
 	quit(1 if failed else 0)
@@ -141,6 +142,27 @@ func _test_restart_blocked_during_win() -> void:
 	_check(current_scene == board and board.is_inside_tree(),
 			"restart must not reload the board during the win overlay")
 	await _discard(board)
+
+
+# --- (b2) The restart key keeps working outside the win overlay --------------
+
+func _test_restart_still_works_in_play() -> void:
+	# Shared-path pin: the win gate must only silence R while the win overlay
+	# plays. Normal play reloads the board, exactly as before the change.
+	var board := _start_run()
+	await physics_frame
+	_check(game.phase == game.Phase.BOARD,
+			"the run should start in the board phase, got %s" % game.phase)
+	var restart := InputEventAction.new()
+	restart.action = "restart"
+	restart.pressed = true
+	board._unhandled_input(restart)
+	await process_frame
+	await process_frame
+	_check(current_scene != board or not is_instance_valid(board),
+			"restart during normal play should still reload the board")
+	current_scene = null
+	game.run_active = false
 
 
 # --- (c) The win screen shows the game behind it ------------------------------
