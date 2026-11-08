@@ -32,9 +32,18 @@ var back_button: Button
 var _marble_labels: Dictionary = {}   # marble id -> counter label
 var _prize_buttons: Dictionary = {}   # prize id -> toggle button
 
+## Last launched setup (board index, prize ids, marble ids): coming back
+## from a finished debug match restores it, so tweaking one pick and
+## replaying is two presses instead of a full rebuild (user request,
+## 2026-11-08). Static: it must survive the scene being freed.
+static var last_config := {}
+
 
 func _ready() -> void:
-	_seed_defaults()
+	if last_config.is_empty():
+		_seed_defaults()
+	else:
+		_restore_last_config()
 	_build()
 	_refresh()
 	# Keyboard/gamepad navigation starts on the launch button, like the menu
@@ -62,18 +71,20 @@ func board_def() -> BoardDef:
 	return ContentDB.board_def(board_cursor)
 
 
-## The board's gimmick, read from its BoardDef modifiers through ContentDB:
-## the display names of its bonificadores, or "Sin gimmick" when it has none.
-func gimmick_text() -> String:
+## The board's rules, exactly what the board announces at start: one
+## "Display name: description" line per bonificador, or "Sin reglas
+## especiales" when it has none (user request: the debug picker shows what
+## the board does, not just the gimmick names).
+func board_rules_text() -> String:
 	var def := board_def()
 	if def == null:
-		return "Sin gimmick"
-	var names: Array[String] = []
+		return "Sin reglas especiales"
+	var lines: Array[String] = []
 	for id in def.modifiers:
 		var modifier: BoardModifierDef = ContentDB.modifier_def(id)
 		if modifier != null:
-			names.append(modifier.display_name)
-	return " + ".join(names) if not names.is_empty() else "Sin gimmick"
+			lines.append("%s: %s" % [modifier.display_name, modifier.description])
+	return "\n".join(lines) if not lines.is_empty() else "Sin reglas especiales"
 
 
 func select_board(index: int) -> void:
@@ -152,9 +163,38 @@ func build_config() -> Dictionary:
 func start_match() -> void:
 	if not can_start():
 		return
+	# Remember the setup for the next visit (see last_config).
+	last_config = {
+		"board_index": board_cursor,
+		"prize_ids": selected_prizes.map(func(def): return def.id),
+		"marble_ids": picked_marbles.map(func(def): return def.id),
+	}
 	# Game launches the match and moves to the board scene; the board already
 	# runs the marble inventory (S4).
 	Game.start_debug_run(build_config())
+
+
+## Bring back the last launched setup: resolve the stored ids through
+## ContentDB so a content change can never crash the restore, and keep the
+## picks-first/top-up rule of build_config() intact.
+func _restore_last_config() -> void:
+	board_cursor = clampi(int(last_config.get("board_index", 0)), 0,
+			ContentDB.board_count() - 1)
+	selected_prizes.clear()
+	for id in last_config.get("prize_ids", []):
+		var prize: PrizeDef = ContentDB.prize_def(id)
+		if prize != null and not selected_prizes.has(prize):
+			selected_prizes.append(prize)
+	picked_marbles.clear()
+	for id in last_config.get("marble_ids", []):
+		var marble: MarbleDef = ContentDB.marble_def(id)
+		if marble != null and picked_marbles.size() < MARBLE_SLOTS:
+			picked_marbles.append(marble)
+	while picked_marbles.size() < MARBLE_SLOTS:
+		var common: MarbleDef = ContentDB.marble_def(ContentDB.DEFAULT_MARBLE)
+		if common == null:
+			break
+		picked_marbles.append(common)
 
 
 func _on_back_pressed() -> void:
@@ -215,8 +255,10 @@ func _build() -> void:
 	next.custom_minimum_size = Vector2(80, 56)
 	next.pressed.connect(cycle_board.bind(1))
 	board_row.add_child(next)
-	label_gimmick = _candy_label("", 22, Color("ff6fb5"))
+	label_gimmick = _candy_label("", 20, Color("ff6fb5"))
 	label_gimmick.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_gimmick.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label_gimmick.custom_minimum_size = Vector2(0, 56)
 	column.add_child(label_gimmick)
 
 	# Prize picker: one toggle per PrizeDef, all off at the start.
@@ -283,7 +325,7 @@ func _refresh() -> void:
 	if def != null:
 		label_board_name.text = "%s  (%d/%d)" % [def.theme_name,
 				board_cursor + 1, ContentDB.board_count()]
-	label_gimmick.text = "Gimmick: %s" % gimmick_text()
+	label_gimmick.text = board_rules_text()
 	label_marbles.text = "Canicas: %d / %d" % [picked_marbles.size(), MARBLE_SLOTS]
 	label_prizes.text = "Premios: %d activos" % selected_prizes.size()
 	for marble in ContentDB.marbles():

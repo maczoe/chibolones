@@ -222,16 +222,16 @@ func _test_board_picker_shows_name_and_gimmick() -> void:
 		_check(setup.label_board_name.text.contains(def.theme_name),
 				"the picker should show '%s', shows '%s'"
 				% [def.theme_name, setup.label_board_name.text])
-		var gimmick: String = setup.gimmick_text()
+		var rules: String = setup.board_rules_text()
 		if def.modifiers.is_empty():
-			_check(gimmick == "Sin gimmick",
-					"board %d has no gimmick, the picker says '%s'" % [i, gimmick])
+			_check(rules == "Sin reglas especiales",
+					"board %d has no gimmick, the picker says '%s'" % [i, rules])
 			continue
 		for id in def.modifiers:
 			var modifier: BoardModifierDef = content.modifier_def(id)
-			_check(gimmick.contains(modifier.display_name),
-					"board %d gimmick should name '%s', says '%s'"
-					% [i, modifier.display_name, gimmick])
+			_check(rules.contains(modifier.description),
+					"board %d rules should describe '%s', says '%s'"
+					% [i, modifier.description, rules])
 	# The arrows wrap around the whole list.
 	setup.select_board(0)
 	setup.cycle_board(-1)

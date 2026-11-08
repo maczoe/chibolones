@@ -63,8 +63,20 @@ var board_theme: BoardTheme
 var notch_root: Node3D
 var announce_timer: Timer
 ## Board-start cues waiting for their turn (board number and name, one per
-## bonificador, the controls hint), spaced by ANNOUNCE_DELAY.
+## bonificador), spaced by ANNOUNCE_DELAY.
 var announce_queue: Array[String] = []
+
+## Controls guides (the opening controls line and the per-step hints) stay
+## hidden during normal play: the tutorial (when it exists) can turn them
+## on, and 20 s without any action bring them back on their own (user
+## request, 2026-11-08).
+const PAUSE_SCENE := "res://scenes/pause/pause_menu.tscn"
+
+var tutorial_mode := false
+const GUIDE_IDLE_SECONDS := 20.0
+const CONTROLS_HINT := "Movi con <- -> y apreta ESPACIO para elegir la posicion"
+var idle_time := 0.0
+var idle_guide_shown := false
 ## Run objective for this board: 0 when the board is played outside a run
 ## (headless tests, --script mode), which keeps the plain POC round over.
 var run_objective := 0
@@ -144,16 +156,22 @@ func _ready() -> void:
 	add_child(announce_timer)
 	EventBus.modifier_active.connect(_on_modifier_active)
 	EventBus.throw_timer_tick.connect(hud.set_timer)
-	# Opening cues: which board this is, its rules, then the controls.
+	# Opening cues: which board this is and its rules. The controls guide
+	# stays quiet until the tutorial asks for it or idle brings it back
+	# (_tick_idle).
 	_queue_announcement("Tablero %d: %s" % [_board_number(), board_def.theme_name])
 	board_theme.announce()
-	_queue_announcement("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 	# The board opens in AIM, so the Cronometrado clock starts with it (boards
 	# without the rule ignore this).
 	_reset_step_timer()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Pause first: any state except the round-over overlay (which already
+	# offers its own choices) can open the pause menu (ESC / Start).
+	if event.is_action_pressed("pause"):
+		_toggle_pause()
+		return
 	if event.is_action_pressed("restart"):
 		Game.restart_board()
 		return
@@ -175,7 +193,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			ThrowState.CAMERA:
 				state = ThrowState.AIM
 				launch_marker.visible = true
-				hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+				_show_guide(CONTROLS_HINT)
 			_:
 				pass
 		return
@@ -201,7 +219,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# made from any angle they chose. Restart resets the board.
 			state = ThrowState.AIM
 			launch_marker.visible = true
-			hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+			_show_guide(CONTROLS_HINT)
 		return
 	if event.is_action_pressed("shoot"):
 		match state:
@@ -216,6 +234,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_tick_idle(delta)
 	_animate_bulbs(delta)
 	# Cronometrado: every decision step runs on a clock; on expiry the board
 	# takes the step with whatever the player had chosen so far.
@@ -314,7 +333,7 @@ func _begin_tilt() -> void:
 	# drop to the slow chase right away.
 	celebrate_left = 0.0
 	_reset_step_timer()
-	hud.flash("Inclina con <- -> y apreta ESPACIO para fijar")
+	_show_guide("Inclina con <- -> y apreta ESPACIO para fijar")
 
 
 func _begin_power() -> void:
@@ -323,7 +342,7 @@ func _begin_power() -> void:
 	power_dir = 1.0
 	hud.set_power_visible(true)
 	_reset_step_timer()
-	hud.flash("Apreta ESPACIO para disparar con esta potencia")
+	_show_guide("Apreta ESPACIO para disparar con esta potencia")
 
 
 func _fire() -> void:
@@ -350,6 +369,57 @@ func _auto_advance() -> void:
 func _reset_step_timer() -> void:
 	if board_theme != null:
 		board_theme.reset_decision()
+
+
+## --- Pause (ESC / Start) ---------------------------------------------------
+
+
+## Open the pause overlay: it pauses the tree itself once it is on the tree,
+## and it owns the unpause, so the board never touches the paused state.
+func _toggle_pause() -> void:
+	if get_tree().paused or state == ThrowState.ROUND_OVER:
+		return
+	add_child((load(PAUSE_SCENE) as PackedScene).instantiate())
+
+
+## --- Controls guides (tutorial / idle) -------------------------------------
+
+
+## A per-step guide reaches the HUD only when the tutorial asked for it or
+## the player has already idled long enough to need it (see _tick_idle);
+## normal play keeps the screen clean.
+func _show_guide(text: String) -> void:
+	if tutorial_mode or idle_guide_shown:
+		hud.flash(text)
+
+
+## One idle tick: any held gameplay action resets the clock; otherwise 20 s
+## without actions bring the full controls guide back, once, until the next
+## input. Only shown while aiming, where the guide applies.
+func _tick_idle(delta: float) -> void:
+	if _any_input_active():
+		idle_time = 0.0
+		idle_guide_shown = false
+		return
+	if state != ThrowState.AIM:
+		return
+	idle_time += delta
+	if idle_time >= GUIDE_IDLE_SECONDS and not idle_guide_shown:
+		idle_guide_shown = true
+		hud.flash(CONTROLS_HINT)
+
+
+## Whether the player is doing something right now: any movement vector or
+## a held gameplay action. Edge taps are also caught by the events handled
+## in the same frame.
+func _any_input_active() -> bool:
+	if Input.get_vector("move_left", "move_right", "move_up", "move_down") \
+				!= Vector2.ZERO:
+		return true
+	return Input.is_action_pressed("shoot") \
+			or Input.is_action_pressed("cancel") \
+			or Input.is_action_pressed("camera_mode") \
+			or Input.is_action_pressed("restart")
 
 
 ## Marble the next throw uses: the selected ammo entry, or the base def when

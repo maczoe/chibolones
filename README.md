@@ -46,6 +46,10 @@ godot --path .
    never take a second marble. The score is added the moment the marble
    embeds. After the last marble the round total is shown; R restarts.
 
+   Controls guides stay out of normal play: the per-step hints and the
+   opening controls line only appear for the tutorial (when it exists) or
+   after 20 idle seconds in the aim step.
+
 ### Sample content (M0.5)
 
 While aiming, **Up/Down** swap the marble in the ammo; the HUD shows the
@@ -188,12 +192,14 @@ are `Game` phases routed through `scripts/run/run_flow.gd`.
 ### Debug mode
 
 **MODO DEBUG** in the title screen opens the single-board setup: cycle all
-20 boards (the screen always shows the board name and its gimmick), toggle
+20 boards (the screen always shows the board name and the rules text the
+board announces at start), toggle
 the active prizes, and pick the 5 starting marbles (at least 1; short picks
 are topped up with commons). The match renders the picked board at its own
 base objective — block factor x1, no money — through the normal inventory
-rules, and win or lose it returns straight to the title screen. Built for
-reproducing board bugs with an exact loadout.
+rules, and win or lose it returns straight to the debug setup with the last
+picks kept (tweak one thing and replay). Built for reproducing board bugs
+with an exact loadout.
 
 ## Platforms
 
@@ -214,6 +220,8 @@ reproducing board bugs with an exact loadout.
 | Swap marble in the ammo (while aiming) | Up-Down arrows, W/S | D-pad up/down |
 | Shoot / lock steps (1st-3rd) | Space or Enter | A / Cross |
 | Camera mode (free view) | Z | LB |
+| Pause menu | ESC | Start |
+| Restart board | R | Back/Select |
 | Cancel / step back | X | B |
 | Move camera (in camera mode) | Arrows, WASD | Stick, D-pad |
 | Restart round | R | Start |
@@ -257,6 +265,7 @@ godot --headless --path . --script res://tests/hooks.gd
 godot --headless --path . --script res://tests/themes.gd
 godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/debug_mode.gd
+godot --headless --path . --script res://tests/guide.gd
 godot --headless --path . --script res://tests/physics_probe.gd
 ```
 
@@ -282,6 +291,11 @@ defaults and all-20-board picker labels (name + gimmick), the empty-loadout
 guard at screen and Game level, the launch wiring (ammo, prizes, base
 objective, picked BoardDef), won and lost boards returning to the menu, and
 the normal JUGAR flow unchanged.
+
+`tests/guide.gd` covers the controls-guide gating: no controls in the
+opening announcements, step hints silent during normal play, the idle
+clock bringing the guide back after 20 s (once per episode, reset by any
+action) and the tutorial flag turning the hints on.
 
 `tests/themes.gd` covers the M2.5 board identity: the 20 boards load from
 `data/boards/` in filename order with unique names, a loadable emblem and a
