@@ -518,9 +518,9 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	label.pixel_size = 0.002
 	label.modulate = Color(0.95, 0.9, 0.75)
 	# Below the notch (toward the player, -Z reads as screen-down from the
-	# diagonal camera): the number stays visible even when a marble is
-	# embedded in the notch, and the notch itself reads unobstructed.
-	label.position = pos + Vector3(0, 0.02, -0.19)
+	# diagonal camera), with extra margin so the ring and label never
+	# collide; y lifted a hair to avoid z-fighting with the notch disc.
+	label.position = pos + Vector3(0, 0.03, -0.28)
 	# Lay the number flat, readable from the player's camera: the -90 X
 	# lay-down alone points the text top toward the player (reads upside
 	# down on screen); the 180 Y turn points it away so it reads normally.
@@ -546,7 +546,9 @@ func _add_deck_art() -> void:
 	quad.material_override = mat
 	var band_start := board_def.launch_z() + 0.35
 	var band_end := board_def.first_row_z - 0.35
-	quad.rotation_degrees = Vector3(-90, 0, 0)
+	# Rotate an extra 180 around Z after the lay-down so the art faces the
+	# player upright (same correction the number labels use).
+	quad.rotation_degrees = Vector3(-90, 0, 180)
 	quad.position = Vector3(0, 0.013, (band_start + band_end) / 2.0)
 	board.add_child(quad)
 
