@@ -70,6 +70,9 @@ var extra_throws := 0
 var debug_mode := false
 ## BoardDef index the debug match renders (0..ContentDB.board_count() - 1).
 var debug_board_index := 0
+## Debug setup screen: a finished debug match comes back here (user request,
+## 2026-11-08), not to the title.
+const DEBUG_SETUP_SCENE := "res://scenes/debug/debug_setup.tscn"
 
 
 func start_run() -> void:
@@ -254,10 +257,11 @@ func board_won(marbles_left: int, bonus: int) -> void:
 		return
 	boards_cleared += 1
 	if debug_mode:
-		# S8: the debug board is the whole match. No reward, no shop, no
-		# result screen: straight back to the title screen.
+		# S8: the debug board is the whole match. No reward, no shop, no result
+		# screen: back to the debug setup so the loadout can be tweaked and
+		# replayed (user request, 2026-11-08).
 		board_won_sig.emit(marbles_left, bonus)
-		enter_menu()
+		_return_to_debug_setup()
 		return
 	var reward: int = Economy.reward_for_block_win(block, marbles_left, bonus)
 	if endless_mode:
@@ -282,10 +286,10 @@ func board_lost() -> void:
 		return
 	run_won = false
 	if debug_mode:
-		# S8: the lost debug board ends the match at the menu, never at the
-		# run summary.
+		# S8: the lost debug board ends the match back at the debug setup,
+		# never at the run summary (user request, 2026-11-08).
 		board_lost_sig.emit()
-		enter_menu()
+		_return_to_debug_setup()
 		return
 	run_active = false
 	board_lost_sig.emit()
@@ -321,6 +325,24 @@ func enter_menu() -> void:
 	debug_mode = false
 	_enter(Phase.MENU)
 	change_to_current_scene()
+
+
+## A debug match ended: clean the run state like the menu would, but load
+## the debug setup screen again (S8, user request) instead of the title.
+func _return_to_debug_setup() -> void:
+	run_active = false
+	run_won = false
+	debug_mode = false
+	_enter(Phase.MENU)
+	_open_debug_setup()
+
+
+## Load the debug setup screen. Headless runs have no current scene; the
+## same guard as change_to_current_scene keeps tests quiet.
+func _open_debug_setup() -> void:
+	if get_tree().current_scene == null:
+		return
+	get_tree().change_scene_to_file(DEBUG_SETUP_SCENE)
 
 
 ## Show the scene that renders the current phase. Headless tests run with no
