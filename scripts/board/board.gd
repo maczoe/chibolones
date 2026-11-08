@@ -40,6 +40,9 @@ var launched_def: MarbleDef  # def of the marble in flight, for score_mult
 var homing_target: Dictionary = {}
 var throw_score := 0
 var last_throw_score := 0
+## Throws resolved to a final outcome this board (refunds don't count):
+## the boleto reads it to know the first throw.
+var resolved_throws := 0
 
 var state: ThrowState = ThrowState.AIM
 ## Throws the board has: the run inventory size at board start (S9), or the
@@ -1150,7 +1153,37 @@ func _dispatch_board_end() -> void:
 ## connect covers all the emit sites). Espejo reads the score afterwards.
 func _on_throw_ended_event(outcome: StringName) -> void:
 	last_throw_score = throw_score
+	if outcome != &"refunded":
+		resolved_throws += 1
+		if _boleto_replay(outcome):
+			return
 	Game.dispatch_event(&"throw_ended", {"board": self, "outcome": outcome})
+
+
+## Boleto Retro: the first throw of the board that scored 0 comes back
+## (the marble was already consumed, so it returns to the ammo). The
+## replay itself is throw 2, so it can never loop.
+func _boleto_replay(outcome: StringName) -> bool:
+	if resolved_throws != 1 or throw_score != 0 or not _inventory_mode():
+		return false
+	if not _prize_has(&"first_throw_replay"):
+		return false
+	if launched_def == null:
+		return false
+	Game.restore_ammo(launched_def)
+	shots_left = Game.ammo.size()
+	hud.set_shots(shots_left, shots_total)
+	pending_result = "Boleto Retro: el primer tiro se repite"
+	EventBus.refund.emit()
+	return true
+
+
+## Any owned run prize carries this effect id.
+func _prize_has(effect: StringName) -> bool:
+	for prize in Game.prizes:
+		if prize != null and prize.effect == effect:
+			return true
+	return false
 
 
 # --- Bonificadores (M2 rules) ------------------------------------------------

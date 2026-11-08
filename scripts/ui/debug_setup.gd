@@ -275,9 +275,10 @@ func _build() -> void:
 	label_prizes = _candy_label("", 20, Color("cdb8ff"))
 	label_prizes.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(label_prizes)
-	var prize_row := HBoxContainer.new()
-	prize_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	prize_row.add_theme_constant_override("separation", 12)
+	var prize_row := HFlowContainer.new()
+	prize_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	prize_row.add_theme_constant_override("h_separation", 12)
+	prize_row.add_theme_constant_override("v_separation", 8)
 	column.add_child(prize_row)
 	for prize in ContentDB.prizes():
 		var button := _small_button("")

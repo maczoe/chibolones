@@ -97,7 +97,9 @@ T4 (S6,S7): Bag caps + purchase APIs in Game (buy_marble/buy_prize,
 T5 (S8): Marble effects needing new systems: Agata (wind steady),
     Remolino (center curve), Teledirigida (homing), Rebote (refund),
     Nitro (one-shot), Trampa (embed anywhere), Espejo (copy prev score).
-    Route: inline. Commit: feat(marbles): wave-3 marble effects
+    Route: inline. Commit: ea87266 feat(marbles): wave-3 marble effects
+    (incluye las 7 defs de canicas con datos; Nitro no requiere codigo:
+    speed_mult 1.6 es dato; debug_setup ahora scrollea) Commit: feat(marbles): wave-3 marble effects
 T6 (S1,S3,S5): Content data: remaining 7 marbles + 9 prizes .tres with
     price/rarity/flavor; random weighted stock; shop v1 UI functional
     (buy, reroll, extra pack, money, caps). Route: inline.
@@ -135,3 +137,14 @@ L5: T3 implementado: efectos Globo (extra_throw), Pelota (bounce_scale
 L6: Correccion de S7 al reconciliar con D1 revisado del GDD (decision
     de usuario 2026-11-08): el consumo por tirada ya es el comportamiento
     del ammo para TODAS las canicas; single_use sin logica nueva.
+L7: Decisiones de T5 (usuario): Teledirigida = elegir casilla con la
+    mira (objetivo = casilla libre mas cercana a la mira, HUD anuncia);
+    Espejo = solo copia scores > 0; Trampa = cualquier zona de captura a
+    cualquier velocidad (entre casillas sigue rodando).
+L8: T5 implementado (ea87266): wind_steady_scale por canica en el theme,
+    marble_force (center_pull + homing), captura de homing a cualquier
+    velocidad, side_refund en la salida lateral, guardia embed_anywhere
+    en _embed, copy_prev con last_throw_score. Regresion encontrada y
+    corregida: con 10 canicas, debug_setup excedia 1080px -> Scroll
+    Container de tamano fijo. Aprendizaje: modifier_override debe
+    asignarse ANTES de add_child (el _ready construye el theme con el).

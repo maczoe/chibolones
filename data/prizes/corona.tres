@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "corona"
+display_name = "Corona del Circo"
+rarity = "rare"
+price = 7
+flavor = "La corona del dueño de la feria: un poco mas de todo, para quien la merece."
+effect = &"score_mult_all"
+params = {"mult": 1.1}

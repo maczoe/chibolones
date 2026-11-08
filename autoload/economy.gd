@@ -11,6 +11,8 @@ const REROLL_PRICE := 2
 ## Stock sizes the shop offers after each board.
 const STOCK_MARBLES := 2
 const STOCK_PRIZES := 2
+## Draw weights per rarity (S5): commons dominate, rares are a treat.
+const RARITY_WEIGHTS := {"common": 60, "uncommon": 30, "rare": 10}
 
 
 ## Reward for clearing a board: base(block) + per_marble(block) * marbles_left
@@ -59,30 +61,46 @@ func base_price_for(def_id: String) -> int:
 ## extra-throw pack and the reroll the real shop will sell in M3. Prizes
 ## wrap around when the content pool is smaller than the stock, so the
 ## placeholder still fills its cards.
-func shop_stock(block: int) -> Dictionary:
-	var marbles: Array[Dictionary] = []
-	var marbles_pool := ContentDB.marbles()
-	for i in STOCK_MARBLES:
-		if marbles_pool.is_empty():
-			break
-		var marble: MarbleDef = marbles_pool[i % marbles_pool.size()]
-		marbles.append({
-			"def_id": marble.id,
-			"price": marble_price(base_price_for(marble.id), block),
-		})
-	var prizes: Array[Dictionary] = []
-	var prizes_pool := ContentDB.prizes()
-	for i in STOCK_PRIZES:
-		if prizes_pool.is_empty():
-			break
-		var prize: PrizeDef = prizes_pool[i % prizes_pool.size()]
-		prizes.append({
-			"def_id": prize.id,
-			"price": marble_price(base_price_for(prize.id), block),
-		})
+## The W3 shop stock: a weighted rarity draw over the content pool (S5),
+## 2 marbles + 2 prizes, no repeats, plus the pack and the reroll. A seed
+## >= 0 makes the draw deterministic (tests); -1 randomizes.
+func shop_stock(block: int, seed: int = -1) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	if seed >= 0:
+		rng.seed = seed
+	else:
+		rng.randomize()
 	return {
-		"marbles": marbles,
-		"prizes": prizes,
+		"marbles": _draw_stock(ContentDB.marbles(), STOCK_MARBLES, block, rng),
+		"prizes": _draw_stock(ContentDB.prizes(), STOCK_PRIZES, block, rng),
 		"extra_pack_price": extra_marble_pack_price(block),
 		"reroll_price": reroll_price(),
-	}
+}
+
+
+## Count-many picks without replacement, weighted by rarity.
+func _draw_stock(pool: Array, count: int, block: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var remaining := pool.duplicate()
+	for i in count:
+		if remaining.is_empty():
+			break
+		var def: Resource = _weighted_pick(remaining, rng)
+		remaining.erase(def)
+		out.append({
+			"def_id": def.id,
+			"price": marble_price(def.price, block),
+		})
+	return out
+
+
+func _weighted_pick(pool: Array, rng: RandomNumberGenerator) -> Resource:
+	var total := 0
+	for def in pool:
+		total += int(RARITY_WEIGHTS.get(def.rarity, 10))
+	var roll := rng.randi_range(1, total)
+	for def in pool:
+		roll -= int(RARITY_WEIGHTS.get(def.rarity, 10))
+		if roll <= 0:
+			return def
+	return pool.back()

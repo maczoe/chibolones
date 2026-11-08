@@ -13,6 +13,8 @@ var broke: Array = []            # [def_id, reason] pairs from marble_removed
 var shuffle_seeds: Array = []    # value_shuffled payloads
 var timer_ticks: Array = []      # throw_timer_tick payloads
 var wind_directions: Array = []  # wind_changed payloads
+var refunds := 0                 # refund events for the W3 boleto test
+var outcomes: Array = []         # throw_ended outcomes for the W3 boleto test
 
 
 func _initialize() -> void:
@@ -60,6 +62,7 @@ func _run() -> void:
 	await _test_fire_speed_prize()
 	await _test_skip_speed_prize()
 	await _test_global_mult_prize()
+	await _test_boleto_replay()
 	await _test_trompo_migration()
 	print("HOOKS FAIL" if failed else "HOOKS OK")
 	quit(1 if failed else 0)
@@ -79,6 +82,8 @@ func _connect_bus() -> void:
 	bus.value_shuffled.connect(func(board_seed): shuffle_seeds.append(board_seed))
 	bus.throw_timer_tick.connect(func(seconds_left): timer_ticks.append(seconds_left))
 	bus.wind_changed.connect(func(direction): wind_directions.append(direction))
+	bus.refund.connect(func(): refunds += 1)
+	bus.throw_ended.connect(func(outcome): outcomes.append(outcome))
 
 
 # --- (a) ScoreBreakdown math (S1) -------------------------------------------
@@ -714,6 +719,71 @@ func _test_global_mult_prize() -> void:
 	game.start_run()
 
 
+## Boleto Retro: the first throw of each board replays when it scored 0
+## (settled, off_board, timed_out): the marble returns and nothing is spent.
+## The replay itself is throw 2, so it never loops.
+func _test_boleto_replay() -> void:
+	game.start_run()
+	var boleto := PrizeDef.new()
+	boleto.id = "boleto"
+	boleto.display_name = "Boleto Retro"
+	boleto.effect = &"first_throw_replay"
+	game.prizes.clear()
+	game.prizes.append(boleto)
+	var board := _open_board()
+	await physics_frame
+	board._launch(0.0, 20.0)
+	refunds = 0
+	outcomes.clear()
+	if not board.active_marbles.is_empty():
+		var marble: RigidBody3D = board.active_marbles[0]
+		var out_x: float = board.board_def.width / 2.0 + board.rules.edge_margin + 0.5
+		marble.global_position = board.board.to_global(Vector3(out_x, 0.09, 0.0))
+		for i in 8:
+			await physics_frame
+			if not outcomes.is_empty():
+				break
+	_check(outcomes.has(&"off_board"), "the first throw should exit off-board")
+	_check(refunds == 1, "boleto should refund the zero first throw, got %d" % refunds)
+	_check(game.ammo.size() == 5,
+			"the replayed marble should return to the ammo, got %d" % game.ammo.size())
+	_check(board.shots_left == 5, "the replay should restore the shot, got %d" % board.shots_left)
+	# The replay is throw 2: a second zero throw does not replay again.
+	board._launch(0.0, 20.0)
+	refunds = 0
+	outcomes.clear()
+	if not board.active_marbles.is_empty():
+		var marble2: RigidBody3D = board.active_marbles[0]
+		var out_x2: float = board.board_def.width / 2.0 + board.rules.edge_margin + 0.5
+		marble2.global_position = board.board.to_global(Vector3(out_x2, 0.09, 0.0))
+		for i in 8:
+			await physics_frame
+			if not outcomes.is_empty():
+				break
+	_check(outcomes.has(&"off_board"), "the replayed throw should also exit")
+	_check(refunds == 0, "only the first throw replays, got %d refunds" % refunds)
+	_check(game.ammo.size() == 4, "the replayed throw's loss should be final")
+	_clear_marbles(board)
+	board.queue_free()
+	await physics_frame
+	# A scoring first throw never replays.
+	game.start_run()
+	game.prizes.clear()
+	game.prizes.append(boleto)
+	var board2 := _open_board()
+	await physics_frame
+	board2.launched_def = content.marble_def("common")
+	board2.wall_mult = 1.0
+	board2.wall_hits = 0
+	refunds = 0
+	board2._embed(_loose_marble(board2), _free_hole(board2))
+	_check(refunds == 0, "a scoring first throw must not replay")
+	_check(game.ammo.size() == 4, "the scoring throw should consume normally")
+	_clear_marbles(board2)
+	board2.queue_free()
+	await physics_frame
+
+
 func _event_names(seen: Array) -> Array:
 	var names: Array = []
 	for entry in seen:
@@ -748,6 +818,13 @@ func _open_board_with(defs: Array) -> Node3D:
 	board.modifier_override = typed
 	root.add_child(board)
 	return board
+
+
+func _free_hole(board: Node3D) -> Dictionary:
+	for hole in board.holes:
+		if not hole.occupied and not hole.covered and not hole.phase_hidden:
+			return hole
+	return board.holes[0]
 
 
 func _hole_scores(board: Node3D) -> Array:

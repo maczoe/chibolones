@@ -46,6 +46,9 @@ func _run() -> void:
 	_test_purchases()
 	if failed:
 		return quit(1)
+	_test_stock_draw()
+	if failed:
+		return quit(1)
 	_test_progression()
 	if failed:
 		return quit(1)
@@ -214,6 +217,58 @@ func _test_purchases() -> void:
 		game.inventory.append(content.marble_def("common"))
 	_check(not game.buy_extra_pack(), "the pack must respect the marble cap")
 	_check(game.money == 10, "a cap-blocked pack must not charge")
+
+
+# --- (a4) Weighted random shop stock (W3, spec S5) -------------------------
+
+
+## W3: the stock is a weighted rarity draw over the unlocked pool, seeded
+## so tests are deterministic: no repeats, real defs, positive prices, and
+## commons clearly more frequent than rares.
+func _test_stock_draw() -> void:
+	var combos := {}
+	var common_picks := 0
+	var rare_picks := 0
+	for seed in [1, 2, 3, 7, 42]:
+		var stock: Dictionary = economy.shop_stock(1, seed)
+		_check(stock["marbles"].size() == 2, "the draw should offer 2 marbles")
+		_check(stock["prizes"].size() == 2, "the draw should offer 2 prizes")
+		var ids: Array = []
+		for entry in stock["marbles"] + stock["prizes"]:
+			ids.append(entry["def_id"])
+			_check(int(entry["price"]) > 0, "a drawn entry must have a real price")
+			_check(economy.base_price_for(entry["def_id"]) > 0,
+					"a drawn entry must reference a real def: %s" % entry["def_id"])
+		_check(ids.size() == ids.duplicate().size(),
+				"one stock must not repeat a def: %s" % str(ids))
+		combos[str(ids)] = true
+	_check(combos.size() > 1, "different seeds should draw different stock, got %s"
+			% str(combos.keys()))
+	# Distribution: over many draws, commons outnumber rares.
+	for i in 300:
+		var stock: Dictionary = economy.shop_stock(1, -1)
+		for entry in stock["marbles"]:
+			var def = content.find_marble_def(entry["def_id"])
+			match def.rarity:
+				"common": common_picks += 1
+				"rare": rare_picks += 1
+		for entry in stock["prizes"]:
+			var def = content.find_prize_def(entry["def_id"])
+			match def.rarity:
+				"common": common_picks += 1
+				"rare": rare_picks += 1
+	_check(common_picks > rare_picks * 2,
+			"weighted draw should favor commons over rares, got %d vs %d"
+			% [common_picks, rare_picks])
+	# Reroll: charges the flat price; the shop re-rolls from a new seed.
+	game.start_run()
+	game.money = 10
+	_check(game.reroll_shop(), "an affordable reroll should succeed")
+	_check(game.money == 10 - economy.reroll_price(),
+			"the reroll should charge the flat price")
+	game.money = 0
+	_check(not game.reroll_shop(), "an unaffordable reroll must fail")
+	_check(game.money == 0, "a failed reroll must not charge")
 
 
 # --- (b) Progression helpers (5 blocks of 4, boss every 4th) ---------------

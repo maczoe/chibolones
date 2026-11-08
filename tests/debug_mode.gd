@@ -336,11 +336,17 @@ func _test_launch_single_board() -> void:
 	_check(board.hud.label_board_title.text == picked_def.theme_name,
 			"the HUD should name the picked board, shows '%s'"
 			% board.hud.label_board_title.text)
-	_check(board.shots_total == config_marbles.size(),
-			"throws should equal the picked marbles (%d), got %d"
-			% [config_marbles.size(), board.shots_total])
+	# Throws = picked marbles + every picked extra_throw prize (Globo), the
+	# same budget math a run board uses.
+	var expected_throws: int = config_marbles.size()
+	for prize in config["prizes"]:
+		if (prize as PrizeDef).effect == &"extra_throw":
+			expected_throws += int((prize as PrizeDef).params.get("per_board", 1))
+	_check(board.shots_total == expected_throws,
+			"throws should equal picked marbles + extra-throw prizes (%d), got %d"
+			% [expected_throws, board.shots_total])
 	_check(board.hud.label_shots.text == "Canicas restantes: %d / %d"
-			% [config_marbles.size(), config_marbles.size()],
+			% [expected_throws, expected_throws],
 			"the HUD should count the picked marbles, shows '%s'"
 			% board.hud.label_shots.text)
 	_check(board.hud.label_money.text == "$: 0",

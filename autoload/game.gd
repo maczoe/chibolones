@@ -171,6 +171,24 @@ func buy_extra_pack() -> bool:
 	return true
 
 
+## Shop reroll (S5): one fresh stock for the flat price. The shop screen
+## re-requests the stock when this returns true.
+func reroll_shop() -> bool:
+	var price := Economy.reroll_price()
+	if money < price:
+		return false
+	money -= price
+	money_changed.emit(money)
+	return true
+
+
+## A boleto-style replay returns a marble to the board ammo (it was already
+## consumed by spend_ammo); the inventory is untouched.
+func restore_ammo(def: MarbleDef) -> void:
+	if def != null:
+		ammo.append(def)
+
+
 func start_run() -> void:
 	debug_mode = false
 	board_index = 0

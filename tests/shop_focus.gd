@@ -32,6 +32,7 @@ func _run() -> void:
 	await process_frame
 	await _test_continue_focus()
 	await _test_buttons_keyboard_reachable()
+	await _test_buy_flow()
 	print("SHOP_FOCUS FAIL" if failed else "SHOP_FOCUS OK")
 	quit(1 if failed else 0)
 
@@ -65,6 +66,71 @@ func _find_buttons(node: Node) -> Array[Button]:
 		out.append(node)
 	for child in node.get_children():
 		out.append_array(_find_buttons(child))
+	return out
+
+
+## W3: buy buttons charge through Game, mark bought, respect money and
+## caps, and the reroll charges its price.
+func _test_buy_flow() -> void:
+	var game := root.get_node("Game")
+	game.start_run()
+	game.money = 50
+	var shop := _open_shop()
+	await process_frame
+	await process_frame
+	var buys := _find_buy_buttons(shop)
+	_check(buys.size() >= 4,
+			"the shop should offer buy buttons for the stock, got %d" % buys.size())
+	var inventory_before: int = game.inventory.size()
+	var prizes_before: int = game.prizes.size()
+	var money_before: int = game.money
+	buys[0].pressed.emit()
+	_check(game.inventory.size() + game.prizes.size() == inventory_before + prizes_before + 1,
+			"a buy should add exactly one item to the run")
+	_check(game.money < money_before, "a buy should charge money")
+	_check(buys[0].disabled, "a bought card's buy button should disable")
+	# Unaffordable: no money, every buy button disabled.
+	game.money = 0
+	var shop_broke := _open_shop()
+	await process_frame
+	await process_frame
+	for button in _find_buy_buttons(shop_broke):
+		_check(button.disabled, "a buy without money must be disabled")
+	shop_broke.queue_free()
+	# Reroll: an enabled row that charges the flat price (money restored:
+	# the broke-shop leg spent it).
+	game.money = 50
+	var reroll: Button = null
+	for button in _find_buttons(shop):
+		if button.text.begins_with("Reroll"):
+			reroll = button
+	_check(reroll != null, "the shop should have a reroll button")
+	if reroll != null:
+		_check(not reroll.disabled, "an affordable reroll should be enabled")
+		var before: int = game.money
+		reroll.pressed.emit()
+		_check(game.money == before - 2, "the reroll should charge $2")
+	# Over-cap: a full bag disables the marble buys.
+	game.money = 50
+	while game.inventory.size() < game.marble_cap():
+		game.inventory.append(root.get_node("ContentDB").marble_def("common"))
+	var shop_full := _open_shop()
+	await process_frame
+	await process_frame
+	_check(_find_buy_buttons(shop_full).any(
+					func(b: Button): return b.disabled),
+			"a full bag should disable at least one buy")
+	shop_full.queue_free()
+	shop.queue_free()
+	await process_frame
+
+
+## Buttons labeled COMPRAR, the buy action of a stock card.
+func _find_buy_buttons(shop: Control) -> Array[Button]:
+	var out: Array[Button] = []
+	for button in _find_buttons(shop):
+		if button.text == "COMPRAR":
+			out.append(button)
 	return out
 
 

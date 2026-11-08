@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "boleto"
+display_name = "Boleto Retro"
+rarity = "uncommon"
+price = 5
+flavor = "El boleto que nadie uso: si el primer tiro sale mal, la feria te lo repite."
+effect = &"first_throw_replay"
+params = {}

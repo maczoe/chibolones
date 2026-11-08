@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "billete"
+display_name = "Billete de la Suerte"
+rarity = "common"
+price = 3
+flavor = "Un billete doblado que vuelve engordado cada vez que la feria te devuelve el tiro."
+effect = &"refund_money"
+params = {"amount": 2}

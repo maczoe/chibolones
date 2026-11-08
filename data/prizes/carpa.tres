@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "carpa"
+display_name = "Carpa en Miniatura"
+rarity = "common"
+price = 3
+flavor = "Tu propia carpa de bolsillo: hay lugar para una canica mas."
+effect = &"bag_slots"
+params = {"slots": 1}

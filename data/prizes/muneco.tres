@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "muneco"
+display_name = "Muñeco de Nieve"
+rarity = "common"
+price = 3
+flavor = "Se derrite lento: tus canicas tambien, y por eso se quedan."
+effect = &"skip_speed_scale"
+params = {"scale": 0.5}

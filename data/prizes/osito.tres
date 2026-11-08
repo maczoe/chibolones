@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "osito"
+display_name = "Osito de Peluche"
+rarity = "common"
+price = 3
+flavor = "Abrazado fuerte, cada tablero termina 50 puntos mas dulce."
+effect = &"board_end_flat"
+params = {"flat": 50}

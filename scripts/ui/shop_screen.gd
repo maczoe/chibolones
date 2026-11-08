@@ -1,9 +1,21 @@
 extends Control
-## Shop placeholder (M1): the stock a real shop sells, all disabled until M3
-## wires purchasing. Numbers and stock come from Economy.shop_stock(Game.block),
-## names from ContentDB, so the screen already shows the run's real economy.
+## Shop v1 (W3): the stock Economy draws is now buyable. Every card charges
+## through the Game purchase APIs (money + caps validated there), the pack
+## buys a common, and the reroll charges the flat price for a fresh draw.
+## Stock cards are rebuilt on reroll; disabled buttons leave the focus
+## cycle (mouse-free shop, user request 2026-11-08).
 
-const PENDING_TAG := "(en camino, M3)"
+const PENDING_TAG := "(en camino, M3)"  # retired: kept for save-game compat reads
+
+## One stock card's buy state, so money/cap changes can re-evaluate it.
+var _buy_buttons: Array[Dictionary] = []
+var _stock_box: GridContainer
+var _label_money: Label
+var _label_caps: Label
+var _label_msg: Label
+var _reroll_button: Button
+var _pack_button: Button
+var _msg_tween: Tween
 
 
 func _ready() -> void:
@@ -39,28 +51,34 @@ func _build() -> void:
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(info)
 
-	var money := _candy_label("$: %d" % Game.money, 28, Color("ffe066"))
-	money.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(money)
-	Game.money_changed.connect(func(value: int): money.text = "$: %d" % value)
+	_label_money = _candy_label("$: %d" % Game.money, 28, Color("ffe066"))
+	_label_money.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_label_money)
+	Game.money_changed.connect(_on_money_changed)
 
-	var stock: Dictionary = Economy.shop_stock(Game.block)
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 16)
-	column.add_child(grid)
-	for entry in stock["marbles"]:
-		grid.add_child(_stock_card("Canica", _marble_name(entry["def_id"]),
-				int(entry["price"])))
-	for entry in stock["prizes"]:
-		grid.add_child(_stock_card("Premio", _prize_name(entry["def_id"]),
-				int(entry["price"])))
+	_label_caps = _candy_label(_caps_text(), 20, Color("cdb8ff"))
+	_label_caps.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_label_caps)
 
-	column.add_child(_disabled_row("Paquete de canica extra (+1 tiro)",
-			int(stock["extra_pack_price"])))
-	column.add_child(_disabled_row("Reroll de la tienda",
-			int(stock["reroll_price"])))
+	_label_msg = _candy_label("", 20, Color("ffe066"))
+	_label_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_label_msg)
+
+	_stock_box = GridContainer.new()
+	_stock_box.columns = 2
+	_stock_box.add_theme_constant_override("h_separation", 16)
+	_stock_box.add_theme_constant_override("v_separation", 16)
+	column.add_child(_stock_box)
+	_refresh_stock()
+
+	_pack_button = _menu_button("Paquete de canica extra (+1 tiro) - $%d"
+			% Economy.extra_marble_pack_price(Game.block))
+	_pack_button.pressed.connect(_on_pack_pressed)
+	column.add_child(_pack_button)
+
+	_reroll_button = _menu_button("Reroll de la tienda - $%d" % Economy.reroll_price())
+	_reroll_button.pressed.connect(_on_reroll_pressed)
+	column.add_child(_reroll_button)
 
 	var continue_button := _menu_button("CONTINUAR")
 	continue_button.pressed.connect(_on_continue_pressed)
@@ -70,52 +88,134 @@ func _build() -> void:
 	continue_button.grab_focus()
 
 
+## Rebuild the stock cards from a fresh draw (first open or a reroll).
+func _refresh_stock() -> void:
+	for child in _stock_box.get_children():
+		child.queue_free()
+	_buy_buttons.clear()
+	var stock: Dictionary = Economy.shop_stock(Game.block)
+	for entry in stock["marbles"]:
+		_stock_box.add_child(_stock_card("Canica", ContentDB.marble_def(entry["def_id"]),
+				int(entry["price"])))
+	for entry in stock["prizes"]:
+		_stock_box.add_child(_stock_card("Premio", ContentDB.prize_def(entry["def_id"]),
+				int(entry["price"])))
+
+
+func _stock_card(kind: String, def: Resource, price: int) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.add_theme_stylebox_override("panel", _card_style())
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	card.add_child(column)
+	column.add_child(_candy_label(kind, 18, Color("4deeea")))
+	column.add_child(_candy_label(def.display_name, 26, Color("ffe066")))
+	column.add_child(_candy_label("$%d" % price, 24, Color("ff6fb5")))
+	var buy := _menu_button("COMPRAR")
+	buy.custom_minimum_size = Vector2(240, 48)
+	buy.add_theme_font_size_override("font_size", 22)
+	buy.pressed.connect(_on_buy_pressed.bind(kind, def, price, buy))
+	column.add_child(buy)
+	_buy_buttons.append({"button": buy, "kind": kind, "price": price})
+	_update_buy_states()
+	return card
+
+
+## One buy: the Game API validates money and cap; the card marks itself
+## bought and everything else re-evaluates through money_changed.
+func _on_buy_pressed(kind: String, def: Resource, price: int, button: Button) -> void:
+	var ok := false
+	if kind == "Canica":
+		ok = Game.buy_marble(def)
+	else:
+		ok = Game.buy_prize(def)
+	if ok:
+		button.text = "COMPRADO"
+		flash("Comprado: %s" % def.display_name)
+	else:
+		flash(_buy_block_reason(kind, price))
+	_update_buy_states()
+
+
+## Why a buy is blocked right now, for the flash message.
+func _buy_block_reason(kind: String, price: int) -> String:
+	if Game.money < price:
+		return "Te falta plata"
+	if kind == "Canica" and Game.inventory.size() >= Game.marble_cap():
+		return "Bolso lleno"
+	if kind != "Canica" and Game.prizes.size() >= Game.prize_cap():
+		return "Estanteria llena"
+	return "No se puede comprar"
+
+
+## Re-evaluate every buy row against money and caps; also the pack and the
+## reroll. Disabled rows leave the focus cycle. Safe to call mid-build,
+## when the pack/reroll buttons do not exist yet.
+func _update_buy_states() -> void:
+	for entry in _buy_buttons:
+		var button: Button = entry["button"]
+		var kind: String = entry["kind"]
+		var price: int = entry["price"]
+		var bought: bool = button.text == "COMPRADO"
+		var blocked: bool = bought or Game.money < price \
+				or (kind == "Canica" and Game.inventory.size() >= Game.marble_cap()) \
+				or (kind != "Canica" and Game.prizes.size() >= Game.prize_cap())
+		button.disabled = blocked
+		button.focus_mode = Control.FOCUS_NONE if blocked else Control.FOCUS_ALL
+	if _pack_button != null:
+		_pack_button.disabled = Game.money < Economy.extra_marble_pack_price(Game.block) \
+				or Game.inventory.size() >= Game.marble_cap()
+		_pack_button.focus_mode = Control.FOCUS_NONE if _pack_button.disabled else Control.FOCUS_ALL
+	if _reroll_button != null:
+		_reroll_button.disabled = Game.money < Economy.reroll_price()
+		_reroll_button.focus_mode = Control.FOCUS_NONE if _reroll_button.disabled else Control.FOCUS_ALL
+
+
+func _on_money_changed(value: int) -> void:
+	if _label_money != null:
+		_label_money.text = "$: %d" % value
+	_update_buy_states()
+
+
+func _on_pack_pressed() -> void:
+	if Game.buy_extra_pack():
+		flash("+1 canica comun para el resto de la run")
+	else:
+		flash("Te falta plata o el bolso esta lleno")
+	_update_buy_states()
+
+
+func _on_reroll_pressed() -> void:
+	if Game.reroll_shop():
+		_refresh_stock()
+		flash("Stock nuevo de la feria")
+	else:
+		flash("Te falta plata para el reroll")
+	_update_buy_states()
+
+
 func _on_continue_pressed() -> void:
 	# Game advances the run and moves to the next board scene.
 	Game.shop_continue()
 
 
-func _marble_name(def_id: String) -> String:
-	var marble: MarbleDef = ContentDB.marble_def(def_id)
-	return marble.display_name if marble != null else def_id
+func _caps_text() -> String:
+	return "Bolso: %d/%d   Premios: %d/%d" % [Game.inventory.size(), Game.marble_cap(),
+			Game.prizes.size(), Game.prize_cap()]
 
 
-func _prize_name(def_id: String) -> String:
-	var prize: PrizeDef = ContentDB.prize_def(def_id)
-	return prize.display_name if prize != null else def_id
+func flash(text: String) -> void:
+	_label_msg.text = text
+	_label_caps.text = _caps_text()
+	if _msg_tween and _msg_tween.is_valid():
+		_msg_tween.kill()
+	_label_msg.modulate.a = 1.0
+	_msg_tween = create_tween()
+	_msg_tween.tween_interval(2.0)
+	_msg_tween.tween_property(_label_msg, "modulate:a", 0.0, 1.2)
 
 
 # --- Construction ----------------------------------------------------------
-
-
-## Placeholder stock card: name, price and the M3 tag. Not interactive, so it
-## can never pretend to sell anything this wave.
-func _stock_card(kind: String, display_name: String, price: int) -> PanelContainer:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _card_style())
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 4)
-	card.add_child(column)
-	var kind_label := _candy_label(kind, 18, Color("4deeea"))
-	column.add_child(kind_label)
-	column.add_child(_candy_label(display_name, 26, Color("ffe066")))
-	column.add_child(_candy_label("$%d" % price, 24, Color("ff6fb5")))
-	column.add_child(_candy_label(PENDING_TAG, 16, Color("a99bc9")))
-	return card
-
-
-## Pack and reroll rows: real prices, disabled buttons until M3.
-func _disabled_row(text: String, price: int) -> Button:
-	var button := _menu_button("%s - $%d %s" % [text, price, PENDING_TAG])
-	button.disabled = true
-	# Dead rows must not sit in the focus cycle: nothing can be bought here,
-	# so arrows should skip them instead of parking on a button that does
-	# nothing (user request, 2026-11-08, mouse-free shop).
-	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(0, 56)
-	button.add_theme_font_size_override("font_size", 22)
-	return button
 
 
 func _candy_label(text: String, font_size: int, color: Color) -> Label:
