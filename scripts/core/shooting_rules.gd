@@ -15,9 +15,12 @@ extends Resource
 @export var tilt_speed_min: float = 14.0
 @export var tilt_accel_time: float = 0.7
 ## Wider shot angles than the wall-derived guide limits: the per-side caps
-## from the board geometry multiply by this (capped at 80 degrees so the
-## guide can never spin backwards).
-@export var tilt_range_mult: float = 1.6
+## from the board geometry multiply by this, then clamp at tilt_max_deg so
+## the guide can never spin backwards.
+@export var tilt_range_mult: float = 4.6
+## S5 (user request, 2026-11-08): the shot cone is 120 degrees total, so the
+## per-side cap sits at 60 degrees.
+@export var tilt_max_deg: float = 60.0
 
 ## Speed of one tilt frame under acceleration: keys ramp by held time,
 ## the gamepad axis scales the result, releasing or reversing resets the

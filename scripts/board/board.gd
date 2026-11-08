@@ -182,7 +182,9 @@ func _ready() -> void:
 ## visible and alive behind GANADOR and the stats resumen. Game calls this
 ## when it enters the WIN phase; CONTINUAR routes on from there.
 const WIN_SCENE := "res://scenes/run/win.tscn"
+const RESULT_SCENE := "res://scenes/run/result.tscn"
 var win_overlay: Control
+var result_overlay: Control
 
 
 func host_win_overlay() -> void:
@@ -197,6 +199,23 @@ func host_win_overlay() -> void:
 	layer.add_child(win_overlay)
 
 
+## The run summary (win after board 20, or defeat) plays over this live
+## board too, replacing any win overlay and the HUD defeat panel, so one
+## message owns the screen at a time (user request, 2026-11-08).
+func host_result_overlay() -> void:
+	if result_overlay != null or state != ThrowState.ROUND_OVER:
+		return
+	if win_overlay != null and is_instance_valid(win_overlay):
+		win_overlay.get_parent().queue_free()
+		win_overlay = null
+	hud.end_overlay.visible = false
+	var layer := CanvasLayer.new()
+	layer.layer = 2
+	add_child(layer)
+	result_overlay = (load(RESULT_SCENE) as PackedScene).instantiate()
+	layer.add_child(result_overlay)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	# Pause first: any state except the round-over overlay (which already
 	# offers its own choices) can open the pause menu (ESC / Start).
@@ -204,9 +223,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_pause()
 		return
 	if event.is_action_pressed("restart"):
-		# The win overlay plays over the live board with no controls (user
-		# request, 2026-11-08): R must not reload the board out from under it.
-		if Game.phase != Game.Phase.WIN:
+		# The win and result overlays play over the live board with no controls
+		# (user request, 2026-11-08): R must not reload the board out from
+		# under either of them.
+		if Game.phase != Game.Phase.WIN and Game.phase != Game.Phase.RESULT:
 			Game.restart_board()
 		return
 	if event.is_action_pressed("cancel"):
@@ -512,15 +532,14 @@ func _marble_hint(def: MarbleDef) -> String:
 func _update_tilt_limits() -> void:
 	# The guide pivots at the launch spot; clamp each side so its far end
 	# stays inside the walls even at the far edge of the board. tilt_range_mult
-	# widens the playable angles past the wall-derived values (user request,
-	# 2026-11-08); 80 degrees is the hard ceiling so the guide can never
-	# spin backwards.
+	# widens the playable angles past the wall-derived values and tilt_max_deg
+	# is the hard ceiling (S5: 60 degrees per side, 120 total).
 	var dist_to_far := board_def.length / 2.0 - board_def.launch_z()
 	var side_margin := board_def.width / 2.0 - board_def.aim_limit_margin
 	tilt_max_left = minf(rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
-			* rules.tilt_range_mult, 80.0)
+			* rules.tilt_range_mult, rules.tilt_max_deg)
 	tilt_max_right = minf(rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
-			* rules.tilt_range_mult, 80.0)
+			* rules.tilt_range_mult, rules.tilt_max_deg)
 
 
 func _launch(tilt_deg: float, power_value: float) -> void:

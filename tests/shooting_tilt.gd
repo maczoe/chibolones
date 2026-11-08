@@ -169,8 +169,16 @@ func _test_wider_limits() -> void:
 	_check(board.tilt_max_right > wall_deg * 1.2,
 			"the tilt range should be clearly wider than the wall angle "
 			+ "(%s vs %s)" % [board.tilt_max_right, wall_deg])
-	_check(board.tilt_max_right <= 80.0,
-			"the guide must never spin backwards past 80 degrees, got %s"
+	# S5 (user request, 2026-11-08): 120 degrees of total cone, so a fresh
+	# aim at the center reaches the full 60 degrees per side.
+	var expected_deg: float = rules.tilt_max_deg
+	var got := "%s / %s" % [board.tilt_max_left, board.tilt_max_right]
+	_check(_approx(board.tilt_max_left, expected_deg)
+				and _approx(board.tilt_max_right, expected_deg),
+			"the center aim should reach the full %s degrees per side, got %s"
+			% [expected_deg, got])
+	_check(board.tilt_max_right <= rules.tilt_max_deg,
+			"the guide must never exceed the rules cap, got %s"
 			% board.tilt_max_right)
 	_release_all()
 	_close(board)
