@@ -10,6 +10,10 @@ var label_money: Label
 var label_marble: Label
 var label_breakdown: Label
 var label_timer: Label
+## Board identity (M2.5): the board's name and the bonificadores it carries,
+## kept on screen top-center for the whole board.
+var label_board_title: Label
+var label_board_effects: Label
 var prize_box: VBoxContainer
 var label_msg: Label
 var power_bar: PowerBar
@@ -65,6 +69,14 @@ func set_target(value: int) -> void:
 
 func set_money(value: int) -> void:
 	label_money.text = "$: %d" % value
+
+
+## Board identity: the board's own name in candy yellow, and under it the
+## rules it carries ("Sin modificadores" when it has none). Called once per
+## board from its BoardDef, so the player always knows what they are playing.
+func set_board_title(board_name: String, effects: String) -> void:
+	label_board_title.text = board_name
+	label_board_effects.text = effects
 
 
 func set_selected_marble(marble_name: String) -> void:
@@ -153,6 +165,37 @@ func _candy_label(font_size: int) -> Label:
 
 
 func _build() -> void:
+	# Board identity, top-center: the name above, its rules below. Anchored
+	# to the middle so it never fights the stats on the left or the prize
+	# badges on the right.
+	label_board_title = Label.new()
+	label_board_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_board_title.anchor_left = 0.5
+	label_board_title.anchor_right = 0.5
+	label_board_title.offset_left = -400
+	label_board_title.offset_right = 400
+	label_board_title.offset_top = 8
+	label_board_title.offset_bottom = 44
+	label_board_title.add_theme_font_size_override("font_size", 28)
+	label_board_title.add_theme_color_override("font_color", Color("ffe066"))
+	label_board_title.add_theme_color_override("font_outline_color", Color("120b26"))
+	label_board_title.add_theme_constant_override("outline_size", 8)
+	add_child(label_board_title)
+
+	label_board_effects = Label.new()
+	label_board_effects.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label_board_effects.anchor_left = 0.5
+	label_board_effects.anchor_right = 0.5
+	label_board_effects.offset_left = -400
+	label_board_effects.offset_right = 400
+	label_board_effects.offset_top = 42
+	label_board_effects.offset_bottom = 70
+	label_board_effects.add_theme_font_size_override("font_size", 18)
+	label_board_effects.add_theme_color_override("font_color", Color("fff7ff"))
+	label_board_effects.add_theme_color_override("font_outline_color", Color("120b26"))
+	label_board_effects.add_theme_constant_override("outline_size", 5)
+	add_child(label_board_effects)
+
 	label_shots = _stat_label(Vector2(16, 10))
 	add_child(label_shots)
 

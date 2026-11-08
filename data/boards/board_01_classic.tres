@@ -1,45 +1,29 @@
 [gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
-[ext_resource type="Texture2D" path="res://data/art/ufo.svg" id="2_ufo"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_01_classic.svg" id="2_emblem"]
 
 [resource]
 script = ExtResource("1_board")
 theme_name = "Tablero Clasico"
-cols = 5
-rows = 4
-spacing_x = 0.8
-first_row_z = -0.5
-spacing_z = 1.1
-row_scores = Array[int]([10, 20, 30, 50])
-width = 4.2
+objective_target = 60
 length = 8.0
-thickness = 0.12
-tilt_deg = 6.0
-wall_height = 0.22
-wall_thickness = 0.1
-skirt_height = 1.2
-aim_limit_margin = 0.2
-launch_depth = 0.5
-capture_radius = 0.08
-skip_speed = 4.5
-objective_target = 0
-theme_name = "Feria Surreal"
-board_color = Color(0.357, 0.204, 0.651, 1)
-frame_color = Color(0.18, 0.106, 0.345, 1)
-notch_glow_color = Color(0.302, 0.933, 0.918, 1)
-bulb_color = Color(1, 0.878, 0.4, 1)
+board_color = Color(0.478, 0.310, 0.816, 1)
+frame_color = Color(0.545, 0.353, 0.169, 1)
+notch_glow_color = Color(1.000, 0.878, 0.400, 1)
+bulb_color = Color(1.000, 0.820, 0.400, 1)
 bulb_pattern_speed = 8.0
-light_color = Color(1, 0.624, 0.839, 1)
-ambient_energy = 0.45
-backdrop_color_a = Color(0.227, 0.122, 0.431, 1)
-backdrop_color_b = Color(1, 0.435, 0.71, 1)
-backdrop_color_c = Color(0.302, 0.933, 0.918, 1)
-backdrop_speed = 0.6
-backdrop_scale = 12.0
-floor_checker_a = Color(0.949, 0.949, 0.969, 1)
-floor_checker_b = Color(0.078, 0.063, 0.165, 1)
+light_color = Color(1.000, 0.847, 0.659, 1)
+ambient_energy = 0.64
+backdrop_color_a = Color(0.690, 0.416, 0.702, 1)
+backdrop_color_b = Color(1.000, 0.839, 0.647, 1)
+backdrop_color_c = Color(1.000, 0.878, 0.400, 1)
+backdrop_speed = 0.45
+backdrop_scale = 10.0
+backdrop_style = &"waves"
+floor_checker_a = Color(1.000, 0.945, 0.839, 1)
+floor_checker_b = Color(0.478, 0.310, 0.816, 1)
 floor_checker_size = 14.0
-deck_art = ExtResource("2_ufo")
+emblem = ExtResource("2_emblem")
 deck_art_width = 1.6
 deck_art_side_width = 0.5

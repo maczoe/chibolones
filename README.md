@@ -78,13 +78,66 @@ A bonificador is the board's own rule, the fairness twist of the round. The
 | Trapecio | the whole notch grid sways sideways while you aim |
 | Cronometrado | 4 seconds per step: if you don't choose, the board throws for you |
 
-Normal boards carry none or one bonificador; boss boards (4, 8, 12, 16, 20)
-run the themed pair of their block — block 1 opens with **Borracho**, then
+Normal boards carry none or one bonificador: their list lives in the board's
+own `BoardDef` (`modifiers`), so the assignment is content instead of code.
+The bosses (4, 8, 12, 16, 20) carry two — **Borracho** on board 4, then
 Ventoso + Espejo, Fantasma + Iman, Mojado + Cuerda and Trapecio +
-Cronometrado. The board announces them at start, one flash every 1.2 seconds,
-and `Game.board_modifiers(n)` decides the list from the board number (so a run
-is replayable). A board played outside a run has none, which keeps the plain
-round untouched.
+Cronometrado. `Game.modifier_ids(n)` resolves the board's def (board N ->
+def N-1) and `Game.board_modifiers(n)` loads the defs, so a run is
+replayable. The board announces them at start, one flash every 1.2 seconds,
+after the `Tablero N: <nombre>` cue. A board played outside a run has none,
+which keeps the plain round untouched.
+
+### Tableros (M2.5)
+
+The 20 boards of a run are data: `data/boards/board_01..board_20.tres`, one
+`BoardDef` each, and board N renders def N-1 (filename order). Every board
+paints its own theme — surface, frame, notch glow, bulbs, spotlight, ambient,
+checker floor and the three backdrop colors — following its block:
+
+| Block | Boards | Look |
+| --- | --- | --- |
+| 1 La feria llega al pueblo | 1-4 | warm daylight feria: light violet board on a wood frame |
+| 2 Luces de neon | 5-8 | neon city: pinks and cyans over a deep night board |
+| 3 El circo encantado | 9-12 | enchanted: deep purples with a teal glow |
+| 4 La noche de los cincos | 13-16 | dark night: near-black board, white and steel accents |
+| 5 La carpa infinita | 17-20 | surreal inverse: dark teal board with a hot pink frame |
+
+| # | Board | Rules |
+| --- | --- | --- |
+| 1 | Tablero Clasico | none (tutorial) |
+| 2 | Tablero de Cuerda | Cuerda |
+| 3 | Tablero Mojado | Mojado |
+| 4 | El Tablero Borracho (jefe) | Borracho |
+| 5 | Tablero Espejo | Espejo |
+| 6 | Tablero Ventoso | Ventoso |
+| 7 | Tablero Mochila | Mochila |
+| 8 | La Barraca Sellada (jefe) | Ventoso + Espejo |
+| 9 | Tablero Fantasma | Fantasma |
+| 10 | Tablero Iman | Iman |
+| 11 | Tablero Trapecio | Trapecio |
+| 12 | El Truco Final (jefe) | Fantasma + Iman |
+| 13 | Tablero de Vidrio | Mojado |
+| 14 | Tablero Culebra | Cuerda |
+| 15 | Tablero Mil Voces | Mojado + Cuerda |
+| 16 | El Show de Medianoche (jefe) | Mojado + Cuerda |
+| 17 | Tablero de Cuerdas Tricioneras | Ventoso + Cuerda |
+| 18 | Tablero Cronometrado | Cronometrado |
+| 19 | Tablero Espejismo | Fantasma |
+| 20 | El Quinto Cinco (jefe) | Trapecio + Cronometrado |
+
+The moving backdrop comes in three shader variants —
+`backdrop.gdshader` (waves), `backdrop_spiral.gdshader` (slow hypnotic rings)
+and `backdrop_rays.gdshader` (rotating rays). `BoardDef.backdrop_style` picks
+one per board (unknown falls back to waves) and all three take the same three
+colors, speed and scale, so a new look is a `.tres` edit, not a new shader.
+
+Each board also carries an emblem (`data/art/emblem_*.svg`, 512x512,
+transparent background, style-guide palette and outline): the art printed on
+the play surface and on both cabinet sides. On screen the HUD keeps the
+board's identity top-center for the whole board — its name in candy yellow
+and, under it, the active bonificadores (`Sin modificadores` when the board
+has none).
 
 ### Score math on screen
 
@@ -99,11 +152,11 @@ shows no line at all.
 
 **JUGAR** in the title screen starts a run; the library button stays
 disabled until M4. A run is **20 boards in 5 blocks of 4**, a boss board on
-every 4th (4, 8, 12, 16, 20). Until the content waves land, the classic
-board backs all of them and what escalates is the objective: the board
-target scaled by the block factor (x1, x1.15, x1.3, x1.5, x1.75), with boss
-boards aiming at 100 before that factor. The HUD shows the objective under
-the score and the money in the run.
+every 4th (4, 8, 12, 16, 20), and each board renders its own def: its name,
+palette, backdrop variant, emblem and rules (`data/boards/`). What escalates
+is the objective: the board target (60 normal, 100 boss) scaled by the block
+factor (x1, x1.15, x1.3, x1.5, x1.75). The HUD shows the board name and its
+rules on top, the objective under the score and the money in the run.
 
 - **Board won** — reaching the objective wins the board on the spot and the
   run pays `base(block) + per_marble(block) * canicas restantes + bonus`,
@@ -187,6 +240,7 @@ refund returns throws without consuming them):
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/run_loop.gd
 godot --headless --path . --script res://tests/hooks.gd
+godot --headless --path . --script res://tests/themes.gd
 godot --headless --path . --script res://tests/physics_probe.gd
 ```
 
@@ -201,6 +255,14 @@ pipeline, the 10 bonificadores loading with their designed values, Borracho
 shuffling without losing a value, Cronometrado auto-advancing a step, the
 glass break roll taking a marble out of the bag, Espejo doubling the center
 column, and the M1 wall math still holding.
+
+`tests/themes.gd` covers the M2.5 board identity: the 20 boards load from
+`data/boards/` in filename order with unique names, a loadable emblem and a
+valid backdrop style (waves, spiral and rays all in use), the modifier
+mapping of every board matches the content plan and resolves through
+`ContentDB`, the board scene renders the run board's own def with its name
+and rules in the HUD, and the objective semantics stay the M1 ones (boss base
+100, normal base 60, block factor applied).
 
 `tests/physics_probe.gd` guards a physics gotcha found during development:
 a rigidbody that spawns intersecting the board collider can escape through

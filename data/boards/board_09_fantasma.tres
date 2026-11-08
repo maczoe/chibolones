@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_09_fantasma.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "Tablero Fantasma"
+objective_target = 60
+modifiers = Array[StringName]([&"fantasma"])
+length = 8.0
+board_color = Color(0.239, 0.122, 0.478, 1)
+frame_color = Color(0.118, 0.059, 0.239, 1)
+notch_glow_color = Color(0.180, 0.902, 0.784, 1)
+bulb_color = Color(0.690, 0.416, 0.702, 1)
+bulb_pattern_speed = 8.0
+light_color = Color(0.478, 0.973, 0.878, 1)
+ambient_energy = 0.46
+backdrop_color_a = Color(0.141, 0.063, 0.310, 1)
+backdrop_color_b = Color(0.478, 0.235, 0.941, 1)
+backdrop_color_c = Color(0.180, 0.902, 0.784, 1)
+backdrop_speed = 0.6
+backdrop_scale = 12.0
+backdrop_style = &"rays"
+floor_checker_a = Color(0.788, 0.722, 1.000, 1)
+floor_checker_b = Color(0.102, 0.039, 0.220, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5

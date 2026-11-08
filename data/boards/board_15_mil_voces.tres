@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_15_mil_voces.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "Tablero Mil Voces"
+objective_target = 60
+modifiers = Array[StringName]([&"mojado", &"cuerda"])
+length = 8.0
+board_color = Color(0.090, 0.086, 0.122, 1)
+frame_color = Color(0.043, 0.043, 0.071, 1)
+notch_glow_color = Color(0.910, 0.941, 1.000, 1)
+bulb_color = Color(0.812, 0.847, 1.000, 1)
+bulb_pattern_speed = 8.0
+light_color = Color(0.753, 0.816, 1.000, 1)
+ambient_energy = 0.4
+backdrop_color_a = Color(0.024, 0.027, 0.059, 1)
+backdrop_color_b = Color(0.200, 0.251, 0.361, 1)
+backdrop_color_c = Color(0.812, 0.847, 1.000, 1)
+backdrop_speed = 0.5
+backdrop_scale = 12.0
+backdrop_style = &"rays"
+floor_checker_a = Color(0.188, 0.212, 0.314, 1)
+floor_checker_b = Color(0.024, 0.027, 0.059, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5

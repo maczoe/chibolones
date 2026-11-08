@@ -29,7 +29,9 @@ func _ready() -> void:
 			_modifiers.append(def)
 	_marbles.sort_custom(func(a, b): return a.id < b.id)
 	_prizes.sort_custom(func(a, b): return a.id < b.id)
-	_boards.sort_custom(func(a, b): return a.theme_name < b.theme_name)
+	# Boards index by data file name, so board N of a run is def N-1 and a
+	# renamed theme never reorders the run.
+	_boards.sort_custom(func(a, b): return a.resource_path < b.resource_path)
 	_modifiers.sort_custom(func(a, b): return a.id < b.id)
 
 
@@ -80,9 +82,9 @@ func board_count() -> int:
 	return _boards.size()
 
 
-## Boards are indexed by data file order (alphabetical). M1 runs every board
-## of the run on the single classic BoardDef (Game.board_index stays 0); the
-## content wave replaces this with per-board defs.
+## Boards are indexed by data file name (board_01..board_20 -> 0..19), so
+## run board N renders def N-1. The index clamps, which keeps endless boards
+## on the last def.
 func board_def(index: int) -> BoardDef:
 	if _boards.is_empty():
 		push_error("No BoardDef resources under data/boards")

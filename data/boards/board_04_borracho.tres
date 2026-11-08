@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_04_borracho.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "El Tablero Borracho"
+objective_target = 100
+modifiers = Array[StringName]([&"borracho"])
+length = 8.0
+board_color = Color(0.541, 0.353, 0.753, 1)
+frame_color = Color(0.627, 0.416, 0.200, 1)
+notch_glow_color = Color(1.000, 0.561, 0.302, 1)
+bulb_color = Color(1.000, 0.702, 0.278, 1)
+bulb_pattern_speed = 8.0
+light_color = Color(1.000, 0.698, 0.478, 1)
+ambient_energy = 0.58
+backdrop_color_a = Color(0.753, 0.345, 0.604, 1)
+backdrop_color_b = Color(1.000, 0.604, 0.353, 1)
+backdrop_color_c = Color(1.000, 0.878, 0.400, 1)
+backdrop_speed = 0.7
+backdrop_scale = 13.0
+backdrop_style = &"waves"
+floor_checker_a = Color(1.000, 0.890, 0.761, 1)
+floor_checker_b = Color(0.541, 0.353, 0.753, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5

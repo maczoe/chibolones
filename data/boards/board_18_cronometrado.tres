@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_18_cronometrado.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "Tablero Cronometrado"
+objective_target = 60
+modifiers = Array[StringName]([&"cronometrado"])
+length = 8.0
+board_color = Color(0.067, 0.376, 0.376, 1)
+frame_color = Color(1.000, 0.302, 0.553, 1)
+notch_glow_color = Color(0.302, 0.933, 0.918, 1)
+bulb_color = Color(1.000, 0.878, 0.400, 1)
+bulb_pattern_speed = 8.0
+light_color = Color(0.302, 0.933, 0.918, 1)
+ambient_energy = 0.6
+backdrop_color_a = Color(0.027, 0.200, 0.200, 1)
+backdrop_color_b = Color(0.302, 0.933, 0.918, 1)
+backdrop_color_c = Color(1.000, 0.176, 0.584, 1)
+backdrop_speed = 0.8
+backdrop_scale = 12.0
+backdrop_style = &"rays"
+floor_checker_a = Color(0.302, 0.933, 0.918, 1)
+floor_checker_b = Color(0.067, 0.376, 0.376, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5

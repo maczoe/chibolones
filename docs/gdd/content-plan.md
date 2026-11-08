@@ -84,6 +84,18 @@ Endless mode: random boss-tier gimmick stack per board, factor +0.25
 per board won. Implementation notes: gimmicks map to BoardModifierDef
 (event hooks + rule edits, M2); no new engine per board.
 
+Boards implemented as data (M2.5): the 20 boards above are
+`data/boards/board_01..board_20.tres`, and run board N renders def N-1
+(filename order). Each def carries its theme name, `objective_target` (60
+for normal boards, 100 for the bosses, scaled by `f(block)`), its palette
+(surface, frame, notch glow, bulbs, spotlight, ambient, checker floor and
+the three backdrop colors), a backdrop shader variant (`waves`, `spiral`,
+`rays`), an SVG emblem as deck art and its `modifiers` list — so the
+gimmick column above is content, not code, and `Game.modifier_ids(n)` just
+reads the board's def. Gimmicks the current modifier set cannot express yet
+(glass floors, value calls, rails, hidden values) use the closest shipped
+bonificador until the M5 variety pass.
+
 ## 4. Content lists (wave targets)
 
 ### 4.1 Marbles (M3) — 10
@@ -117,9 +129,9 @@ All ten ship as data (`data/modifiers/*.tres` -> `BoardModifierDef`) with
 `scripts/board/board_theme.gd` as their runtime and
 `ScoreEngine.evaluate_embed()` as the scoring seam; the board announces
 them at board start and shows the score math when a rule changed the
-value. Boss boards run their block's pair (block 1 opens with Borracho)
-and normal boards carry none or one. Numbers live in the .tres files; the
-assignment lives in `Game.board_modifiers(n)`.
+value. Numbers live in the .tres files and, since M2.5, the assignment
+lives in each board's `BoardDef.modifiers` (`Game.board_modifiers(n)`
+resolves it): most boards carry one bonificador and the bosses run two.
 
 ## 5. Open for the next refinement round
 

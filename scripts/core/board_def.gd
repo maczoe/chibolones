@@ -38,8 +38,14 @@ extends Resource
 
 @export_group("Objective")
 ## 0 = no numeric objective (POC behavior); otherwise the board is won by
-## reaching this score. Used from M1 on.
+## reaching this score. Used from M1 on. The run scales this base by the
+## block difficulty factor (Game.objective_for_board).
 @export var objective_target: int = 0
+
+@export_group("Board rules")
+## Bonificadores of this board, by id (content-plan §4.3): each id is
+## resolved through ContentDB into a BoardModifierDef. Empty = no rule.
+@export var modifiers: Array[StringName] = []
 
 @export_group("Theme style")
 ## Play surface color (the pinball-cabinet interior).
@@ -58,12 +64,14 @@ extends Resource
 @export var ambient_energy: float = 0.55
 
 @export_group("Backdrop")
-## Psychedelic moving backdrop: three cycling colors, speed and scale.
+## Moving backdrop: three cycling colors, speed and scale, plus the shader
+## variant that paints them (waves, spiral or rays; unknown = waves).
 @export var backdrop_color_a: Color = Color("3a1f6e")
 @export var backdrop_color_b: Color = Color("ff6fb5")
 @export var backdrop_color_c: Color = Color("4deeea")
 @export var backdrop_speed: float = 0.6
 @export var backdrop_scale: float = 3.0
+@export var backdrop_style: StringName = &"waves"
 
 @export_group("Floor")
 ## Circus checker floor, tinted per theme.
@@ -72,12 +80,35 @@ extends Resource
 @export var floor_checker_size: float = 8.0
 
 @export_group("Deck art")
-## Decorative art printed on the play surface between the launch zone and
-## the notch rows, centered on X and on that band (null = none).
+## Emblem of the board: the decorative art printed on the play surface
+## between the launch zone and the notch rows, and on both cabinet sides.
+## It is the board's identity card, so every board def carries one.
+@export var emblem: Texture2D
+## Deprecated alias of `emblem`, kept so older defs still show their art;
+## read it through deck_art_texture(), never directly.
 @export var deck_art: Texture2D
 @export var deck_art_width: float = 1.6
 ## Same art on both cabinet side faces, centered; 0 disables side art.
 @export var deck_art_side_width: float = 0.5
+
+## Shader variants of the moving backdrop, by style id.
+const BACKDROP_SHADERS := {
+	&"waves": "res://scripts/board/shaders/backdrop.gdshader",
+	&"spiral": "res://scripts/board/shaders/backdrop_spiral.gdshader",
+	&"rays": "res://scripts/board/shaders/backdrop_rays.gdshader",
+}
+
+
+## Art the board prints on its deck and sides: the emblem, falling back to
+## the deprecated deck_art field. Null when the def has neither.
+func deck_art_texture() -> Texture2D:
+	return emblem if emblem != null else deck_art
+
+
+## Shader that paints this board's backdrop; an unknown style falls back to
+## waves so a typo in a .tres never leaves the board without a void.
+func backdrop_shader_path() -> String:
+	return BACKDROP_SHADERS.get(backdrop_style, BACKDROP_SHADERS[&"waves"])
 
 
 func launch_z() -> float:

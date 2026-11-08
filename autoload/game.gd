@@ -22,18 +22,6 @@ const ENDLESS_BONUS := 1
 ## Sample marbles the run starts with, in bag order (M3 grows the pool).
 const SAMPLE_MARBLES := ["common", "fire", "glass"]
 const SAMPLE_PRIZE := "trompo"
-## Bonificadores available per block (content-plan §4.3): normal boards take
-## the first or the second of their block, boss boards take the pair (block
-## 1's boss is the drunk board instead).
-const MODIFIER_PAIRS := [
-	[&"cuerda", &"mojado"],
-	[&"espejo", &"ventoso"],
-	[&"fantasma", &"iman"],
-	[&"mojado", &"cuerda"],
-	[&"trapecio", &"cronometrado"],
-]
-## Block 1 boss: the reference drunk board from the GDD.
-const BOSS_FIRST_MODIFIER := &"borracho"
 
 signal phase_changed(phase: Phase)
 signal money_changed(money: int)
@@ -44,8 +32,9 @@ signal run_won_sig
 signal run_lost_sig
 
 var phase: Phase = Phase.BOARD
-## Content board the scene renders. The single classic BoardDef backs every
-## run board until content waves land, so this stays 0 for the whole run.
+## Content board the scene renders when there is no run (headless tests):
+## the first BoardDef. Inside a run the board renders its own def, so this
+## stays 0.
 var board_index := 0
 var money := 0
 ## The marble bag: what the player can pick per throw (index = bag slot).
@@ -114,9 +103,16 @@ func is_boss(n: int) -> bool:
 	return n % BOARDS_PER_BLOCK == 0
 
 
-## Bonificadores of board `n` (content-plan §4.3). Boss boards are the
-## themed pair of their block; normal boards carry none or one, picked
-## deterministically from the board number so a run is always replayable.
+## BoardDef index of run board `n`: boards and defs map one to one in
+## filename order (board_01 -> def 0). ContentDB clamps, so endless boards
+## (21+) keep rendering the last def and their last identity.
+func board_def_index(n: int) -> int:
+	return n - 1
+
+
+## Bonificadores of board `n`. Since M2.5 the list comes from the board's
+## own BoardDef (`modifiers`), i.e. the assignment is content: a board with
+## no modifiers simply has none.
 func board_modifiers(n: int) -> Array[BoardModifierDef]:
 	var result: Array[BoardModifierDef] = []
 	for id in modifier_ids(n):
@@ -129,23 +125,10 @@ func board_modifiers(n: int) -> Array[BoardModifierDef]:
 ## Ids behind board_modifiers(), without loading the defs: the run board
 ## asks here and the tests check the assignment cheaply.
 func modifier_ids(n: int) -> Array[StringName]:
-	var ids: Array[StringName] = []
-	var pair: Array = MODIFIER_PAIRS[block_of(n) - 1]
-	if is_boss(n):
-		if block_of(n) == 1:
-			ids.append(BOSS_FIRST_MODIFIER)
-		else:
-			ids.append(pair[0])
-			ids.append(pair[1])
-		return ids
-	match n % 3:
-		1:
-			ids.append(pair[0])
-		2:
-			ids.append(pair[1])
-		_:
-			pass
-	return ids
+	var board: BoardDef = ContentDB.board_def(board_def_index(n))
+	if board == null:
+		return []
+	return board.modifiers.duplicate()
 
 
 ## Score a board must reach: bosses use their own base target, then the

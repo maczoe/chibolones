@@ -56,7 +56,9 @@ var board_theme: BoardTheme
 ## positions together, so capture keeps working in board-local space.
 var notch_root: Node3D
 var announce_timer: Timer
-var modifier_queue: Array[StringName] = []
+## Board-start cues waiting for their turn (board number and name, one per
+## bonificador, the controls hint), spaced by ANNOUNCE_DELAY.
+var announce_queue: Array[String] = []
 ## Run objective for this board: 0 when the board is played outside a run
 ## (headless tests, --script mode), which keeps the plain POC round over.
 var run_objective := 0
@@ -82,7 +84,7 @@ var settle_times := {}                     # marble -> seconds under slow speed
 
 
 func _ready() -> void:
-	board_def = ContentDB.board_def(Game.board_index)
+	board_def = ContentDB.board_def(_board_def_index())
 	rules = ContentDB.rules()
 	marble_def = ContentDB.marble_def("common")
 	# Run context: a board played inside a run aims at that board's objective
@@ -116,7 +118,9 @@ func _ready() -> void:
 	Game.money_changed.connect(hud.set_money)
 	hud.set_prizes(Game.prizes)
 	hud.set_selected_marble(_selected_marble_def().display_name)
-	hud.flash("Movi con <- -> y apreta ESPACIO para elegir la posicion")
+	# Board identity (M2.5): the name and rules stay on screen top-center for
+	# the whole board, so the player always knows which board they are on.
+	hud.set_board_title(board_def.theme_name, _effects_line())
 	# Bonificador announcements: one cue per modifier, queued so a boss board
 	# with two rules still reads (the board emits modifier_active once each).
 	announce_timer = Timer.new()
@@ -126,7 +130,10 @@ func _ready() -> void:
 	add_child(announce_timer)
 	EventBus.modifier_active.connect(_on_modifier_active)
 	EventBus.throw_timer_tick.connect(hud.set_timer)
+	# Opening cues: which board this is, its rules, then the controls.
+	_queue_announcement("Tablero %d: %s" % [_board_number(), board_def.theme_name])
 	board_theme.announce()
+	_queue_announcement("Movi con <- -> y apreta ESPACIO para elegir la posicion")
 	# The board opens in AIM, so the Cronometrado clock starts with it (boards
 	# without the rule ignore this).
 	_reset_step_timer()
@@ -656,6 +663,32 @@ func _board_modifiers() -> Array[BoardModifierDef]:
 	return []
 
 
+## BoardDef this scene renders: inside a run it is the run board's own def
+## (board N -> def N-1, in filename order); outside a run (headless smoke
+## path) it stays on Game.board_index, which is the first def.
+func _board_def_index() -> int:
+	if Game.in_run() and Game.phase == Game.Phase.BOARD:
+		return Game.board_def_index(Game.current_board_in_run)
+	return Game.board_index
+
+
+## Board number shown by the HUD: the run board, or 1 outside a run.
+func _board_number() -> int:
+	if Game.in_run() and Game.phase == Game.Phase.BOARD:
+		return maxi(Game.current_board_in_run, 1)
+	return 1
+
+
+## Identity line of the HUD under the board name: the display names of the
+## board's bonificadores, or a plain "Sin modificadores" when it has none.
+func _effects_line() -> String:
+	var names: Array[String] = []
+	for modifier in active_modifiers():
+		if modifier != null:
+			names.append(modifier.display_name)
+	return " + ".join(names) if not names.is_empty() else "Sin modificadores"
+
+
 ## The board's active bonificadores, asked by ScoreEngine for their score
 ## contributions through the hook contract.
 func active_modifiers() -> Array[BoardModifierDef]:
@@ -731,23 +764,33 @@ func _remove_from_bag(def: MarbleDef) -> bool:
 	return false
 
 
-## Bonificador banner at board start: queue the cues and flash them one by
-## one (a boss board announces two rules and both must be readable).
+## Bonificador banner at board start: queue the cue and let the timer space
+## them, so a boss board with two rules still reads (the board emits
+## modifier_active once each).
 func _on_modifier_active(id: StringName) -> void:
-	modifier_queue.append(id)
-	if announce_timer != null and announce_timer.is_stopped():
+	var def: BoardModifierDef = board_theme.modifier_by_id(id) if board_theme != null else null
+	if def == null:
+		def = ContentDB.modifier_def(id)
+	if def == null:
+		return
+	_queue_announcement("%s: %s" % [def.display_name, def.description])
+
+
+## One board-start cue: the first shows right away, the timer spaces the
+## rest by ANNOUNCE_DELAY so every line gets read.
+func _queue_announcement(text: String) -> void:
+	announce_queue.append(text)
+	if announce_timer == null:
+		hud.flash(text)
+		return
+	if announce_timer.is_stopped():
 		_announce_next()
 
 
 func _announce_next() -> void:
-	if modifier_queue.is_empty():
+	if announce_queue.is_empty():
 		return
-	var id: StringName = modifier_queue.pop_front()
-	var def: BoardModifierDef = board_theme.modifier_by_id(id) if board_theme != null else null
-	if def == null:
-		def = ContentDB.modifier_def(id)
-	if def != null:
-		hud.flash("%s: %s" % [def.display_name, def.description])
+	hud.flash(announce_queue.pop_front())
 	announce_timer.start(ANNOUNCE_DELAY)
 
 
@@ -813,16 +856,10 @@ func _build_environment() -> void:
 
 
 func _build_room() -> void:
-	# Compact closed room: back wall plus both side walls share the
-	# psychedelic shader, so orbiting the cabinet always shows the same
+	# Compact closed room: back wall plus both side walls share the board's
+	# psychedelic backdrop, so orbiting the cabinet always shows the same
 	# living void with no visible edges. The player side is open.
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://scripts/board/shaders/backdrop.gdshader")
-	mat.set_shader_parameter("color_a", board_def.backdrop_color_a)
-	mat.set_shader_parameter("color_b", board_def.backdrop_color_b)
-	mat.set_shader_parameter("color_c", board_def.backdrop_color_c)
-	mat.set_shader_parameter("speed", board_def.backdrop_speed)
-	mat.set_shader_parameter("pattern_scale", board_def.backdrop_scale)
+	var mat := _build_backdrop()
 	var wall_h := 16.0
 	var room_half := 14.0
 	var back_z := board_def.length / 2.0 + 10.0
@@ -858,6 +895,20 @@ func _build_floor() -> void:
 	mesh_i.material_override = mat
 	mesh_i.position = Vector3(0, -board_def.skirt_height - 0.1, 2.0)
 	add_child(mesh_i)
+
+
+## Moving backdrop of the room walls. The BoardDef picks the shader variant
+## (waves, spiral or rays); every variant takes the same colors, speed and
+## scale, so one material covers the three walls of the room.
+func _build_backdrop() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = load(board_def.backdrop_shader_path())
+	mat.set_shader_parameter("color_a", board_def.backdrop_color_a)
+	mat.set_shader_parameter("color_b", board_def.backdrop_color_b)
+	mat.set_shader_parameter("color_c", board_def.backdrop_color_c)
+	mat.set_shader_parameter("speed", board_def.backdrop_speed)
+	mat.set_shader_parameter("pattern_scale", board_def.backdrop_scale)
+	return mat
 
 
 func _build_board() -> void:
@@ -1064,9 +1115,11 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 
 
 func _add_deck_art() -> void:
-	# Theme art printed on the play surface, centered on the band between
-	# the launch/guide zone and the first notch row. Purely decorative.
-	if board_def.deck_art == null:
+	# Theme art (the board's emblem) printed on the play surface, centered on
+	# the band between the launch/guide zone and the first notch row. Purely
+	# decorative.
+	var art := board_def.deck_art_texture()
+	if art == null:
 		return
 	var quad := MeshInstance3D.new()
 	var q := QuadMesh.new()
@@ -1075,7 +1128,7 @@ func _add_deck_art() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_texture = board_def.deck_art
+	mat.albedo_texture = art
 	# Decal-like: hugging the surface and drawn early, never fighting the
 	# guide or notches for the same pixels.
 	mat.render_priority = -1
@@ -1091,9 +1144,10 @@ func _add_deck_art() -> void:
 
 
 func _add_side_deck_art() -> void:
-	# The same theme art on both cabinet side faces, centered: visible when
-	# the camera orbits to the sides. 0 disables.
-	if board_def.deck_art == null or board_def.deck_art_side_width <= 0.0:
+	# The same emblem on both cabinet side faces, centered: visible when the
+	# camera orbits to the sides. 0 disables.
+	var art := board_def.deck_art_texture()
+	if art == null or board_def.deck_art_side_width <= 0.0:
 		return
 	var skirt_y := -board_def.skirt_height / 2.0 - board_def.thickness / 2.0
 	var x := board_def.width / 2.0 + board_def.wall_thickness + 0.005
@@ -1105,7 +1159,7 @@ func _add_side_deck_art() -> void:
 		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.albedo_texture = board_def.deck_art
+		mat.albedo_texture = art
 		quad.material_override = mat
 		# Face outward: +X normal on the right side, -X on the left.
 		quad.rotation_degrees = Vector3(0, 90.0 * side, 0)

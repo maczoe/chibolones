@@ -53,7 +53,8 @@ tests/                # headless SceneTree tests (smoke.gd pattern)
   edits (add/mult), price, flavor.
 - `BoardDef` (Resource): theme id, layout (rows, cols, spacing, values,
   special notches), modifier ids, objective, difficulty factor, bonus
-  objective, reward base.
+  objective, reward base, and since M2.5 the visual identity: palette,
+  backdrop style/colors, checker floor tint and emblem (deck art).
 - `BoardModifierDef` (Resource): rule edits (wall bounce, friction, moving
   notches, value shuffle…) + event hooks + HUD cue.
 
@@ -105,6 +106,7 @@ the debug overlay. `ctx` keys: `adds`, `mults` (the shared dictionaries),
 | **M0.5** | DELIVERED: circo-surreal style in engine (cabinet, room, bulbs, neon), orbit camera + cancel QoL, seed juices (thunk + popup + bulb show), sample content (3 marbles, trompo prize, bag selection); style rules in `docs/gdd/style-guide.md` | feel accepted by the user playing; smoke + probe green throughout |
 | **M1** | DELIVERED, see git log: run skeleton — menu → board → win/lose → shop placeholder → run summary; 20 boards in 5 blocks of 4 with a boss every 4th and the block objective factor; economy v1 in the `Economy` autoload (rewards, price scale, stock); endless opt-in from the run-won screen | `tests/run_loop.gd`: economy math, progression helpers, phase machine, board win/loss and HUD wiring; smoke + probe still green |
 | **M2** | DELIVERED: hook contract live — `PrizeDef.interested_in()` / `contribute_embed()` and `BoardModifierDef` rules flow through `ScoreEngine.evaluate_embed()` into one `ScoreBreakdown` (HUD score-math line, announcements at board start); 10 bonificadores as data with their board runtime (walls, friction, wind, shuffle, covered/phasing notches, magnet, swinging grid, decision timer); glass durability roll wired (`marble_removed`, bag update) with the 20% waiting for the M3 data wave | `tests/hooks.gd`: breakdown math, trompo through the pipeline, 10 defs loaded, Borracho shuffle, Cronometrado timer, glass break, Espejo center, wind/swing wiring, M1 wall math preserved; smoke + run_loop + probe still green |
+| **M2.5** | DELIVERED: board identity — 20 `BoardDef`s as data (`data/boards/board_01..board_20.tres`; board N renders def N-1, filename order), per-board palette and backdrop shader variant (`backdrop.gdshader` waves / `backdrop_spiral.gdshader` / `backdrop_rays.gdshader`, picked by `BoardDef.backdrop_style`), one 512px SVG emblem per board as deck art, and the HUD board title plus active-effects line; the modifier assignment moved out of `Game` code into each def (`BoardDef.modifiers`) | `tests/themes.gd`: 20 defs load with unique names, loadable emblems and valid backdrop styles, the modifier mapping matches the content plan and resolves through `ContentDB`, the board scene renders the run board's def with its HUD identity, objective semantics unchanged; smoke + run_loop + hooks still green |
 | **M3** | Content wave 1: 10 canicas, 10 premios, 10 board defs; shop v1 with stock/reroll | shop stock + pricing tests, content lint (all defs valid, prices in curve) |
 | **M4** | Library + persistence (per D3), unlock pool if chosen | save/load round-trip test |
 | **M5** | Full 20-board run + difficulty curve + board variety pass; balance harness (scripted-throw sim per board) | balance sim asserts win-rate bands per board |
