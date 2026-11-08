@@ -65,6 +65,9 @@ func _build() -> void:
 	var continue_button := _menu_button("CONTINUAR")
 	continue_button.pressed.connect(_on_continue_pressed)
 	column.add_child(continue_button)
+	# Keyboard/gamepad first (user request, 2026-11-08): the shop opens with
+	# CONTINUAR focused, the same fix the main menu and the pause menu got.
+	continue_button.grab_focus()
 
 
 func _on_continue_pressed() -> void:
@@ -106,6 +109,10 @@ func _stock_card(kind: String, display_name: String, price: int) -> PanelContain
 func _disabled_row(text: String, price: int) -> Button:
 	var button := _menu_button("%s - $%d %s" % [text, price, PENDING_TAG])
 	button.disabled = true
+	# Dead rows must not sit in the focus cycle: nothing can be bought here,
+	# so arrows should skip them instead of parking on a button that does
+	# nothing (user request, 2026-11-08, mouse-free shop).
+	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 56)
 	button.add_theme_font_size_override("font_size", 22)
 	return button

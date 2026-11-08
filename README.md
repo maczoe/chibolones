@@ -270,6 +270,8 @@ godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/debug_mode.gd
 godot --headless --path . --script res://tests/guide.gd
 godot --headless --path . --script res://tests/physics_probe.gd
+godot --headless --path . --script res://tests/pause.gd
+godot --headless --path . --script res://tests/shop_focus.gd
 ```
 
 `tests/run_loop.gd` covers M1 without rendering: economy math, the 20-board
