@@ -139,6 +139,8 @@ func _ready() -> void:
 	board_def = ContentDB.board_def(_board_def_index())
 	rules = ContentDB.rules()
 	marble_def = ContentDB.marble_def("common")
+	# W3 contract: relay throw endings to the prizes with the board in ctx.
+	EventBus.throw_ended.connect(_on_throw_ended_event)
 	# Run context: a board played inside a run aims at that board's objective,
 	# spends the marble inventory and reports its result to Game. A board
 	# opened without a run (headless tests) has no objective and keeps the
@@ -625,6 +627,9 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	marble.position = Vector3(aim_x, def.radius + 0.05, board_def.launch_z())
 	marble.body_entered.connect(_on_marble_body_entered.bind(marble))
 	board.add_child(marble)
+	# W3 contract: prizes may still edit the fresh marble's physics (bounce,
+	# speed) before the impulse is applied.
+	Game.dispatch_event(&"marble_spawn", {"board": self, "body": marble, "def": def})
 	var tilt_rad := deg_to_rad(tilt_deg)
 	# Direction includes the locked shot tilt: positive tilts toward the
 	# player's left on screen, exactly like the guide line showed.
@@ -645,6 +650,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	state = ThrowState.FLIGHT
 	hud.set_shots(shots_left, shots_total)
 	EventBus.throw_started.emit(def.id)
+	Game.dispatch_event(&"throw_started", {"board": self, "def": def})
 
 
 func _update_flight(delta: float) -> void:
@@ -962,6 +968,7 @@ func _run_win_reached() -> bool:
 	hud.set_power_visible(false)
 	state = ThrowState.ROUND_OVER
 	hud.flash("Tablero superado!")
+	_dispatch_board_end()
 	EventBus.board_ended.emit(score_engine.total)
 	Game.board_won.call_deferred(shots_left, 0, score_engine.total)
 	return true
@@ -982,6 +989,7 @@ func _on_wall_hit(_side: StringName, _impact_speed: float) -> void:
 	# only the bonificador part accumulates here (Cuerda x1.2 per wall).
 	# Neither rule in play leaves every value at x1.0, exactly like M1.
 	wall_hits += 1
+	Game.dispatch_event(&"wall_hit", {"board": self, "side": _side, "impact": _impact_speed})
 	if board_theme != null:
 		var step := board_theme.wall_step()
 		if not is_equal_approx(step, 1.0):
@@ -1002,7 +1010,7 @@ func _on_wall_hit(_side: StringName, _impact_speed: float) -> void:
 func wall_total() -> float:
 	var total := wall_mult
 	for prize in Game.prizes:
-		total *= pow(prize.wall_hit_mult, wall_hits)
+		total *= pow(prize.wall_mult_per_hit(), wall_hits)
 	return total
 
 
@@ -1012,9 +1020,26 @@ func wall_source_name() -> String:
 	if board_theme != null and not is_equal_approx(board_theme.wall_hit_mult, 1.0):
 		return String(board_theme.wall_source)
 	for prize in Game.prizes:
-		if not is_equal_approx(prize.wall_hit_mult, 1.0):
+		if not is_equal_approx(prize.wall_mult_per_hit(), 1.0):
 			return prize.display_name
 	return "Paredes"
+
+
+## W3 contract: board-end prize effects (Osito de Peluche flat bonus) land
+## in the total before anything reads it.
+func _dispatch_board_end() -> void:
+	var ctx := {"board": self, "score_bonus": {}}
+	Game.dispatch_event(&"board_ended", ctx)
+	var bonus := 0
+	for value in ctx["score_bonus"].values():
+		bonus += int(value)
+	score_engine.total += bonus
+
+
+## Relay throw endings to the prize contract with the board in ctx (one
+## connect covers all the emit sites).
+func _on_throw_ended_event(outcome: StringName) -> void:
+	Game.dispatch_event(&"throw_ended", {"board": self, "outcome": outcome})
 
 
 # --- Bonificadores (M2 rules) ------------------------------------------------

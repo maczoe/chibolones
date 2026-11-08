@@ -108,8 +108,11 @@ func set_prizes(list: Array[PrizeDef]) -> void:
 		badge.queue_free()
 	for prize in list:
 		var badge := _candy_label(24)
-		badge.text = "%s %s" % [prize.display_name,
-				PrizeDef.format_mult(prize.wall_hit_mult)]
+		if is_equal_approx(prize.wall_mult_per_hit(), 1.0):
+			badge.text = prize.display_name
+		else:
+			badge.text = "%s %s" % [prize.display_name,
+					PrizeDef.format_mult(prize.wall_mult_per_hit())]
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		prize_box.add_child(badge)
 

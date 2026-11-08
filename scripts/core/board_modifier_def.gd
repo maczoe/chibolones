@@ -39,6 +39,13 @@ extends Resource
 ## Embed multiplier for the center column (1 = off).
 @export var center_mult: float = 1.0
 
+
+## M3 hook contract: the trigger half of the shared contract, symmetric
+## with PrizeDef.on_event. Modifiers react through the same dispatcher;
+## data rules only (edit ctx, never touch autoloads directly).
+func on_event(_event: StringName, _ctx: Dictionary) -> void:
+	pass
+
 @export_group("Decision rules")
 ## Seconds the player has per throw step before the board decides for them
 ## (0 = off).

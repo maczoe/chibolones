@@ -11,16 +11,48 @@ extends Resource
 @export var rarity: String = "common"
 @export var price: int = 0
 @export var flavor: String = ""
-## Multiplier applied to the throw's embed score once per wall the marble
-## hit during that throw (Trompo = x1.5 per wall).
-@export var wall_hit_mult: float = 1.0
+## W3: which effect this prize carries. Empty string = no active effect
+## (a shelf trophy). The effect decides the events the prize reacts to and
+## what its on_event/contribute_embed do; params carries the numbers.
+@export var effect: StringName = &""
+## Effect parameters (flat amount, refund money, per-wall mult...), read
+## by the effect implementation. One def, one effect, its own params.
+@export var params: Dictionary = {}
+
+
+## Events each effect reacts to, beyond the shared `embed` scoring pass
+## (architecture.md hook contract: interested_in / on_event /
+## contribute_embed). New effects register here in T3.
+const EFFECT_EVENTS := {
+	&"wall_mult": [&"embed"],
+	&"board_end_flat": [&"board_ended"],
+	&"refund_money": [&"refund"],
+}
 
 
 ## M2 hook contract, part 1: events this prize reacts to. `embed` is the
-## scoring moment; more event names land with M3 content.
+## scoring moment; the effect adds its trigger events on top.
 func interested_in() -> Array[StringName]:
 	var events: Array[StringName] = [&"embed"]
+	for event in EFFECT_EVENTS.get(effect, []):
+		if not events.has(event):
+			events.append(event)
 	return events
+
+
+## M3 hook contract: react to one gameplay event the prize declared
+## interest in. Data effects only: prizes edit the ctx the dispatcher
+## carries (score_bonus, money_delta...); the owner applies it.
+func on_event(event: StringName, ctx: Dictionary) -> void:
+	match event:
+		&"board_ended":
+			if effect == &"board_end_flat":
+				var bonus: Dictionary = ctx.get("score_bonus", {})
+				bonus[StringName(display_name)] = int(params.get("flat", 0))
+		&"refund":
+			if effect == &"refund_money":
+				ctx["money_delta"] = int(ctx.get("money_delta", 0)) \
+						+ int(params.get("amount", 0))
 
 
 ## M2 hook contract, part 2: edit one embed's score. `ctx` carries the
@@ -32,12 +64,20 @@ func contribute_embed(_base: int, ctx: Dictionary) -> void:
 	var mults: Dictionary = ctx.get("mults", {})
 	var throw_ctx: Dictionary = ctx.get("throw", {})
 	# Wall-hit multiplier: once per wall this throw (Trompo x1.5 x walls).
-	if is_equal_approx(wall_hit_mult, 1.0):
+	if is_equal_approx(wall_mult_per_hit(), 1.0):
 		return
 	var hits: int = int(throw_ctx.get("wall_hits", 0))
 	if hits <= 0:
 		return
-	mults[StringName(display_name)] = pow(wall_hit_mult, hits)
+	mults[StringName(display_name)] = pow(wall_mult_per_hit(), hits)
+
+
+## Per-wall factor of this prize for the board's wall accumulation
+## (migrated from the retired wall_hit_mult field into effect+params).
+func wall_mult_per_hit() -> float:
+	if effect == &"wall_mult":
+		return float(params.get("mult", 1.0))
+	return 1.0
 
 
 ## HUD text for a multiplier: "x" plus the value without trailing zeros

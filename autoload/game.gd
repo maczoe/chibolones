@@ -75,6 +75,39 @@ var debug_board_index := 0
 const DEBUG_SETUP_SCENE := "res://scenes/debug/debug_setup.tscn"
 
 
+func _ready() -> void:
+	# W3 on_event contract: the refund's money effect is run-level (money is
+	# owned here), so the dispatcher listens on the bus instead of every
+	# emitter wiring it by hand.
+	EventBus.refund.connect(_on_refund_event)
+
+
+## M3 hook contract dispatcher (architecture.md): one gameplay event to
+## every interested run prize and, through ctx.board, the board's
+## bonificadores. Effects edit ctx; the caller applies it.
+func dispatch_event(event: StringName, ctx: Dictionary = {}) -> void:
+	for prize in prizes:
+		if prize != null and prize.interested_in().has(event):
+			prize.on_event(event, ctx)
+	var board_ref: Node = ctx.get("board")
+	if board_ref != null and board_ref.has_method("active_modifiers"):
+		for modifier in board_ref.active_modifiers():
+			if modifier != null and modifier.interested_in().has(event):
+				modifier.on_event(event, ctx)
+
+
+## Refund moment: prizes fill money_delta (Billete de la Suerte), Game
+## applies it once, through the same money_changed signal as every other
+## money move.
+func _on_refund_event() -> void:
+	var ctx := {"money_delta": 0}
+	dispatch_event(&"refund", ctx)
+	var delta := int(ctx["money_delta"])
+	if delta != 0:
+		money += delta
+		money_changed.emit(money)
+
+
 func start_run() -> void:
 	debug_mode = false
 	board_index = 0

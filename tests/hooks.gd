@@ -43,6 +43,7 @@ func _run() -> void:
 	await physics_frame
 	_connect_bus()
 	_test_breakdown_math()
+	await _test_throw_lifecycle_events()
 	await _test_prize_contribution()
 	_test_modifier_defs()
 	await _test_value_shuffle()
@@ -51,6 +52,10 @@ func _run() -> void:
 	await _test_center_mult()
 	await _test_rule_wiring()
 	await _test_wall_mult_preserved()
+	await _test_on_event_dispatch()
+	await _test_refund_money_effect()
+	await _test_board_end_bonus()
+	await _test_trompo_migration()
 	print("HOOKS FAIL" if failed else "HOOKS OK")
 	quit(1 if failed else 0)
 
@@ -379,6 +384,177 @@ func _test_wall_mult_preserved() -> void:
 	game.start_run()
 
 
+# --- (j) W3 on_event contract (S4) -----------------------------------------
+
+
+## Records every event the dispatcher delivers, with a copy of its ctx.
+class SpyPrize extends PrizeDef:
+	var seen: Array = []
+
+	func interested_in() -> Array[StringName]:
+		return [&"refund", &"board_ended", &"marble_spawn", &"throw_started", &"wall_hit", &"throw_ended"]
+
+	func on_event(event: StringName, ctx: Dictionary) -> void:
+		seen.append([event, ctx.duplicate()])
+
+
+## Same spy, for the board-side modifier half of the contract.
+class SpyModifier extends BoardModifierDef:
+	var seen: Array = []
+
+	func interested_in() -> Array[StringName]:
+		return [&"throw_started"]
+
+	func on_event(event: StringName, ctx: Dictionary) -> void:
+		seen.append([event, ctx.duplicate()])
+
+
+## The dispatcher delivers only to interested defs: run prizes and, through
+## ctx.board, the board's own bonificadores.
+func _test_on_event_dispatch() -> void:
+	game.start_run()
+	var spy := SpyPrize.new()
+	game.prizes.clear()
+	game.prizes.append(spy)
+	game.dispatch_event(&"refund", {"k": 1})
+	_check(spy.seen.size() == 1 and spy.seen[0][0] == &"refund" and spy.seen[0][1]["k"] == 1,
+			"dispatch should deliver a refund to the interested prize, got %s" % str(spy.seen))
+	game.dispatch_event(&"embed", {})
+	_check(spy.seen.size() == 1, "dispatch must skip events the prize did not declare")
+	var spy_mod := SpyModifier.new()
+	var board := _open_board_with([spy_mod])
+	await physics_frame
+	game.dispatch_event(&"throw_started", {"board": board})
+	_check(spy_mod.seen.size() == 1 and spy_mod.seen[0][0] == &"throw_started",
+			"dispatch should reach the board's bonificadores through ctx.board")
+	board.queue_free()
+	await physics_frame
+
+
+## The refund event carries a money_delta the prize fills and Game applies
+## (Billete de la Suerte in T3): one dispatch per refund, no double count.
+func _test_refund_money_effect() -> void:
+	game.start_run()
+	var billete := PrizeDef.new()
+	billete.id = "billete"
+	billete.display_name = "Billete de la Suerte"
+	billete.effect = &"refund_money"
+	billete.params = {"amount": 2}
+	game.prizes.clear()
+	game.prizes.append(billete)
+	var money_before: int = game.money
+	root.get_node("EventBus").refund.emit()
+	_check(game.money == money_before + 2,
+			"a $2 refund prize should add $2 on refund, money %d -> %d"
+			% [money_before, game.money])
+	var neutral := PrizeDef.new()
+	neutral.id = "neutral"
+	game.prizes.clear()
+	game.prizes.append(neutral)
+	money_before = game.money
+	root.get_node("EventBus").refund.emit()
+	_check(game.money == money_before,
+			"a prize-less refund must not change money")
+
+
+## A board_end_flat prize adds its flat bonus to the final board score
+## before anything reads it (Osito de Peluche in T3).
+func _test_board_end_bonus() -> void:
+	game.start_run()
+	var osito := PrizeDef.new()
+	osito.id = "osito"
+	osito.display_name = "Osito de Peluche"
+	osito.effect = &"board_end_flat"
+	osito.params = {"flat": 50}
+	game.prizes.clear()
+	game.prizes.append(osito)
+	var board := _open_board()
+	await physics_frame
+	var objective: int = board.run_objective
+	root.get_node("EventBus").embed.emit(0, objective)
+	# The win is reported by the volley resolution: a marble must be in
+	# flight for the board to reach _run_win_reached (run_loop does the same).
+	board.state = board.ThrowState.FLIGHT
+	board.launch_timer = 0.0
+	board.active_marbles.append(_resting_marble(board))
+	await physics_frame
+	await physics_frame
+	_check(game.last_win_stats.get("score", -1) == objective + 50,
+			"the board-end bonus should land in the final score %d + 50, got %s"
+			% [objective, str(game.last_win_stats.get("score", -1))])
+	board.queue_free()
+	await physics_frame
+
+
+## The board dispatches its lifecycle events with itself in ctx: a launch
+## announces throw_started and marble_spawn, a wall hit announces wall_hit,
+## and the player-edge refund closes with throw_ended(refunded).
+func _test_throw_lifecycle_events() -> void:
+	game.start_run()
+	var spy := SpyPrize.new()
+	game.prizes.clear()
+	game.prizes.append(spy)
+	var bus := root.get_node("EventBus")
+	bus.refund.emit()  # clear any pending refund state from earlier sections
+	var board := _open_board()
+	await physics_frame
+	spy.seen.clear()
+	board._launch(0.0, 20.0)
+	await physics_frame
+	await physics_frame
+	var events := _event_names(spy.seen)
+	_check(events.has(&"throw_started"), "a launch should dispatch throw_started, got %s" % str(events))
+	_check(events.has(&"marble_spawn"), "a launch should dispatch marble_spawn, got %s" % str(events))
+	board._on_wall_hit(&"left", 2.0)
+	_check(_event_names(spy.seen).has(&"wall_hit"), "a wall hit should dispatch wall_hit")
+	if not board.active_marbles.is_empty():
+		var marble: RigidBody3D = board.active_marbles[0]
+		var out_z: float = -board.board_def.length / 2.0 - board.rules.edge_margin - 0.5
+		marble.global_position = board.board.to_global(Vector3(0.0, 0.09, out_z))
+		for i in 8:
+			await physics_frame
+			if _event_names(spy.seen).has(&"throw_ended"):
+				break
+		events = _event_names(spy.seen)
+		_check(events.has(&"refund"), "the player-edge exit should dispatch refund, got %s" % str(events))
+		_check(events.has(&"throw_ended"), "the refund should end the throw, got %s" % str(events))
+		var ended: Array = _find_event(spy.seen, &"throw_ended")
+		_check(not ended.is_empty() and ended[1].get("outcome", &"") == &"refunded",
+				"throw_ended should carry the refunded outcome, got %s" % str(ended))
+	board.queue_free()
+	await physics_frame
+	game.start_run()
+
+
+## The trompo migrates off the dedicated field into the generic contract:
+## effect id + params, and the board asks the prize for its per-wall factor.
+func _test_trompo_migration() -> void:
+	var trompo: PrizeDef = content.prize_def("trompo")
+	_check(trompo != null, "the trompo def should load")
+	_check(trompo.get("wall_hit_mult") == null,
+			"PrizeDef.wall_hit_mult should be gone (migrated to effect+params)")
+	_check(trompo.effect == &"wall_mult", "trompo effect should be wall_mult, got %s" % trompo.effect)
+	_check(is_equal_approx(float(trompo.params.get("mult", 0.0)), 1.5),
+			"trompo params.mult should be 1.5")
+	_check(is_equal_approx(trompo.wall_mult_per_hit(), 1.5),
+			"wall_mult_per_hit should read the params")
+	_check(trompo.interested_in().has(&"embed"), "the wall prize still scores through embed")
+
+
+func _event_names(seen: Array) -> Array:
+	var names: Array = []
+	for entry in seen:
+		names.append(entry[0])
+	return names
+
+
+func _find_event(seen: Array, event: StringName) -> Array:
+	for entry in seen:
+		if entry[0] == event:
+			return entry
+	return []
+
+
 # --- Helpers ---------------------------------------------------------------
 
 
@@ -431,6 +607,20 @@ func _clear_marbles(board: Node3D) -> void:
 			marble.queue_free()
 	board.active_marbles.clear()
 	board.settle_times.clear()
+
+
+## A marble at rest on the board surface, away from every notch: drives the
+## volley resolution the same way run_loop's win test does.
+func _resting_marble(board: Node3D) -> RigidBody3D:
+	var marble := RigidBody3D.new()
+	var shape := CollisionShape3D.new()
+	shape.shape = SphereShape3D.new()
+	marble.add_child(shape)
+	marble.freeze = true
+	board.board.add_child(marble)
+	marble.global_position = board.board.to_global(
+			Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4))
+	return marble
 
 
 ## A marble on the board surface, ready to be handed to _embed.

@@ -9,4 +9,5 @@ display_name = "Trompo de Madera"
 rarity = "uncommon"
 price = 4
 flavor = "Gira y gira; cada pared que golpeas le da vueltas a tu favor."
-wall_hit_mult = 1.5
+effect = &"wall_mult"
+params = {"mult": 1.5}

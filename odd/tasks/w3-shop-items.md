@@ -78,7 +78,7 @@ S10: Verificación: tests deterministas headless (patrón tests/run_loop.gd)
 T1 (S2,S3): Prices/rarity into defs: add rarity to MarbleDef, set price
     + rarity on all .tres, Economy reads def price, retire
     DEF_BASE_PRICES, fix glass break 0.20. Route: inline.
-    Commit: feat(items): item-owned base prices and rarity
+    Commit: 307f6ad feat(items): item-owned base prices and rarity
 T2 (S4): Implement on_event hook contract (architecture.md:61-75):
     PrizeDef.on_event + registration, EventBus wiring for board_end /
     refund / marble_spawn / throw lifecycle; migrate trompo off special
