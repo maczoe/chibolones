@@ -165,6 +165,160 @@
       "status": "resolved",
       "sentAt": "2026-11-09T03:38:12.228Z",
       "resolvedAt": "2026-11-09T03:40:36.276Z"
+    },
+    {
+      "id": "qsj9pn3n",
+      "file": "06-shop-stall.html",
+      "selector": "body",
+      "excerpt": "$27 Bolso 6/10 · Premios 2/2 Tienda de la Feria TABLERO 6 · BLOQUE 2 DE 5 CANICA Canica de Fuego Sale x1.25 de velocidad $3 COMPRAR CANICA Canica de Vidrio Puntua x2 · Puede romperse al tirar (20%) $4 COMPRAR PREMIO Billete de la Suerte +$2 cada vez que la feria te devuelve un tiro $3 COMPRAR PREMIO",
+      "comment": "Podrías cambiar la resolución para que ocupe la pantalla completa, esta pantalla no se ve completa en el html, ajustala como en el artboard del hud",
+      "createdAt": "2026-11-09T03:54:32.925Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:54:32.967Z",
+      "resolvedAt": "2026-11-09T03:57:29.487Z"
+    },
+    {
+      "id": "13jiiy4z",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5)",
+      "excerpt": "SERVICIOS Canica extra +1 comun para la run $4 COMPRAR Reroll stock nuevo $2 REROLL TU INVENTARIO — RESCATE: MITAD DEL PRECIO Canica Comun x4 $1 VENDER Canica de Vidrio $2 VENDER Trompo de Madera $2 VENDER Osito de Peluche $2 VENDER Canica de Fuego $2 VENDER Corona del Circo $4 VENDER CONTINUAR → ←",
+      "comment": "Vamos a modificar esta sección, cambiando el ancho al mismo ancho del bloque de arriba con los items que se pueden comprar, colocar la última columna con el botón de continuar al inicio integrada con la parte de servicios, colocar también otros botones además del botón de continuar: REGRESAR AL MENU, ABANDONAR, INFORMACIÓN PARTIDA, quedando solo dos columnas, una con los servicios y las opciones y la otra con el inventario actual",
+      "createdAt": "2026-11-09T04:03:51.314Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:03:51.364Z",
+      "resolvedAt": "2026-11-09T04:05:15.146Z"
+    },
+    {
+      "id": "twvpeu04",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1) > div:nth-of-type(1)",
+      "excerpt": "CANICA",
+      "comment": "Cambiar el texto CANICA por CHIBOLON en todos los carteles",
+      "createdAt": "2026-11-09T04:05:19.914Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:05:20.020Z",
+      "resolvedAt": "2026-11-09T04:06:18.682Z"
+    },
+    {
+      "id": "y4vhaz17",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(1)",
+      "excerpt": "Canica Comun x4 $1 VENDER",
+      "comment": "Colocar el sprite del objeto al inicio antes del nombre del item, colocar la descripción del objeto abajo del nombre del item",
+      "createdAt": "2026-11-09T04:06:25.641Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:06:25.704Z",
+      "resolvedAt": "2026-11-09T04:07:37.332Z"
+    },
+    {
+      "id": "vsila3od",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > button:nth-of-type(4)",
+      "excerpt": "INFORMACIÓN PARTIDA",
+      "comment": "Colocar la opción INFORMACIÓN PARTIDA después de CONTINUAR",
+      "createdAt": "2026-11-09T04:07:02.919Z",
+      "status": "resolved",
+      "sentAt": null,
+      "resolvedAt": "2026-11-09T04:08:32.234Z"
+    },
+    {
+      "id": "o7lks9kt",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > button:nth-of-type(4)",
+      "excerpt": "INFORMACIÓN PARTIDA",
+      "comment": "Colocar la opción INFORMACIÓN PARTIDA después de CONTINUAR",
+      "createdAt": "2026-11-09T04:07:18.473Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:07:18.535Z",
+      "resolvedAt": "2026-11-09T04:09:13.003Z"
+    },
+    {
+      "id": "gy5n8qaq",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(1) > span:nth-of-type(2) > span:nth-of-type(2)",
+      "excerpt": "Sin efectos: la canica clasica",
+      "comment": "Coloca la descripción abajo del nombre aunque el div se haga más alto",
+      "createdAt": "2026-11-09T04:08:05.470Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:08:05.527Z",
+      "resolvedAt": "2026-11-09T04:09:57.428Z"
+    },
+    {
+      "id": "kvjqoonq",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(1) > span",
+      "excerpt": "$4",
+      "comment": "Colocar el precio a la par del botón de COMPRAR",
+      "createdAt": "2026-11-09T04:09:02.984Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:09:03.047Z",
+      "resolvedAt": "2026-11-09T04:11:07.910Z"
+    },
+    {
+      "id": "385l0hzg",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(2) > div > div:nth-of-type(1)",
+      "excerpt": "Canica Comun x4Sin efectos: la canica clasica $1 VENDER",
+      "comment": "Colocar el alto del div el tamaño del texto y todo del mismo tamaño al igual que la sección de Reroll en todos los items del inventario",
+      "createdAt": "2026-11-09T04:10:22.123Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:10:22.196Z",
+      "resolvedAt": "2026-11-09T04:12:16.388Z"
+    },
+    {
+      "id": "o4pjl44h",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(2)",
+      "excerpt": "Referencias: Dave the Diver (puesto temático con banderines, cards paradas en el mostrador) · Balatro (cards grandes con desc y precio, \"COMPRADO\" en la card) · servicios e inventario abajo, acción siempre visible",
+      "comment": "Podrías quitar esta referencia",
+      "createdAt": "2026-11-09T04:10:53.477Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:10:53.846Z",
+      "resolvedAt": "2026-11-09T04:13:01.883Z"
+    },
+    {
+      "id": "bgkvhjgw",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div:nth-of-type(1) > div:nth-of-type(5) > div:nth-of-type(1) > div:nth-of-type(2) > span > button",
+      "excerpt": "REROLL",
+      "comment": "El ancho de este botón debe ser igual al ancho del botón comprar",
+      "createdAt": "2026-11-09T04:11:43.361Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:11:43.727Z",
+      "resolvedAt": "2026-11-09T04:14:14.983Z"
+    },
+    {
+      "id": "wo14ghpl",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div > div:nth-of-type(5) > div:nth-of-type(2) > div",
+      "excerpt": "Canica Comun x4Sin efectos: la canica clasica $1 VENDER Canica de VidrioPuntua x2 · Puede romperse (20%) $2 VENDER Trompo de Maderax1.5 por cada pared golpeada $2 VENDER Osito de Peluche+50 puntos al terminar el tablero $2 VENDER Canica de FuegoSale x1.25 de velocidad $2 VENDER Corona del CircoTodo",
+      "comment": "Los tamaños y proporciones de los items de esta área deben tener las mismas dimensiones y proporciones de la sección de Reroll",
+      "createdAt": "2026-11-09T04:13:48.567Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:13:48.622Z",
+      "resolvedAt": "2026-11-09T04:15:40.371Z"
+    },
+    {
+      "id": "fme7zkbd",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div > div:nth-of-type(5)",
+      "excerpt": "SERVICIOS Canica extra +1 comun para la run $4 COMPRAR Reroll stock nuevo $2 REROLL OPCIONES CONTINUAR → INFORMACIÓN PARTIDA REGRESAR AL MENU ABANDONAR ← → navegar · ENTER comprar · C continuar TU INVENTARIO — RESCATE: MITAD DEL PRECIO Canica Comun x4 Sin efectos: la canica clasica $1 VENDER Canica",
+      "comment": "Reducir el ancho de toda esta sección al mismo ancho del contenido de la sección de arriba",
+      "createdAt": "2026-11-09T04:16:15.120Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:16:15.173Z",
+      "resolvedAt": "2026-11-09T04:16:58.493Z"
+    },
+    {
+      "id": "rhapj6ce",
+      "file": "06-shop-stall.html",
+      "selector": "#scaler > div > div:nth-of-type(5) > div:nth-of-type(2)",
+      "excerpt": "TU INVENTARIO — RESCATE: MITAD DEL PRECIO Canica Comun x4 Sin efectos: la canica clasica $1 VENDER Canica de Vidrio Puntua x2 · Puede romperse (20%) $2 VENDER Trompo de Madera x1.5 por cada pared golpeada $2 VENDER Osito de Peluche +50 puntos al terminar el tablero $2 VENDER Canica de Fuego Sale x1.",
+      "comment": "Los textos deberían estar alineados a la izquieda",
+      "createdAt": "2026-11-09T04:16:54.383Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T04:16:54.444Z",
+      "resolvedAt": "2026-11-09T04:17:55.549Z"
     }
   ]
 }

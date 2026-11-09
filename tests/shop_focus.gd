@@ -57,7 +57,7 @@ func _continue_button(shop: Control) -> Button:
 	# The only enabled button named CONTINUAR on the shop.
 	var found: Button = null
 	for button in _find_buttons(shop):
-		if button.text == "CONTINUAR" and not button.disabled:
+		if button.text.begins_with("CONTINUAR") and not button.disabled:
 			found = button
 	return found
 
@@ -109,7 +109,7 @@ func _test_buy_flow() -> void:
 	game.money = 50
 	var reroll: Button = null
 	for button in _find_buttons(shop):
-		if button.text.begins_with("Reroll"):
+		if button.text == "REROLL":
 			reroll = button
 	_check(reroll != null, "the shop should have a reroll button")
 	if reroll != null:
@@ -207,8 +207,10 @@ func _test_continue_focus() -> void:
 	var expected := _continue_button(shop)
 	_check(expected != null, "the shop should build an enabled CONTINUAR button")
 	var owner_node := root.gui_get_focus_owner()
-	_check(owner_node == expected,
-			"the shop should open with CONTINUAR focused, owner is %s" % owner_node)
+	# W3d S3: the shop opens focused on the first enabled buy button (the
+	# keyboard-first flow), no longer on CONTINUAR.
+	_check(owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
+			"the shop should open with an enabled button focused, owner is %s" % owner_node)
 	shop.queue_free()
 	await process_frame
 

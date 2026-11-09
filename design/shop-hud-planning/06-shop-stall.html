@@ -10,8 +10,12 @@
     --yellow:#ffe066; --pink:#ff6fb5; --cyan:#4deeea; --violet:#cdb8ff; --ink:#120b26;
   }
   *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden}
   body{background:#0a0616;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
-    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+    display:flex;align-items:center;justify-content:center}
+  /* Scale-to-fit (same as the HUD artboard): the 1720x920 design always
+     fits the real window, so the whole shop is visible without scrolling. */
+  #scaler{width:1720px;height:920px;transform-origin:center center;flex:none}
   .frame{width:1720px;height:920px;background:
       radial-gradient(ellipse 1200px 500px at 50% -10%, rgba(255,111,181,.12), transparent 60%),
       linear-gradient(160deg,#1a0f33 0%,#120a26 60%,#0d0720 100%);
@@ -48,24 +52,51 @@
   .stall .sold-tag{background:var(--line);color:var(--violet);padding:8px 18px;border-radius:8px;
     font-size:14px;font-weight:700}
   /* Bottom: two shelves — services left, inventory right, action far right */
-  .shelves{display:flex;gap:18px;margin-top:18px;flex:1;min-height:0}
+  /* Bottom section matches the counter's width: 4 stalls x300px + 3 gaps. */
+  .shelves{display:flex;gap:18px;margin-top:18px;flex:1;min-height:0;
+    width:1248px;margin-left:auto;margin-right:auto}
   .shelf{background:rgba(29,18,64,.8);border:2px solid var(--line);border-radius:14px;
     padding:14px 16px;display:flex;flex-direction:column;gap:8px}
   .shelf h3{font-size:12px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;
-    padding-bottom:4px;border-bottom:1px solid var(--line)}
-  .shelf.services{flex:.8}
-  .shelf.inv{flex:1.6}
-  .shelf.actions{flex:.6;justify-content:flex-end;gap:12px}
+    padding-bottom:4px;border-bottom:1px solid var(--line);text-align:left}
+  .shelf.services{flex:1}
+  .shelf.inv{flex:1}
+  .action-btn{font-family:inherit;border:none;border-radius:10px;padding:12px;font-size:15px;
+    font-weight:700;cursor:pointer;color:var(--ink);background:var(--yellow);width:100%}
+  .action-btn:hover{background:var(--pink)}
+  .action-btn.secondary{background:var(--card);color:var(--violet);border:2px solid var(--line);font-size:13px;padding:9px}
+  .action-btn.secondary:hover{color:#fff;border-color:var(--violet)}
+  .actions-hint{font-size:11px;color:#8d7fb8;text-align:center}
   .service-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
     background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:14px;color:#fff}
   .service-row .price{color:var(--pink);font-weight:800}
   .service-row .desc{font-size:12px;color:var(--violet)}
-  .btn.reroll{background:var(--cyan)}
-  .inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto}
+  .service-row .price-buy{display:inline-flex;align-items:center;gap:8px;flex:none}
+  .service-row .price-buy .price{font-size:15px}
+  .btn.reroll{background:var(--cyan);min-width:96px;text-align:center}
+  .inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto;
+    grid-auto-rows:1fr}
+  /* Uniform rows, same size as the service rows (Reroll): one name line +
+     one description line, ellipsized, every row the same height. */
   .inv-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
-    border-radius:8px;padding:6px 10px;font-size:13px;color:#fff}
-  .inv-row .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    border-radius:9px;padding:8px 12px;font-size:14px;color:#fff;min-height:0}
+  .inv-row .orb{width:22px;height:22px;border-radius:50%;flex:none;margin-top:2px;
+    background:radial-gradient(circle at 35% 30%, #fff4, transparent 55%), var(--cyan);
+    box-shadow:0 0 6px rgba(77,238,234,.3)}
+  .inv-row.prize .orb{background:radial-gradient(circle at 35% 30%, #fff4, transparent 55%), #2a9d8f;
+    box-shadow:0 0 6px rgba(42,157,143,.4)}
+  .inv-row.fire .orb{background:radial-gradient(circle at 35% 30%, #fff5, transparent 55%),
+      radial-gradient(circle, var(--yellow) 15%, #ff6a00 70%, transparent 100%);
+    box-shadow:0 0 6px rgba(255,150,60,.4)}
+  .inv-row.glass .orb{background:radial-gradient(circle, #fff 10%, rgba(191,225,255,.55) 60%, transparent 100%);
+    box-shadow:0 0 6px rgba(191,225,255,.35)}
+  .inv-row.rare .orb{background:radial-gradient(circle at 35% 30%, #fff5, transparent 55%),
+      radial-gradient(circle, var(--yellow) 20%, #c9184a 70%, transparent 100%);
+    box-shadow:0 0 6px rgba(201,24,74,.4)}
+  .inv-row .mid{flex:1;min-width:0}
+  .inv-row .nm{font-weight:600;font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .inv-row .nm small{color:var(--cyan)}
+  .inv-row .fx{font-size:12px;color:var(--violet);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
   .inv-row .rescue{color:var(--pink);font-weight:700;font-size:12px}
   .inv-row button{font-family:inherit;border:none;background:var(--line);color:var(--yellow);
     border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer}
@@ -74,23 +105,21 @@
   .money-badge{position:absolute;top:24px;right:34px;font-size:26px;font-weight:800;color:var(--yellow);
     background:var(--card);border:2px solid var(--yellow);border-radius:12px;padding:6px 20px}
   .caps-badge{position:absolute;top:88px;right:34px;font-size:12px;color:var(--violet)}
-  .legend{margin-top:12px;font-size:13px;color:#8d7fb8;text-align:center}
-  .legend b{color:var(--yellow)}
 </style>
 </head>
 <body>
-<div class="stage">
+<div id="scaler">
   <div class="frame">
     <div class="money-badge">$27</div>
     <div class="caps-badge">Bolso 6/10 · Premios 2/2</div>
     <div class="marquee"><div class="bunting"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
       <h1>Tienda de la Feria</h1><div class="sub">Tablero 6 · Bloque 2 de 5</div></div>
     <div class="counter">
-      <div class="stall fire selected"><div class="kind">Canica</div><div class="orb"></div>
+      <div class="stall fire selected"><div class="kind">CHIBOLON</div><div class="orb"></div>
         <div class="name">Canica de Fuego</div>
         <div class="desc">Sale x1.25 de velocidad</div>
         <div class="foot"><span class="price">$3</span><button class="btn">COMPRAR</button></div></div>
-      <div class="stall glass"><div class="kind">Canica</div><div class="orb"></div>
+      <div class="stall glass"><div class="kind">CHIBOLON</div><div class="orb"></div>
         <div class="name">Canica de Vidrio</div>
         <div class="desc">Puntua x2 · Puede romperse al tirar (20%)</div>
         <div class="foot"><span class="price">$4</span><button class="btn">COMPRAR</button></div></div>
@@ -107,28 +136,42 @@
       <div class="shelf services">
         <h3>Servicios</h3>
         <div class="service-row"><div><b>Canica extra</b><div class="desc">+1 comun para la run</div></div>
-          <span class="price">$4</span><button class="btn">COMPRAR</button></div>
+          <span class="price-buy"><span class="price">$4</span><button class="btn">COMPRAR</button></span></div>
         <div class="service-row"><div><b>Reroll</b><div class="desc">stock nuevo</div></div>
-          <span class="price">$2</span><button class="btn reroll">REROLL</button></div>
+          <span class="price-buy"><span class="price">$2</span><button class="btn reroll">REROLL</button></span></div>
+        <h3 style="margin-top:8px">Opciones</h3>
+        <button class="action-btn">CONTINUAR →</button>
+        <button class="action-btn secondary">INFORMACIÓN PARTIDA</button>
+        <button class="action-btn secondary">REGRESAR AL MENU</button>
+        <button class="action-btn secondary">ABANDONAR</button>
+        <div class="actions-hint">← → navegar · ENTER comprar · C continuar</div>
       </div>
       <div class="shelf inv">
         <h3>Tu inventario — rescate: mitad del precio</h3>
-        <div class="inv-grid">
-          <div class="inv-row"><span class="nm">Canica Comun <small>x4</small></span><span class="rescue">$1</span><button>VENDER</button></div>
-          <div class="inv-row"><span class="nm">Canica de Vidrio</span><span class="rescue">$2</span><button>VENDER</button></div>
-          <div class="inv-row"><span class="nm">Trompo de Madera</span><span class="rescue">$2</span><button>VENDER</button></div>
-          <div class="inv-row"><span class="nm">Osito de Peluche</span><span class="rescue">$2</span><button>VENDER</button></div>
-          <div class="inv-row"><span class="nm">Canica de Fuego</span><span class="rescue">$2</span><button>VENDER</button></div>
-          <div class="inv-row"><span class="nm">Corona del Circo</span><span class="rescue">$4</span><button>VENDER</button></div>
-        </div>
-      </div>
-      <div class="shelf actions">
-        <button class="btn big continue">CONTINUAR →</button>
-        <div style="font-size:11px;color:#8d7fb8;text-align:center">← → navegar<br>ENTER comprar · C continuar</div>
+        <div class="service-row"><span class="orb" style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%, #fff4, transparent 55%), var(--cyan)"></span><div><b>Canica Comun <small style="color:var(--cyan)">x4</small></b><div class="desc">Sin efectos: la canica clasica</div></div>
+          <span class="price-buy"><span class="price">$1</span><button class="btn">VENDER</button></span></div>
+        <div class="service-row"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle, #fff 10%, rgba(191,225,255,.55) 60%, transparent 100%)"></span><div><b>Canica de Vidrio</b><div class="desc">Puntua x2 · Puede romperse (20%)</div></div>
+          <span class="price-buy"><span class="price">$2</span><button class="btn">VENDER</button></span></div>
+        <div class="service-row"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%, #fff4, transparent 55%), #2a9d8f"></span><div><b>Trompo de Madera</b><div class="desc">x1.5 por cada pared golpeada</div></div>
+          <span class="price-buy"><span class="price">$2</span><button class="btn">VENDER</button></span></div>
+        <div class="service-row"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%, #fff4, transparent 55%), #2a9d8f"></span><div><b>Osito de Peluche</b><div class="desc">+50 puntos al terminar el tablero</div></div>
+          <span class="price-buy"><span class="price">$2</span><button class="btn">VENDER</button></span></div>
+        <div class="service-row"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%, #fff5, transparent 55%), radial-gradient(circle, var(--yellow) 15%, #ff6a00 70%, transparent 100%)"></span><div><b>Canica de Fuego</b><div class="desc">Sale x1.25 de velocidad</div></div>
+          <span class="price-buy"><span class="price">$2</span><button class="btn">VENDER</button></span></div>
+        <div class="service-row"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%, #fff5, transparent 55%), radial-gradient(circle, var(--yellow) 20%, #c9184a 70%, transparent 100%)"></span><div><b>Corona del Circo</b><div class="desc">Todo puntua x1.1</div></div>
+          <span class="price-buy"><span class="price">$4</span><button class="btn">VENDER</button></span></div>
       </div>
     </div>
   </div>
-  <div class="legend">Referencias: <b>Dave the Diver</b> (puesto temático con banderines, cards paradas en el mostrador) · <b>Balatro</b> (cards grandes con desc y precio, "COMPRADO" en la card) · servicios e inventario abajo, acción siempre visible</div>
 </div>
+<script>
+  // Fit the fixed 1720x920 artboard into whatever window opens it.
+  function fit(){
+    var s = Math.min(window.innerWidth/1720, window.innerHeight/920);
+    document.getElementById('scaler').style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+</script>
 </body>
 </html>
