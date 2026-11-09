@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A — Tienda Tres Columnas (referencia: Slay the Spire shop)</title>
+<style>
+  :root{
+    --bg:#120a26; --panel:#1d1240; --card:#241552; --line:#2e1b58;
+    --yellow:#ffe066; --pink:#ff6fb5; --cyan:#4deeea; --violet:#cdb8ff; --ink:#120b26;
+    --ok:#3ddc84; --danger:#ff5a76;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0616;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .frame{width:1720px;height:920px;background:linear-gradient(160deg,#1a0f33 0%,#120a26 60%,#0d0720 100%);
+    position:relative;overflow:hidden;border-radius:18px;border:3px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;padding:22px 26px}
+  /* Header: compact, one line */
+  .header{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:2px solid var(--line)}
+  .header h1{font-size:28px;font-weight:800;color:var(--yellow)}
+  .header .sub{font-size:14px;color:var(--pink);font-weight:600}
+  .header .spacer{flex:1}
+  .header .money{font-size:26px;font-weight:800;color:var(--yellow);background:var(--card);
+    border:2px solid var(--yellow);border-radius:12px;padding:6px 20px}
+  .header .caps{font-size:13px;color:var(--violet);text-align:right;line-height:1.3}
+  /* Body: the 3 columns */
+  .body{display:flex;gap:18px;flex:1;margin-top:16px;min-height:0}
+  .col{display:flex;flex-direction:column;gap:10px;min-height:0}
+  .col h2{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);
+    padding-bottom:4px;border-bottom:2px solid var(--line)}
+  .col.stock{flex:1.4}
+  .col.inventory{flex:1;border-left:2px solid var(--line);border-right:2px solid var(--line);padding:0 14px}
+  .col.services{flex:.8}
+  /* Stock cards with description (the W3b fix, kept) */
+  .card{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px 14px;
+    display:flex;flex-direction:column;gap:5px}
+  .card.sold{opacity:.45}
+  .card .kind{font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .card .name{font-size:19px;font-weight:700;color:var(--yellow)}
+  .card .desc{font-size:13px;color:var(--violet);line-height:1.35;min-height:36px}
+  .card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+  .card .price{font-size:19px;font-weight:800;color:var(--pink)}
+  .btn{font-family:inherit;border:none;border-radius:9px;padding:9px 22px;font-size:15px;font-weight:700;
+    cursor:pointer;color:var(--ink);background:var(--yellow)}
+  .btn.buy{background:var(--yellow)}
+  .btn.buy:hover{background:var(--pink)}
+  .btn.sold{background:var(--line);color:var(--violet);cursor:default}
+  .btn.reroll{background:var(--cyan);width:100%}
+  .btn.pack{background:var(--yellow);width:100%}
+  .btn.continue{background:var(--pink);width:100%;font-size:18px;padding:13px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stock-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;align-content:start;
+    overflow-y:auto}
+  /* Inventory rows: compact, name + copies + rescue + sell */
+  .inv-row{background:rgba(36,21,82,.7);border:1px solid var(--line);border-radius:9px;
+    padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:14px;color:#fff}
+  .inv-row .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inv-row .nm small{color:var(--cyan);font-weight:700}
+  .inv-row .rescue{color:var(--pink);font-weight:700;font-size:13px;white-space:nowrap}
+  .btn.sell{background:var(--line);color:var(--yellow);padding:5px 12px;font-size:12px;border-radius:7px}
+  .section-note{font-size:12px;color:#8d7fb8;font-style:italic}
+  .services .card{align-items:center;text-align:center}
+  .services .card .desc{min-height:0}
+  .legend{margin-top:14px;font-size:13px;color:#8d7fb8;text-align:center}
+  .legend b{color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="frame">
+    <div class="header">
+      <div><h1>Tienda de la Feria</h1><div class="sub">Tablero 6 completado · Bloque 2 de 5</div></div>
+      <div class="spacer"></div>
+      <div class="caps">Bolso 6/10<br>Premios 2/2</div>
+      <div class="money">$27</div>
+    </div>
+    <div class="body">
+      <div class="col stock">
+        <h2>En venta</h2>
+        <div class="stock-grid">
+          <div class="card"><div class="kind">Canica</div><div class="name">Canica de Fuego</div>
+            <div class="desc">Sale x1.25 de velocidad</div>
+            <div class="foot"><span class="price">$3</span><button class="btn buy">COMPRAR</button></div></div>
+          <div class="card"><div class="kind">Canica</div><div class="name">Teledirigida</div>
+            <div class="desc">Elige tu muesca con la mira: va sola hacia ella · De un solo uso</div>
+            <div class="foot"><span class="price">$5</span><button class="btn buy">COMPRAR</button></div></div>
+          <div class="card"><div class="kind">Premio</div><div class="name">Billete de la Suerte</div>
+            <div class="desc">+$2 cada vez que la feria te devuelve un tiro</div>
+            <div class="foot"><span class="price">$3</span><button class="btn buy">COMPRAR</button></div></div>
+          <div class="card sold"><div class="kind">Premio</div><div class="name">Corona del Circo</div>
+            <div class="desc">Todo puntua x1.1</div>
+            <div class="foot"><span class="price">$7</span><button class="btn sold">COMPRADO</button></div></div>
+        </div>
+        <div class="section-note">El stock cambia cada tablero (sorteo por rareza)</div>
+      </div>
+      <div class="col inventory">
+        <h2>Tu inventario</h2>
+        <div class="inv-row"><span class="nm">Canica Comun <small>x4</small></span><span class="rescue">$1</span><button class="btn sell">VENDER</button></div>
+        <div class="inv-row"><span class="nm">Canica de Fuego</span><span class="rescue">$2</span><button class="btn sell">VENDER</button></div>
+        <div class="inv-row"><span class="nm">Canica de Vidrio</span><span class="rescue">$2</span><button class="btn sell">VENDER</button></div>
+        <div class="inv-row"><span class="nm">Trompo de Madera</span><span class="rescue">$2</span><button class="btn sell">VENDER</button></div>
+        <div class="inv-row"><span class="nm">Corona del Circo</span><span class="rescue">$4</span><button class="btn sell">VENDER</button></div>
+        <div class="section-note">Rescate: la mitad del precio actual. No podes vender tu última canica.</div>
+      </div>
+      <div class="col services">
+        <h2>Servicios</h2>
+        <div class="card"><div class="name">Canica extra</div>
+          <div class="desc">+1 Canica Comun para el resto de la run</div>
+          <div class="foot"><span class="price">$4</span></div><button class="btn pack">COMPRAR</button></div>
+        <div class="card"><div class="name">Reroll del stock</div>
+          <div class="desc">Sortea de nuevo las 4 cartas</div>
+          <div class="foot"><span class="price">$2</span></div><button class="btn reroll">REROLL</button></div>
+        <button class="btn continue">CONTINUAR →</button>
+      </div>
+    </div>
+  </div>
+  <div class="legend">Referencias: <b>Slay the Spire</b> (tienda en columnas: stock / inventario / servicios separados) · <b>Balatro</b> (descripciones en la card, colores de rareza) · nada se desborda: 4 cards de stock + scroll interno si crece</div>
+</div>
+</body>
+</html>

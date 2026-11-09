@@ -228,10 +228,10 @@ func _test_board_scene() -> void:
 			% (plain.board_def.resource_path if plain.board_def != null else "none"))
 	_check(plain.run_objective == 0,
 			"a board without a run should have no objective, got %d" % plain.run_objective)
-	_check(not plain.hud.label_target.visible,
-			"a board without a run should hide the objective line")
-	_check(_text(plain.hud, "label_board_effects") == "Sin modificadores",
-			"a board without modifiers should say so, got '%s'"
+	_check(not plain.hud.label_target.get_parent().get_parent().visible,
+			"a board without a run should hide the objective card")
+	_check(_text(plain.hud, "label_board_effects") == "",
+			"a board without modifiers should hide the rule cue, got '%s'"
 			% _text(plain.hud, "label_board_effects"))
 	plain.queue_free()
 	await physics_frame

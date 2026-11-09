@@ -345,11 +345,11 @@ func _test_launch_single_board() -> void:
 	_check(board.shots_total == expected_throws,
 			"throws should equal picked marbles + extra-throw prizes (%d), got %d"
 			% [expected_throws, board.shots_total])
-	_check(board.hud.label_shots.text == "Canicas restantes: %d / %d"
+	_check(board.hud.label_shots.text == "%d/%d"
 			% [expected_throws, expected_throws],
 			"the HUD should count the picked marbles, shows '%s'"
 			% board.hud.label_shots.text)
-	_check(board.hud.label_money.text == "$: 0",
+	_check(board.hud.label_money.text == "$0",
 			"a debug board should show no money, shows '%s'"
 			% board.hud.label_money.text)
 	board.queue_free()
@@ -407,8 +407,10 @@ func _test_normal_run_untouched() -> void:
 	_check(_ids(game.inventory) == ["common", "common", "common", "common", "common"],
 			"a normal run should own 5 commons, owns %s" % str(_ids(game.inventory)))
 	_check(game.prizes.size() == 1, "a normal run keeps its starting prize")
-	_check(game.board_def_index(5) == 4,
-			"outside debug mode board 5 should render def 4, got %d"
+	# W3b: the board order is random; board 5 rolls among the block-2 defs
+	# (4..6) and the debug override still wins inside a debug match.
+	_check([4, 5, 6].has(game.board_def_index(5)),
+			"outside debug mode board 5 should roll a block-2 def, got %d"
 			% game.board_def_index(5))
 	_check(game.objective_for_board(5, 60) == 69,
 			"outside debug mode board 5 should scale to 69, got %d"

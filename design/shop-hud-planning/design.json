@@ -1,0 +1,13 @@
+{
+  "title": "HUD y Tienda: plan de usabilidad (W3c)",
+  "brief": "El usuario reporta que los botones de la tienda se desbordan de pantalla y pide usabilidad. Dos boards x 3 direcciones: el HUD del tablero y el menu de la tienda, cada uno con referencias de juegos similares (Vampire Survivors, Hades, Balatro, Slay the Spire, Dave the Diver). Canvas real del juego: 1920x1080. Estetica circo-candy existente (#120a26, #ffe066, #ff6fb5, #4deeea). Contenido real: 10 canicas / 10 premios, topes 10/2, rescate mitad de precio, 2 canicas + 2 premios + pack + reroll por tienda.",
+  "feature": "odd/tasks/w3b-shop-usability-boards.md",
+  "artboards": [
+    { "file": "01-hud-minimal.html", "title": "A — HUD Minimal Inmersivo (Vampire Survivors)", "tradeoff": "Cero intrusion sobre el tablero: maxima visibilidad de juego, pero el estado completo exige miradas a 4 esquinas; los premios activos no tienen lugar propio", "width": 1600, "height": 900 },
+    { "file": "02-hud-sidebar.html", "title": "B — HUD Barra Lateral (Balatro, Slay the Spire)", "tradeoff": "Todo el estado run en un solo lugar con progreso del objetivo y premios siempre visibles; cuesta ~260px de ancho de tablero jugable", "width": 1600, "height": 900 },
+    { "file": "03-hud-topstrip.html", "title": "C — HUD Franja Superior (Dave the Diver)", "tradeoff": "Una sola linea de estado, tablero completo libre debajo; los chips de premios pueden apretar si el pool crece", "width": 1600, "height": 900 },
+    { "file": "04-shop-columns.html", "title": "A — Tienda Tres Columnas (Slay the Spire)", "tradeoff": "Maxima densidad y comparacion directa stock/inventario/servicios; menos drama tematico de feria", "width": 1720, "height": 920 },
+    { "file": "05-shop-master-detail.html", "title": "B — Tienda Modal Maestro-Detalle (Hades)", "tradeoff": "Detalle completo por item (efecto, lore, stats, atajos) ideal para mando; la compra requiere seleccion previa, un paso mas", "width": 1720, "height": 920 },
+    { "file": "06-shop-stall.html", "title": "C — Tienda Puesto de Feria (Dave the Diver, Balatro)", "tradeoff": "Mas identidad tematica de feria con banderines y mostrador; densidad media, el inventario en grilla de 2 columnas", "width": 1720, "height": 920 }
+  ]
+}

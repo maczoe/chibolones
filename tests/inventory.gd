@@ -121,7 +121,7 @@ func _test_board_ammo_is_the_throw_budget() -> void:
 	_check(board.shots_total == game.ammo.size(),
 			"the HUD total should be the ammo size (%d), got %d"
 			% [game.ammo.size(), board.shots_total])
-	_check(board.hud.label_shots.text == "Canicas restantes: 5 / 5",
+	_check(board.hud.label_shots.text == "5/5",
 			"the HUD should read the ammo, got '%s'" % board.hud.label_shots.text)
 	_check(board.rules.shots_per_board == 5,
 			"the rules resource keeps shots_per_board, got %d"
@@ -136,7 +136,7 @@ func _test_board_ammo_is_the_throw_budget() -> void:
 	await physics_frame
 	_check(bigger.shots_total == 7,
 			"a 7-marble inventory should give 7 throws, got %d" % bigger.shots_total)
-	_check(bigger.hud.label_shots.text == "Canicas restantes: 7 / 7",
+	_check(bigger.hud.label_shots.text == "7/7",
 			"the HUD should read '7 / 7', got '%s'" % bigger.hud.label_shots.text)
 	bigger.queue_free()
 	await physics_frame
@@ -164,7 +164,7 @@ func _test_consume_on_embed() -> void:
 			and removed[0][1] == &"thrown",
 			"the consume should emit marble_removed ('common', 'thrown'), got %s"
 			% str(removed))
-	_check(board.hud.label_shots.text == "Canicas restantes: 4 / 5",
+	_check(board.hud.label_shots.text == "4/5",
 			"the HUD should count down, got '%s'" % board.hud.label_shots.text)
 	board.queue_free()
 	await physics_frame
@@ -213,7 +213,7 @@ func _test_refund_keeps_the_marble() -> void:
 			"a refund should not spend a throw, throws left %d" % board.shots_left)
 	_check(removed.is_empty(),
 			"a refund should not consume a marble, got %s" % str(removed))
-	_check(board.hud.label_shots.text == "Canicas restantes: 5 / 5",
+	_check(board.hud.label_shots.text == "5/5",
 			"the HUD should keep the count, got '%s'" % board.hud.label_shots.text)
 	_clear_marbles(board)
 	board.queue_free()

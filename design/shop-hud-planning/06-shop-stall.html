@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C — Tienda Puesto de Feria (referencia: Dave the Diver, Balatro shop)</title>
+<style>
+  :root{
+    --bg:#120a26; --panel:#1d1240; --card:#241552; --line:#2e1b58;
+    --yellow:#ffe066; --pink:#ff6fb5; --cyan:#4deeea; --violet:#cdb8ff; --ink:#120b26;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0616;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .frame{width:1720px;height:920px;background:
+      radial-gradient(ellipse 1200px 500px at 50% -10%, rgba(255,111,181,.12), transparent 60%),
+      linear-gradient(160deg,#1a0f33 0%,#120a26 60%,#0d0720 100%);
+    position:relative;overflow:hidden;border-radius:18px;border:3px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;padding:22px 30px}
+  /* Marquee: the fair stall identity (Dave the Diver's busy but organized top) */
+  .marquee{text-align:center;margin-bottom:6px}
+  .marquee h1{font-size:30px;font-weight:800;color:var(--yellow);letter-spacing:1px}
+  .marquee .sub{font-size:13px;color:var(--pink);font-weight:600;letter-spacing:2px;text-transform:uppercase}
+  .bunting{display:flex;justify-content:center;gap:0;height:14px;margin-bottom:10px}
+  .bunting span{width:26px;height:14px;clip-path:polygon(0 0,100% 0,50% 100%);
+    background:var(--pink);margin:0 2px}
+  .bunting span:nth-child(2n){background:var(--cyan)}
+  .bunting span:nth-child(3n){background:var(--yellow)}
+  /* Counter row: stall cards standing on a "counter" shelf */
+  .counter{display:flex;gap:16px;justify-content:center;align-items:stretch}
+  .stall{width:300px;background:var(--card);border:2px solid var(--line);border-radius:14px;
+    padding:14px;display:flex;flex-direction:column;gap:6px;position:relative}
+  .stall.selected{border-color:var(--yellow);transform:translateY(-6px);
+    box-shadow:0 10px 0 rgba(0,0,0,.35), 0 0 26px rgba(255,224,102,.18)}
+  .stall .kind{font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .stall .orb{width:56px;height:56px;border-radius:50%;align-self:center;margin:2px 0}
+  .stall.fire .orb{background:radial-gradient(circle,var(--yellow) 20%,#ff6a00 60%,transparent 100%)}
+  .stall.glass .orb{background:radial-gradient(circle,#fff 10%,rgba(191,225,255,.6) 60%,transparent 100%)}
+  .stall.prize .orb{background:radial-gradient(circle,var(--cyan) 20%,#2a9d8f 60%,transparent 100%)}
+  .stall.rare .orb{background:radial-gradient(circle,var(--yellow) 20%,#c9184a 60%,transparent 100%)}
+  .stall .name{font-size:17px;font-weight:700;color:var(--yellow);text-align:center}
+  .stall .desc{font-size:12.5px;color:var(--violet);text-align:center;line-height:1.35;min-height:50px}
+  .stall .foot{display:flex;justify-content:space-between;align-items:center;margin-top:auto}
+  .stall .price{font-size:19px;font-weight:800;color:var(--pink)}
+  .btn{font-family:inherit;border:none;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:700;
+    cursor:pointer;color:var(--ink);background:var(--yellow)}
+  .btn:hover{background:var(--pink)}
+  .stall .sold-tag{background:var(--line);color:var(--violet);padding:8px 18px;border-radius:8px;
+    font-size:14px;font-weight:700}
+  /* Bottom: two shelves — services left, inventory right, action far right */
+  .shelves{display:flex;gap:18px;margin-top:18px;flex:1;min-height:0}
+  .shelf{background:rgba(29,18,64,.8);border:2px solid var(--line);border-radius:14px;
+    padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .shelf h3{font-size:12px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;
+    padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .shelf.services{flex:.8}
+  .shelf.inv{flex:1.6}
+  .shelf.actions{flex:.6;justify-content:flex-end;gap:12px}
+  .service-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:14px;color:#fff}
+  .service-row .price{color:var(--pink);font-weight:800}
+  .service-row .desc{font-size:12px;color:var(--violet)}
+  .btn.reroll{background:var(--cyan)}
+  .inv-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;overflow-y:auto}
+  .inv-row{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:8px;padding:6px 10px;font-size:13px;color:#fff}
+  .inv-row .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inv-row .nm small{color:var(--cyan)}
+  .inv-row .rescue{color:var(--pink);font-weight:700;font-size:12px}
+  .inv-row button{font-family:inherit;border:none;background:var(--line);color:var(--yellow);
+    border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer}
+  .btn.big{font-size:17px;padding:13px;border-radius:10px}
+  .btn.continue{background:var(--pink)}
+  .money-badge{position:absolute;top:24px;right:34px;font-size:26px;font-weight:800;color:var(--yellow);
+    background:var(--card);border:2px solid var(--yellow);border-radius:12px;padding:6px 20px}
+  .caps-badge{position:absolute;top:88px;right:34px;font-size:12px;color:var(--violet)}
+  .legend{margin-top:12px;font-size:13px;color:#8d7fb8;text-align:center}
+  .legend b{color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="frame">
+    <div class="money-badge">$27</div>
+    <div class="caps-badge">Bolso 6/10 · Premios 2/2</div>
+    <div class="marquee"><div class="bunting"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <h1>Tienda de la Feria</h1><div class="sub">Tablero 6 · Bloque 2 de 5</div></div>
+    <div class="counter">
+      <div class="stall fire selected"><div class="kind">Canica</div><div class="orb"></div>
+        <div class="name">Canica de Fuego</div>
+        <div class="desc">Sale x1.25 de velocidad</div>
+        <div class="foot"><span class="price">$3</span><button class="btn">COMPRAR</button></div></div>
+      <div class="stall glass"><div class="kind">Canica</div><div class="orb"></div>
+        <div class="name">Canica de Vidrio</div>
+        <div class="desc">Puntua x2 · Puede romperse al tirar (20%)</div>
+        <div class="foot"><span class="price">$4</span><button class="btn">COMPRAR</button></div></div>
+      <div class="stall prize"><div class="kind">Premio</div><div class="orb"></div>
+        <div class="name">Billete de la Suerte</div>
+        <div class="desc">+$2 cada vez que la feria te devuelve un tiro</div>
+        <div class="foot"><span class="price">$3</span><button class="btn">COMPRAR</button></div></div>
+      <div class="stall rare"><div class="kind">Premio</div><div class="orb"></div>
+        <div class="name">Corona del Circo</div>
+        <div class="desc">Todo puntua x1.1</div>
+        <div class="foot"><span class="price">$7</span><span class="sold-tag">COMPRADO</span></div></div>
+    </div>
+    <div class="shelves">
+      <div class="shelf services">
+        <h3>Servicios</h3>
+        <div class="service-row"><div><b>Canica extra</b><div class="desc">+1 comun para la run</div></div>
+          <span class="price">$4</span><button class="btn">COMPRAR</button></div>
+        <div class="service-row"><div><b>Reroll</b><div class="desc">stock nuevo</div></div>
+          <span class="price">$2</span><button class="btn reroll">REROLL</button></div>
+      </div>
+      <div class="shelf inv">
+        <h3>Tu inventario — rescate: mitad del precio</h3>
+        <div class="inv-grid">
+          <div class="inv-row"><span class="nm">Canica Comun <small>x4</small></span><span class="rescue">$1</span><button>VENDER</button></div>
+          <div class="inv-row"><span class="nm">Canica de Vidrio</span><span class="rescue">$2</span><button>VENDER</button></div>
+          <div class="inv-row"><span class="nm">Trompo de Madera</span><span class="rescue">$2</span><button>VENDER</button></div>
+          <div class="inv-row"><span class="nm">Osito de Peluche</span><span class="rescue">$2</span><button>VENDER</button></div>
+          <div class="inv-row"><span class="nm">Canica de Fuego</span><span class="rescue">$2</span><button>VENDER</button></div>
+          <div class="inv-row"><span class="nm">Corona del Circo</span><span class="rescue">$4</span><button>VENDER</button></div>
+        </div>
+      </div>
+      <div class="shelf actions">
+        <button class="btn big continue">CONTINUAR →</button>
+        <div style="font-size:11px;color:#8d7fb8;text-align:center">← → navegar<br>ENTER comprar · C continuar</div>
+      </div>
+    </div>
+  </div>
+  <div class="legend">Referencias: <b>Dave the Diver</b> (puesto temático con banderines, cards paradas en el mostrador) · <b>Balatro</b> (cards grandes con desc y precio, "COMPRADO" en la card) · servicios e inventario abajo, acción siempre visible</div>
+</div>
+</body>
+</html>

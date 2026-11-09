@@ -192,10 +192,12 @@ func _ready() -> void:
 	hud.set_money(Game.money)
 	Game.money_changed.connect(hud.set_money)
 	hud.set_prizes(Game.prizes)
-	hud.set_selected_marble(_selected_marble_def().display_name)
-	# Board identity (M2.5): the name and rules stay on screen top-center for
-	# the whole board, so the player always knows which board they are on.
-	hud.set_board_title(board_def.theme_name, _effects_line())
+	_refresh_hand()
+	# W3c HUD: the board rule goes to the top-center cue, the name to the
+	# sidebar title with the run subtitle.
+	hud.set_board_title(board_def.theme_name, _effects_line(), _board_subtitle())
+	# The bag list selects a marble with a click.
+	hud.bag_selected.connect(_on_bag_selected)
 	# Bonificador announcements: one cue per modifier, queued so a boss board
 	# with two rules still reads (the board emits modifier_active once each).
 	announce_timer = Timer.new()
@@ -569,8 +571,29 @@ func _cycle_ammo(step: int) -> void:
 	if count > 0:
 		selected_ammo_index = (selected_ammo_index + step + count) % count
 	var def := _selected_marble_def()
-	hud.set_selected_marble(def.display_name)
+	_refresh_hand()
 	hud.flash("%s: %s" % [def.display_name, _marble_hint(def)])
+
+
+## Refresh the hand card and the bag highlight (W3c HUD).
+func _refresh_hand() -> void:
+	hud.set_bag(Game.ammo, selected_ammo_index)
+	hud.set_selected_marble(_selected_marble_def())
+
+
+## A bag row was clicked: select that marble.
+func _on_bag_selected(index: int) -> void:
+	selected_ammo_index = index
+	var def := _selected_marble_def()
+	hud.set_selected_marble(def)
+	hud.flash("%s: %s" % [def.display_name, _marble_hint(def)])
+
+
+## Sidebar subtitle: which run board and block this is (W3c).
+func _board_subtitle() -> String:
+	var n := Game.current_board_in_run if Game.current_board_in_run > 0 else 1
+	var boss := " · JEFE" if Game.is_boss(n) else ""
+	return "TABLERO %d · BLOQUE %d%s" % [n, Game.block_of(n), boss]
 
 
 ## Keep the selection on a marble that still exists after the ammo shrank.
@@ -921,7 +944,7 @@ func _consume_throw() -> void:
 	shots_left = Game.ammo.size()
 	_keep_selection_valid()
 	hud.set_shots(shots_left, shots_total)
-	hud.set_selected_marble(_selected_marble_def().display_name)
+	_refresh_hand()
 
 
 func _embed(marble: RigidBody3D, hole: Dictionary, speed: float = 0.0) -> void:
@@ -1216,14 +1239,14 @@ func _board_number() -> int:
 	return 1
 
 
-## Identity line of the HUD under the board name: the display names of the
-## board's bonificadores, or a plain "Sin modificadores" when it has none.
+## Rule text for the top-center cue: each bonificador's description, so
+## the board announces what it does. Empty when the board has no rule.
 func _effects_line() -> String:
-	var names: Array[String] = []
+	var lines: Array[String] = []
 	for modifier in active_modifiers():
 		if modifier != null:
-			names.append(modifier.display_name)
-	return " + ".join(names) if not names.is_empty() else "Sin modificadores"
+			lines.append("%s: %s" % [modifier.display_name, modifier.description])
+	return "\n".join(lines)
 
 
 ## The board's active bonificadores, asked by ScoreEngine for their score
@@ -1285,7 +1308,7 @@ func _try_break(def: MarbleDef) -> bool:
 		return false
 	_keep_selection_valid()
 	hud.flash("Tu canica de vidrio se rompio!")
-	hud.set_selected_marble(_selected_marble_def().display_name)
+	_refresh_hand()
 	return true
 
 

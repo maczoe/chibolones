@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B — Tienda Modal Maestro-Detalle (referencia: Hades, roguelikes con detalle)</title>
+<style>
+  :root{
+    --bg:#120a26; --panel:#1d1240; --card:#241552; --line:#2e1b58;
+    --yellow:#ffe066; --pink:#ff6fb5; --cyan:#4deeea; --violet:#cdb8ff; --ink:#120b26;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0616;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .frame{width:1720px;height:920px;background:linear-gradient(160deg,#1a0f33 0%,#120a26 60%,#0d0720 100%);
+    position:relative;overflow:hidden;border-radius:18px;border:3px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;padding:22px 26px}
+  .header{display:flex;align-items:center;gap:20px;padding-bottom:14px;border-bottom:2px solid var(--line)}
+  .header h1{font-size:28px;font-weight:800;color:var(--yellow)}
+  .header .sub{font-size:14px;color:var(--pink);font-weight:600}
+  .header .spacer{flex:1}
+  .header .money{font-size:26px;font-weight:800;color:var(--yellow);background:var(--card);
+    border:2px solid var(--yellow);border-radius:12px;padding:6px 20px}
+  /* Main: small stock tiles + detail panel (Hades' boons: pick a tile, read everything) */
+  .body{display:flex;gap:22px;flex:1;margin-top:18px;min-height:0}
+  .left{flex:1.1;display:flex;flex-direction:column;gap:12px;min-height:0}
+  .left h2{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;overflow-y:auto}
+  .tile{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:16px 14px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;cursor:pointer}
+  .tile.selected{border-color:var(--yellow);background:#2d1a63;
+    box-shadow:0 0 0 3px rgba(255,224,102,.25), 0 0 24px rgba(255,224,102,.15)}
+  .tile .kind{font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .tile .orb{width:52px;height:52px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff3, transparent 60%);margin:4px 0}
+  .tile.fire .orb{background:radial-gradient(circle,var(--yellow) 20%,#ff6a00 60%,transparent 100%)}
+  .tile.homing .orb{background:radial-gradient(circle,var(--pink) 20%,#7b2fbf 60%,transparent 100%)}
+  .tile.prize .orb{background:radial-gradient(circle,var(--cyan) 20%,#2a9d8f 60%,transparent 100%)}
+  .tile.rare .orb{background:radial-gradient(circle,var(--yellow) 20%,#c9184a 60%,transparent 100%)}
+  .tile .name{font-size:17px;font-weight:700;color:#fff}
+  .tile .price{font-size:18px;font-weight:800;color:var(--pink)}
+  .tile .rarity{font-size:11px;letter-spacing:1px;font-weight:700;color:var(--violet)}
+  /* Detail panel: everything about the selection */
+  .detail{flex:1;background:var(--panel);border:2px solid var(--yellow);border-radius:16px;
+    padding:26px;display:flex;flex-direction:column;gap:12px}
+  .detail .kind{font-size:12px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}
+  .detail h2{font-size:30px;font-weight:800;color:var(--yellow)}
+  .detail .rarity{font-size:13px;color:var(--violet);letter-spacing:1px}
+  .detail .effect{font-size:19px;color:#fff;line-height:1.4;border-left:4px solid var(--pink);
+    padding-left:14px;margin:8px 0}
+  .detail .flavor{font-size:14px;color:var(--violet);font-style:italic;line-height:1.45}
+  .detail .stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .detail .stat-chip{background:var(--card);border:1px solid var(--line);border-radius:8px;
+    padding:5px 12px;font-size:13px;color:var(--cyan)}
+  .detail .buyrow{margin-top:auto;display:flex;gap:12px;align-items:center}
+  .detail .price{font-size:26px;font-weight:800;color:var(--pink)}
+  .btn{font-family:inherit;border:none;border-radius:10px;padding:13px 34px;font-size:17px;font-weight:700;
+    cursor:pointer;color:var(--ink);background:var(--yellow)}
+  .btn:hover{background:var(--pink)}
+  .detail .hint{font-size:12px;color:#8d7fb8}
+  /* Inventory strip at the bottom: horizontal chips (compact, no overflow) */
+  .invbar{margin-top:16px;border-top:2px solid var(--line);padding-top:12px;
+    display:flex;align-items:center;gap:10px;overflow-x:auto}
+  .invbar .label{font-size:11px;letter-spacing:2px;color:var(--violet);text-transform:uppercase;white-space:nowrap}
+  .inv-chip{display:flex;align-items:center;gap:8px;background:rgba(36,21,82,.7);
+    border:1px solid var(--line);border-radius:20px;padding:6px 8px 6px 14px;font-size:13px;color:#fff;
+    white-space:nowrap;cursor:pointer}
+  .inv-chip .rescue{color:var(--pink);font-weight:700;font-size:12px}
+  .inv-chip button{font-family:inherit;border:none;background:var(--line);color:var(--yellow);
+    border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer}
+  .legend{margin-top:12px;font-size:13px;color:#8d7fb8;text-align:center}
+  .legend b{color:var(--yellow)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="frame">
+    <div class="header">
+      <div><h1>Tienda de la Feria</h1><div class="sub">Tablero 6 completado · Bloque 2</div></div>
+      <div class="spacer"></div>
+      <div class="money">$27</div>
+    </div>
+    <div class="body">
+      <div class="left">
+        <h2>En venta — navegá con las flechas, enter compra</h2>
+        <div class="tiles">
+          <div class="tile fire selected"><div class="kind">Canica</div><div class="orb"></div>
+            <div class="name">Canica de Fuego</div><div class="rarity">común</div><div class="price">$3</div></div>
+          <div class="tile homing"><div class="kind">Canica</div><div class="orb"></div>
+            <div class="name">Teledirigida</div><div class="rarity">infrecuente</div><div class="price">$5</div></div>
+          <div class="tile prize"><div class="kind">Premio</div><div class="orb"></div>
+            <div class="name">Billete de la Suerte</div><div class="rarity">común</div><div class="price">$3</div></div>
+          <div class="tile rare"><div class="kind">Premio</div><div class="orb"></div>
+            <div class="name">Corona del Circo</div><div class="rarity">rara</div><div class="price">$7</div></div>
+        </div>
+        <div class="invbar">
+          <span class="label">Tu inventario:</span>
+          <span class="inv-chip">Canica Comun x4 <span class="rescue">$1</span><button>VENDER</button></span>
+          <span class="inv-chip">Trompo de Madera <span class="rescue">$2</span><button>VENDER</button></span>
+          <span class="inv-chip">Osito de Peluche <span class="rescue">$2</span><button>VENDER</button></span>
+          <span class="inv-chip">Canica de Vidrio <span class="rescue">$2</span><button>VENDER</button></span>
+        </div>
+      </div>
+      <div class="detail">
+        <div class="kind">Canica · común</div>
+        <h2>Canica de Fuego</h2>
+        <div class="effect">Sale x1.25 de velocidad</div>
+        <div class="flavor">"Surreal: arde pero no se consume; tira mas rapido de lo que deberia."</div>
+        <div class="stats"><span class="stat-chip">Velocidad x1.25</span><span class="stat-chip">Permanente</span></div>
+        <div class="buyrow"><span class="price">$3</span><button class="btn">COMPRAR — ENTER</button></div>
+        <div class="hint">← → navegar · ENTER comprar · R reroll ($2) · ESPACIO continuar</div>
+      </div>
+    </div>
+  </div>
+  <div class="legend">Referencias: <b>Hades</b> (tiles seleccionables + panel de detalle con todo: efecto, lore, stats, atajos) · <b>Balatro</b> (orb como identidad visual, rareza nombrada) · inventario en chips horizontales, cero desborde</div>
+</div>
+</body>
+</html>

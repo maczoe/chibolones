@@ -74,3 +74,9 @@ L3: T1-T5 implementados (48719c7 + beb515a): effect_description en
     comprar/vender/reroll, orden de tableros sorteado por bloque
     (bloque 1 reparte las defs 1-2 entre tableros 2-3; jefes y tablero
     1 fijos; endless tira defs de tier jefe). Suite 16/16 x5 corridas.
+L4: Unidad W3+W3b mergeada a main y pusheada (1069bb5, 11 commits).
+L5: Pedido del usuario: planificar HUD y menu de la tienda (los botones
+    se desbordan); mock con gentle design, 2 boards x 3 direcciones,
+    referencias de juegos similares. Creado design/shop-hud-planning/
+    con 01-hud-minimal, 02-hud-sidebar, 03-hud-topstrip, 04-shop-columns,
+    05-shop-master-detail, 06-shop-stall.

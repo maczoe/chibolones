@@ -486,7 +486,7 @@ func _test_board_wiring() -> void:
 	_check(board.hud.label_target.text == "Objetivo: %d" % expected_objective,
 			"HUD objective line should read 'Objetivo: %d', got '%s'"
 			% [expected_objective, board.hud.label_target.text])
-	_check(board.hud.label_money.text == "$: %d" % game.money,
+	_check(board.hud.label_money.text == "$%d" % game.money,
 			"HUD money line should read '$: %d', got '%s'"
 			% [game.money, board.hud.label_money.text])
 

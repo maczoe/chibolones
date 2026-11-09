@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A — HUD Minimal Inmersivo (referencia: Vampire Survivors)</title>
+<style>
+  :root{
+    --bg:#120a26; --panel:#1d1240; --card:#241552; --line:#2e1b58;
+    --yellow:#ffe066; --pink:#ff6fb5; --cyan:#4deeea; --violet:#cdb8ff; --ink:#120b26;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0616;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .frame{width:1600px;height:900px;background:linear-gradient(160deg,#1a0f33 0%,#120a26 60%,#0d0720 100%);
+    position:relative;overflow:hidden;border-radius:18px;border:3px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .frame::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse 900px 400px at 50% 115%, rgba(255,111,181,.10), transparent 65%)}
+  /* Notch grid hint (decorative, board context) */
+  .notches{position:absolute;inset:110px 240px 60px;display:grid;
+    grid-template-columns:repeat(7,1fr);gap:34px;opacity:.16}
+  .notches span{aspect-ratio:1;border-radius:50%;border:2px dashed var(--violet);position:relative}
+  .notches span::after{content:attr(data-v);position:absolute;inset:0;display:flex;align-items:center;
+    justify-content:center;color:var(--violet);font-size:13px;font-weight:700}
+  .notches span.full{background:radial-gradient(circle,var(--cyan) 30%,transparent 70%);border-style:solid;opacity:.9}
+  /* ===== HUD: corner islands (the direction) ===== */
+  .hud{position:absolute;inset:0;pointer-events:none;z-index:5}
+  .island{position:absolute;background:rgba(29,18,64,.92);border:2px solid var(--line);
+    border-radius:14px;padding:10px 18px;backdrop-filter:blur(2px)}
+  /* Objective: top center, always visible, one glance */
+  .island.objective{top:18px;left:50%;transform:translateX(-50%);text-align:center;
+    border-color:var(--yellow);padding:8px 30px}
+  .objective .label{font-size:11px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+  .objective .value{font-size:30px;font-weight:800;color:var(--yellow);line-height:1.1}
+  .objective .value small{font-size:16px;color:var(--violet);font-weight:600}
+  /* Score: top left, secondary to objective */
+  .island.score{top:18px;left:20px;min-width:150px}
+  .island.score .label{font-size:11px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+  .island.score .value{font-size:26px;font-weight:800;color:var(--cyan)}
+  /* Money + bag: top right */
+  .island.economy{top:18px;right:20px;display:flex;gap:18px;align-items:center}
+  .economy .money{font-size:24px;font-weight:800;color:var(--yellow)}
+  .economy .money::before{content:"$ ";color:var(--violet);font-size:16px}
+  .economy .bag{font-size:15px;color:var(--cyan);font-weight:600}
+  /* Shots: bottom left, near the throw origin — the one that changes most */
+  .island.shots{bottom:22px;left:20px}
+  .shots .label{font-size:11px;letter-spacing:2px;color:var(--violet);text-transform:uppercase}
+  .shots .pips{display:flex;gap:6px;margin-top:6px}
+  .shots .pip{width:14px;height:14px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 8px rgba(77,238,234,.5)}
+  .shots .pip.spent{background:var(--line);box-shadow:none}
+  /* Current marble + wall mult: bottom right, near the action feedback */
+  .island.marble{bottom:22px;right:20px;text-align:right;max-width:320px}
+  .marble .name{font-size:18px;font-weight:700;color:var(--pink)}
+  .marble .effect{font-size:13px;color:var(--violet);margin-top:2px}
+  .marble .wallmult{font-size:22px;font-weight:800;color:var(--yellow);margin-top:4px}
+  /* Feedback strip: single bottom-center message line */
+  .island.message{bottom:22px;left:50%;transform:translateX(-50%);font-size:16px;
+    color:var(--yellow);border-color:var(--pink);padding:8px 24px}
+  /* Boss cue */
+  .island.boss{top:78px;left:50%;transform:translateX(-50%);border-color:var(--pink);
+    padding:6px 18px;font-size:13px;letter-spacing:2px;color:var(--pink);font-weight:700}
+  /* ===== Legend ===== */
+  .legend{position:absolute;bottom:-58px;left:0;right:0;display:flex;gap:14px;justify-content:center;
+    font-size:13px;color:#8d7fb8}
+  .legend b{color:var(--yellow);font-weight:700}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="frame">
+    <div class="notches">
+      <span data-v="5"></span><span data-v="10" class="full"></span><span data-v="15"></span><span data-v="20" class="full"></span><span data-v="10"></span><span data-v="5"></span><span data-v="25"></span>
+      <span data-v="10"></span><span data-v="25"></span><span data-v="5"></span><span data-v="30" class="full"></span><span data-v="15"></span><span data-v="10"></span><span data-v="5"></span>
+      <span data-v="20"></span><span data-v="5"></span><span data-v="15"></span><span data-v="10"></span><span data-v="25"></span><span data-v="5"></span><span data-v="10"></span>
+    </div>
+    <div class="hud">
+      <div class="island score"><div class="label">Puntos</div><div class="value">145</div></div>
+      <div class="island objective"><div class="label">Objetivo</div><div class="value">145 <small>/ 200</small></div></div>
+      <div class="island boss">TABLERO 6 · JEFE</div>
+      <div class="island economy"><span class="money">27</span><span class="bag">🎯 6/10</span></div>
+      <div class="island shots"><div class="label">Canicas</div>
+        <div class="pips"><span class="pip spent"></span><span class="pip spent"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></div>
+      </div>
+      <div class="island message">Trompo de Madera x1.5!</div>
+      <div class="island marble"><div class="name">Canica de Fuego</div>
+        <div class="effect">Sale x1.25 de velocidad</div><div class="wallmult">x1.5 paredes</div></div>
+    </div>
+  </div>
+  <div class="legend">Referencias: <b>Vampire Survivors</b> (corner islands flotantes, cero paneles) · <b>Hades</b> (un mensaje de feedback a la vez, esquina inferior) · puntos arriba-izquierda, objetivo arriba-centro, economía arriba-derecha, canicas y marble actual abajo</div>
+</div>
+</body>
+</html>

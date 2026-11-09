@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "vuerw0uj",
+      "file": "02-hud-sidebar.html",
+      "selector": "body > div > div:nth-of-type(1)",
+      "excerpt": "TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 PLATA $27 CANICAS 6/10 quedan 4 tiros PREMIOS ACTIVOS Trompo de Madera x1.5 Osito de Peluche +50 Canica de Fuego Sale x1.25 de velocidad Paredes x1.5 Teledirigida: objetivo fila 2",
+      "comment": "Vamos a usar este pero la resolución esta muy grande para adaptar a la ventana, podría ajustar la resolución del html para ver todo en una misma ventana",
+      "createdAt": "2026-11-09T03:19:48.512Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:19:48.562Z",
+      "resolvedAt": "2026-11-09T03:22:21.141Z"
+    },
+    {
+      "id": "icahq29c",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1) > div:nth-of-type(5)",
+      "excerpt": "CANICAS 6/10 quedan 4 tiros",
+      "comment": "Podrías colocar abajo de los tiros restantes la canica activa colocando el sprite de la canica el nombre de la canica y la descripción y poder ver todas las canicas en una parte scrollable resaltando la canica activa",
+      "createdAt": "2026-11-09T03:23:03.557Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:23:03.602Z",
+      "resolvedAt": "2026-11-09T03:24:00.891Z"
+    },
+    {
+      "id": "8n9jdf9z",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(4)",
+      "excerpt": "Referencias: Balatro (panel izquierdo con todo el estado run) · Slay the Spire (rail de estado + premios apilados) · barra de progreso del objetivo, premios como chips, marble y feedback en rail derecho",
+      "comment": "podrías quitar esta referencia para no estorbar",
+      "createdAt": "2026-11-09T03:25:24.136Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:25:24.179Z",
+      "resolvedAt": "2026-11-09T03:25:54.584Z"
+    },
+    {
+      "id": "7md0kjqz",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1) > div:nth-of-type(7)",
+      "excerpt": "PREMIOS ACTIVOS Trompo de Madera x1.5 Osito de Peluche +50",
+      "comment": "Podrías cambiar los premios como un panel en la parte superior derecha y los premios deberían de mostrar su sprite el nombre y las descripción de lo que hace el bonificador, elimina el bloque que dice Paredes x.15 y en su lugar coloca el panel de premios activos utilizando el patrón de colores",
+      "createdAt": "2026-11-09T03:27:55.782Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:27:55.832Z",
+      "resolvedAt": "2026-11-09T03:30:02.920Z"
+    },
+    {
+      "id": "54scln8x",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div",
+      "excerpt": "TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 PLATA $27 CANICAS 6/10 quedan 4 tiros EN MANO · ↑↓ CAMBIAR Canica de Fuego Sale x1.25 de velocidad Canica de Fuego Canica Comun x2 Canica de Vidrio Canica Agata Teledirigida PREMIOS ACTIVOS Trompo de Madera x1.5 Osito de Peluche +50 Paredes x1.5",
+      "comment": "Podrías quitar el panel de Teledirigida objetivo fila 2 esa no nos sirve por ahora",
+      "createdAt": "2026-11-09T03:29:15.992Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:29:16.045Z",
+      "resolvedAt": "2026-11-09T03:30:43.805Z"
+    },
+    {
+      "id": "n9iulmgf",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1) > div:nth-of-type(4) > div:nth-of-type(1)",
+      "excerpt": "PLATA",
+      "comment": "En lugar de plata coloca Cash",
+      "createdAt": "2026-11-09T03:30:10.955Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:30:11.028Z",
+      "resolvedAt": "2026-11-09T03:31:45.845Z"
+    },
+    {
+      "id": "8vw4c3bi",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div",
+      "excerpt": "TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 PLATA $27 CANICAS 6/10 quedan 4 tiros EN MANO · ↑↓ CAMBIAR Canica de Fuego Sale x1.25 de velocidad Canica de Fuego Canica Comun x2 Canica de Vidrio Canica Agata Teledirigida PREMIOS ACTIVOS Trompo de Madera Puntua x1.5 por cada pared que golpea e",
+      "comment": "Puedes colocar la descripción del efecto del tablero como un texto en la parte central superior",
+      "createdAt": "2026-11-09T03:31:16.347Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:31:16.402Z",
+      "resolvedAt": "2026-11-09T03:32:29.456Z"
+    },
+    {
+      "id": "51o46ex9",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div",
+      "excerpt": "TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 CASH $27 CANICAS 6/10 quedan 4 tiros EN MANO · ↑↓ CAMBIAR Canica de Fuego Sale x1.25 de velocidad Canica de Fuego Canica Comun x2 Canica de Vidrio Canica Agata Teledirigida PREMIOS ACTIVOS Trompo de Madera Puntua x1.5 por cada pared que golpea el",
+      "comment": "En la parte inferior central van todos los mensajes de ayuda y notificación como hasta ahora, pero utilizando un esquema de colores coherente al resto del hud",
+      "createdAt": "2026-11-09T03:32:13.669Z",
+      "status": "resolved",
+      "sentAt": null,
+      "resolvedAt": "2026-11-09T03:33:22.952Z"
+    },
+    {
+      "id": "2r7xnkg4",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div",
+      "excerpt": "Ventoso: viento cruzado que empuja tus canicas — mirá las flechas del fondo TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 CASH $27 CANICAS 6/10 quedan 4 tiros EN MANO · ↑↓ CAMBIAR Canica de Fuego Sale x1.25 de velocidad Canica de Fuego Canica Comun x2 Canica de Vidrio Canica Agata Teledirigi",
+      "comment": "En la parte inferior central van todos los mensajes de ayuda y notificación como hasta ahora, pero utilizando un esquema de colores coherente al resto del hud",
+      "createdAt": "2026-11-09T03:32:21.741Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:32:21.792Z",
+      "resolvedAt": "2026-11-09T03:34:14.408Z"
+    },
+    {
+      "id": "wdejrhlr",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1)",
+      "excerpt": "Ventoso: viento cruzado que empuja tus canicas — mirá las flechas del fondo",
+      "comment": "Podrías colocar el color de texto blanco acá con el fondo oscuro que ya tiene y un borde amarillo",
+      "createdAt": "2026-11-09T03:33:03.406Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:33:03.487Z",
+      "resolvedAt": "2026-11-09T03:35:13.766Z"
+    },
+    {
+      "id": "7ffgijnf",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div",
+      "excerpt": "Ventoso: viento cruzado que empuja tus canicas — mirá las flechas del fondo Trompo de Madera x1.5! Salio por el borde del jugador: se puede volver a tirar TABLERO 6 BLOQUE 2 · JEFE OBJETIVO 145/200 PUNTOS 145 CASH $27 CANICAS 6/10 quedan 4 tiros EN MANO · ↑↓ CAMBIAR Canica de Fuego Sale x1.25 de vel",
+      "comment": "En la parte inferior izquierda se agregan tesoros acumulados en caso de implementar bonificaciones del tablero, acá solo se agregan sprites de los bonus utiliza un sprite de tesoro",
+      "createdAt": "2026-11-09T03:36:36.725Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:36:36.770Z",
+      "resolvedAt": "2026-11-09T03:37:25.344Z"
+    },
+    {
+      "id": "kl38lzo7",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1)",
+      "excerpt": "Ventoso: viento cruzado que empuja tus canicas — mirá las flechas del fondo",
+      "comment": "Podrías cambiar a borde rosa y texto amarillo",
+      "createdAt": "2026-11-09T03:37:13.804Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:37:13.898Z",
+      "resolvedAt": "2026-11-09T03:38:28.485Z"
+    },
+    {
+      "id": "io6ypc9f",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(1) > div:nth-of-type(1)",
+      "excerpt": "TESOROS",
+      "comment": "Cambiar texto a BONUS",
+      "createdAt": "2026-11-09T03:37:42.700Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:37:42.765Z",
+      "resolvedAt": "2026-11-09T03:39:09.663Z"
+    },
+    {
+      "id": "6bla8mcs",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(4) > div:nth-of-type(5) > div:nth-of-type(1)",
+      "excerpt": "CANICAS",
+      "comment": "Cambiar texto a CHIBOLONES",
+      "createdAt": "2026-11-09T03:37:57.153Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:37:57.217Z",
+      "resolvedAt": "2026-11-09T03:39:56.325Z"
+    },
+    {
+      "id": "b71c093o",
+      "file": "02-hud-sidebar.html",
+      "selector": "#scaler > div > div:nth-of-type(4) > div:nth-of-type(4) > div:nth-of-type(1)",
+      "excerpt": "CASH",
+      "comment": "Cambiar texto a DINERO",
+      "createdAt": "2026-11-09T03:38:12.170Z",
+      "status": "resolved",
+      "sentAt": "2026-11-09T03:38:12.228Z",
+      "resolvedAt": "2026-11-09T03:40:36.276Z"
+    }
+  ]
+}
