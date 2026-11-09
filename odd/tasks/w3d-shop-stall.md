@@ -50,7 +50,9 @@ S6: Botones de opciones nuevos: INFORMACIÓN PARTIDA, REGRESAR AL MENU y
 
 T1 (S1-S6): Rewrite scripts/ui/shop_screen.gd to the fair-stall layout;
     option buttons with minimal handlers; focus navigation + touch;
-    inventory scroll; update tests. Route: inline.
+    inventory scroll; update tests. Route: inline. Commit: b6f51f3
+    (suite 16/16 verde, gdcheck OK). Pendiente: partida visual del
+    usuario.
 
 ## Log
 
