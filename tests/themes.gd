@@ -131,6 +131,10 @@ func _test_board_defs() -> void:
 		_check(def.backdrop_speed >= 0.4 and def.backdrop_speed <= 1.0,
 				"board '%s' backdrop_speed should stay in 0.4..1.0, got %s"
 				% [def.theme_name, def.backdrop_speed])
+		# Accessibility: the painted score numbers must read against the play
+		# surface (luminance difference), whatever the palette.
+		_check(absf(_luminance(def.notch_label_color) - _luminance(def.board_color)) >= 0.2,
+				"board '%s' score numbers lack contrast against the surface" % def.theme_name)
 	# The three backdrop variants are all in use: variants, not one shader
 	# per board and not a single look for the whole run.
 	for style in BACKDROP_STYLES:
@@ -256,6 +260,11 @@ func _text(hud: CanvasLayer, label_name: String) -> String:
 		return ""
 	var label = hud.get(label_name)
 	return "" if label == null else str(label.text)
+
+
+## Relative luminance (perceptual weights) of a color, for contrast checks.
+func _luminance(c: Color) -> float:
+	return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
 
 
 func _same_ids(a: Array, b: Array) -> bool:

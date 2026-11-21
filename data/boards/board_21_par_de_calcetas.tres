@@ -14,6 +14,7 @@ length = 8.0
 board_color = Color(0.655, 0.718, 0.910, 1)
 frame_color = Color(0.620, 0.470, 0.330, 1)
 notch_glow_color = Color(1.000, 0.820, 0.250, 1)
+notch_label_color = Color(0.071, 0.043, 0.149, 1)
 bulb_color = Color(1.000, 0.560, 0.640, 1)
 bulb_pattern_speed = 7.0
 light_color = Color(1.000, 0.930, 0.820, 1)

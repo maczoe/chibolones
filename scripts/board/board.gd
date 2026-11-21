@@ -1688,7 +1688,7 @@ func _add_hole(pos: Vector3, score: int, index: int, trap := false) -> void:
 	label.text = "X" if trap else str(score)
 	label.font_size = 96
 	label.pixel_size = 0.002
-	label.modulate = Color(0.95, 0.9, 0.75)
+	label.modulate = board_def.notch_label_color
 	# Below the notch (toward the player, -Z reads as screen-down from the
 	# diagonal camera), with extra margin so the ring and label never
 	# collide; y lifted a hair to avoid z-fighting with the notch disc.

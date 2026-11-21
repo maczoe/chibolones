@@ -88,6 +88,9 @@ enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH }
 @export var frame_color: Color = Color("2e1b58")
 ## Emissive rim glow around notches.
 @export var notch_glow_color: Color = Color("4deeea")
+## Painted score number on each notch. Must contrast with board_color
+## (themes.gd checks the luminance difference).
+@export var notch_label_color: Color = Color(0.95, 0.9, 0.75)
 ## Fair bulbs along the cabinet edges.
 @export var bulb_color: Color = Color("ffe066")
 ## Chase speed of the pinball bulb pattern while preparing a throw.

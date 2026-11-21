@@ -6,9 +6,9 @@ README.md::TextFile::-1::1795284851::0::1::::<><><>0<>0<><>::
 content_db.gd::GDScript::3404551297595430419::1794181882::0::1::::<>Node<><>0<>0<><>::
 economy.gd::GDScript::7560569116922074468::1794181882::0::1::::<>Node<><>0<>0<><>::
 event_bus.gd::GDScript::2604164700079944662::1794156880::0::1::::<>Node<><>0<>0<><>::
-game.gd::GDScript::2720891129310533455::1794181882::0::1::::<>Node<><>0<>0<><>::
+game.gd::GDScript::2720891129310533455::1795285109::0::1::::<>Node<><>0<>0<><>::
 ::res://data/::1794117497
-::res://data/art/::1795284923
+::res://data/art/::1795284963
 emblem_01_classic.svg::CompressedTexture2D::4644213580810234185::1794119609::1794119820::1::::<><><>0<>0<>0fd9a3cbb2e30d1c6ec9b09914e743a3<>res://.godot/imported/emblem_01_classic.svg-f6b9e890798d74bd1522217e8cfffc8d.ctex::
 emblem_02_cuerda.svg::CompressedTexture2D::2904671458345600865::1794119609::1794119820::1::::<><><>0<>0<>73f6d5c440811704520351aa0af019d6<>res://.godot/imported/emblem_02_cuerda.svg-de7de21c437e79285321fc510a2857ce.ctex::
 emblem_03_mojado.svg::CompressedTexture2D::9126559518290101440::1794119609::1794119820::1::::<><><>0<>0<>f7119653bac05ebe998d3827c414b878<>res://.godot/imported/emblem_03_mojado.svg-fa7e9bd066b24cdd7bc1f1525825e051.ctex::
@@ -57,7 +57,7 @@ board_17_cuerdas.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>
 board_18_cronometrado.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_18_cronometrado.svg
 board_19_espejismo.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_19_espejismo.svg
 board_20_quinto_cinco.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_20_quinto_cinco.svg
-board_21_par_de_calcetas.tres::Resource/BoardDef::-1::1795284923::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_21_calcetas.svg
+board_21_par_de_calcetas.tres::Resource/BoardDef::-1::1795285903::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_21_calcetas.svg
 ::res://data/marbles/::1794181882
 agata.tres::Resource/MarbleDef::-1::1794181882::0::1::::<><><>0<>0<><>::res://scripts/core/marble_def.gd
 common.tres::Resource/MarbleDef::-1::1794181882::0::1::::<><><>0<>0<><>::res://scripts/core/marble_def.gd
@@ -137,7 +137,7 @@ win.tscn::PackedScene::-1::1794165435::0::1::::<><><>0<>0<><>::res://scripts/ui/
 shop.tscn::PackedScene::-1::1794116032::0::1::::<><><>0<>0<><>::res://scripts/ui/shop_screen.gd
 ::res://scripts/::1794115994
 ::res://scripts/board/::1795284851
-board.gd::GDScript::185499611412127104::1795284851::0::1::::<>Node3D<><>0<>0<><>::
+board.gd::GDScript::185499611412127104::1795285903::0::1::::<>Node3D<><>0<>0<><>::
 board_theme.gd::GDScript::8607731910081656480::1795284851::0::1::::BoardTheme<>Node<><>0<>0<><>::
 hud.gd::GDScript::5017606352222152711::1795284851::0::1::::<>CanvasLayer<><>0<>0<><>::
 juice.gd::GDScript::194694932126952675::1794110116::0::1::::<>Node<><>0<>0<><>::
@@ -149,7 +149,7 @@ backdrop_spiral.gdshader::Shader::8457800915507223419::1794173089::0::1::::<><><
 checker_floor.gdshader::Shader::6603769409988465305::1794106556::0::1::::<><><>0<>0<><>::
 ::res://scripts/core/::1795284852
 board_checker.gd::GDScript::6722782040040265895::1795284851::0::1::::BoardChecker<>RefCounted<><>0<>0<><>::
-board_def.gd::GDScript::6279087690670040398::1795284852::0::1::::BoardDef<>Resource<><>0<>0<><>::
+board_def.gd::GDScript::6279087690670040398::1795285903::0::1::::BoardDef<>Resource<><>0<>0<><>::
 board_modifier_def.gd::GDScript::5790492849342157186::1794181882::0::1::::BoardModifierDef<>Resource<><>0<>0<><>::
 marble_def.gd::GDScript::8187256580935507148::1794181882::0::1::::MarbleDef<>Resource<><>0<>0<><>::
 objective_state.gd::GDScript::8415494406934139167::1795284852::0::1::::ObjectiveState<>RefCounted<><>0<>0<><>::
@@ -167,7 +167,7 @@ pause_menu.gd::GDScript::9101189577997621615::1794163940::0::1::::<>Control<><>0
 result_screen.gd::GDScript::4194601542508115408::1794173089::0::1::::<>Control<><>0<>0<><>::
 shop_screen.gd::GDScript::172495008778674610::1794198616::0::1::::<>Control<><>0<>0<><>::
 win_screen.gd::GDScript::6826798653569755636::1794173089::0::1::::<>Control<><>0<>0<><>::
-::res://tests/::1795284938
+::res://tests/::1795285020
 debug_mode.gd::GDScript::3842139858811965159::1795284938::0::1::::<>SceneTree<><>0<>0<><>::
 guide.gd::GDScript::3156275850152583352::1794158672::0::1::::<>SceneTree<><>0<>0<><>::
 hooks.gd::GDScript::2974372148515183711::1794181882::0::1::::<>SceneTree<><>0<>0<><>::
@@ -181,9 +181,9 @@ run_loop.gd::GDScript::3280128870377748441::1794196255::0::1::::<>SceneTree<><>0
 shooting_tilt.gd::GDScript::7453303854588318259::1794173089::0::1::::<>SceneTree<><>0<>0<><>::
 shop_focus.gd::GDScript::8441231418737300948::1794198567::0::1::::<>SceneTree<><>0<>0<><>::
 smoke.gd::GDScript::8222728545560557750::1794111267::0::1::::<>SceneTree<><>0<>0<><>::
-themes.gd::GDScript::6818503257698505279::1795284938::0::1::::<>SceneTree<><>0<>0<><>::
+themes.gd::GDScript::6818503257698505279::1795285842::0::1::::<>SceneTree<><>0<>0<><>::
 w3_flow.gd::GDScript::7767938197087040732::1794181882::0::1::::<>SceneTree<><>0<>0<><>::
 wind_indicator.gd::GDScript::7041352268396243919::1794173089::0::1::::<>SceneTree<><>0<>0<><>::
 win_flow.gd::GDScript::4388904903255423994::1795284852::0::1::::<>SceneTree<><>0<>0<><>::
-::res://tools/::1795284852
+::res://tools/::1795284963
 check_boards.gd::GDScript::5701636536467832230::1795284852::0::1::::<>SceneTree<><>0<>0<><>::
