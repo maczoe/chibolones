@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Las Tijeras: a pair of tailor's scissors on a cutting mat, mid-cut.
+       All even values; the single deep 1 is the blade tip that cuts the
+       total odd. Counterpart of Par de Calcetas. -->
+  <rect x="48" y="48" width="416" height="416" rx="48" fill="#4A7A5A" stroke="#120B26" stroke-width="14"/>
+  <!-- Cutting mat grid -->
+  <g stroke="#5C8F6D" stroke-width="6" opacity="0.8">
+    <line x1="48" y1="152" x2="464" y2="152"/>
+    <line x1="48" y1="256" x2="464" y2="256"/>
+    <line x1="48" y1="360" x2="464" y2="360"/>
+    <line x1="152" y1="48" x2="152" y2="464"/>
+    <line x1="256" y1="48" x2="256" y2="464"/>
+    <line x1="360" y1="48" x2="360" y2="464"/>
+  </g>
+  <!-- The cut line: dashed, being severed by the blade tip -->
+  <line x1="80" y1="196" x2="238" y2="196" stroke="#F5F1E6" stroke-width="8" stroke-dasharray="24 14"/>
+  <line x1="286" y1="196" x2="432" y2="196" stroke="#F5F1E6" stroke-width="8" stroke-dasharray="24 14" opacity="0.45"/>
+  <!-- Scissors, diagonal: pivot at center, blades to the top-right -->
+  <g transform="rotate(38 256 256)">
+    <!-- Blade A (left): steel, from pivot to tip -->
+    <path d="M250,262 L232,64 Q244,52 258,64 L268,258 Z"
+          fill="#D9E1E8" stroke="#120B26" stroke-width="12" stroke-linejoin="round"/>
+    <!-- Blade B (right): steel, crossing under A -->
+    <path d="M262,262 L280,64 Q292,52 302,66 L282,258 Z"
+          fill="#C3CED6" stroke="#120B26" stroke-width="12" stroke-linejoin="round"/>
+    <!-- Handles: two red loops below the pivot -->
+    <path d="M250,262 Q230,300 218,330" fill="none" stroke="#120B26" stroke-width="26" stroke-linecap="round"/>
+    <path d="M280,262 Q300,300 312,330" fill="none" stroke="#120B26" stroke-width="26" stroke-linecap="round"/>
+    <ellipse cx="206" cy="376" rx="38" ry="46" fill="none" stroke="#E84C4C" stroke-width="24"/>
+    <ellipse cx="324" cy="376" rx="38" ry="46" fill="none" stroke="#E84C4C" stroke-width="24"/>
+    <ellipse cx="206" cy="376" rx="38" ry="46" fill="none" stroke="#120B26" stroke-width="8"/>
+    <ellipse cx="324" cy="376" rx="38" ry="46" fill="none" stroke="#120B26" stroke-width="8"/>
+    <!-- Pivot screw -->
+    <circle cx="262" cy="256" r="14" fill="#C89B6D" stroke="#120B26" stroke-width="9"/>
+  </g>
+</svg>

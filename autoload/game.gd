@@ -365,14 +365,16 @@ func board_def_index(n: int) -> int:
 		return clampi(debug_board_index, 0, maxi(ContentDB.board_count() - 1, 0))
 	if n <= 1:
 		return 0
-	if is_boss(n):
-		return n - 1
 	if n > BOARDS_PER_RUN:
-		# Endless: a random boss-tier def (the last def of a block).
+		# Endless: a random boss-tier def (the last def of a block). Checked
+		# before the boss branch: an endless boss number (e.g. 24) must never
+		# resolve a def index past the catalog (n - 1), only boss tiers.
 		var boss_tiers: Array = []
 		for block in range(1, BLOCKS + 1):
 			boss_tiers.append(block * BOARDS_PER_BLOCK - 1)
 		return boss_tiers[randi() % boss_tiers.size()]
+	if is_boss(n):
+		return n - 1
 	return int(run_board_order.get(n, n - 1))
 
 

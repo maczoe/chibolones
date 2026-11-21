@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Par de Calcetas: two mismatched socks crossed like a folded pair.
+       Odd numbers alone get lost; two of them always make a pair (even). -->
+  <rect x="48" y="48" width="416" height="416" rx="48" fill="#FFF3DC" stroke="#120B26" stroke-width="14"/>
+  <!-- Sock 1: periwinkle with coral stripes, leaning left -->
+  <g transform="rotate(-10 256 280)">
+    <path d="M154,150 L246,150 Q260,150 260,164 L260,298 Q260,318 280,326 L356,352
+             Q410,370 410,386 Q410,402 392,402 L172,402 Q152,402 150,384
+             Q146,362 132,356 Q144,350 144,332 L144,164 Q144,150 158,150 Z"
+          fill="#A7B7E8" stroke="#120B26" stroke-width="14" stroke-linejoin="round"/>
+    <rect x="152" y="212" width="100" height="26" fill="#FF9AA2"/>
+    <rect x="152" y="258" width="100" height="26" fill="#FF9AA2"/>
+    <rect x="146" y="138" width="112" height="44" rx="14" fill="#F5F1E6" stroke="#120B26" stroke-width="12"/>
+  </g>
+  <!-- Sock 2: coral with cream dots, leaning right, folded over the first -->
+  <g transform="rotate(14 300 300)">
+    <path d="M164,150 L256,150 Q270,150 270,164 L270,298 Q270,318 290,326 L366,352
+             Q420,370 420,386 Q420,402 402,402 L182,402 Q162,402 160,384
+             Q156,362 142,356 Q154,350 154,332 L154,164 Q154,150 168,150 Z"
+          fill="#FF9AA2" stroke="#120B26" stroke-width="14" stroke-linejoin="round"/>
+    <circle cx="196" cy="220" r="13" fill="#FFF3DC"/>
+    <circle cx="232" cy="252" r="13" fill="#FFF3DC"/>
+    <circle cx="196" cy="284" r="13" fill="#FFF3DC"/>
+    <circle cx="322" cy="356" r="13" fill="#FFF3DC"/>
+    <circle cx="368" cy="380" r="13" fill="#FFF3DC"/>
+    <rect x="156" y="138" width="112" height="44" rx="14" fill="#F5F1E6" stroke="#120B26" stroke-width="12"/>
+  </g>
+  <!-- Wooden clothespin holding the pair together -->
+  <g transform="rotate(2 300 250)">
+    <rect x="286" y="176" width="28" height="88" rx="8" fill="#C89B6D" stroke="#120B26" stroke-width="10"/>
+    <circle cx="300" cy="212" r="6" fill="#120B26"/>
+  </g>
+</svg>

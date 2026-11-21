@@ -86,8 +86,8 @@ func _check(condition: bool, label: String) -> void:
 
 
 func _test_board_defs() -> void:
-	_check(content.board_count() == 20,
-			"ContentDB should index 20 boards, got %d" % content.board_count())
+	_check(content.board_count() == 22,
+			"ContentDB should index 22 boards, got %d" % content.board_count())
 	var names := {}
 	var paths := {}
 	var styles := {}
@@ -131,6 +131,10 @@ func _test_board_defs() -> void:
 		_check(def.backdrop_speed >= 0.4 and def.backdrop_speed <= 1.0,
 				"board '%s' backdrop_speed should stay in 0.4..1.0, got %s"
 				% [def.theme_name, def.backdrop_speed])
+		# Accessibility: the painted score numbers must read against the play
+		# surface (luminance difference), whatever the palette.
+		_check(absf(_luminance(def.notch_label_color) - _luminance(def.board_color)) >= 0.2,
+				"board '%s' score numbers lack contrast against the surface" % def.theme_name)
 	# The three backdrop variants are all in use: variants, not one shader
 	# per board and not a single look for the whole run.
 	for style in BACKDROP_STYLES:
@@ -163,10 +167,16 @@ func _test_modifier_mapping() -> void:
 		for modifier in defs:
 			_check(modifier != null,
 					"board %d should resolve every modifier through ContentDB" % n)
-	# Endless boards keep running: the def index clamps to the last board.
+	# Endless boards keep running: they resolve one of the boss-tier defs
+	# (whichever the endless draw picks), never an unknown def.
 	var endless_ids: Array = game.modifier_ids(24)
-	_check(_same_ids(endless_ids, EXPECTED_MODIFIERS[20]),
-			"an endless board should reuse board 20 rules, got %s" % str(endless_ids))
+	var boss_tiers: Array = [4, 8, 12, 16, 20]
+	var endless_ok := false
+	for tier in boss_tiers:
+		if _same_ids(endless_ids, EXPECTED_MODIFIERS[tier]):
+			endless_ok = true
+	_check(endless_ok,
+			"an endless board should reuse a boss-tier def's rules, got %s" % str(endless_ids))
 
 
 # --- (c) Objective semantics unchanged (S3) --------------------------------
@@ -250,6 +260,11 @@ func _text(hud: CanvasLayer, label_name: String) -> String:
 		return ""
 	var label = hud.get(label_name)
 	return "" if label == null else str(label.text)
+
+
+## Relative luminance (perceptual weights) of a color, for contrast checks.
+func _luminance(c: Color) -> float:
+	return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
 
 
 func _same_ids(a: Array, b: Array) -> bool:
