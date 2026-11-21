@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Blackjack: the winning hand — Ace and Queen of the fair's own deck,
+       fanned over the felt. 21 exactly: one marble more and the hand busts. -->
+  <rect x="48" y="48" width="416" height="416" rx="48" fill="#1E5B3A" stroke="#120B26" stroke-width="14"/>
+  <!-- Felt texture rings -->
+  <circle cx="256" cy="264" r="176" fill="none" stroke="#2A6E49" stroke-width="10" opacity="0.7"/>
+  <circle cx="256" cy="264" r="132" fill="none" stroke="#2A6E49" stroke-width="8" opacity="0.5"/>
+  <!-- Queen (behind, rotated left) -->
+  <g transform="rotate(-14 196 256)">
+    <rect x="128" y="128" width="136" height="256" rx="16" fill="#FFF9EE" stroke="#120B26" stroke-width="12"/>
+    <text x="152" y="180" font-family="Georgia, serif" font-size="56" font-weight="bold" fill="#120B26">Q</text>
+    <path d="M196,348 L166,318 Q156,306 166,296 Q176,288 196,300 Q216,288 226,296 Q236,306 226,318 Z"
+          fill="#D4AF37" stroke="#120B26" stroke-width="8" stroke-linejoin="round"/>
+    <circle cx="196" cy="272" r="12" fill="#D4AF37"/>
+  </g>
+  <!-- Ace (front, rotated right): the 1 -->
+  <g transform="rotate(12 316 256)">
+    <rect x="248" y="128" width="136" height="256" rx="16" fill="#FFF9EE" stroke="#120B26" stroke-width="12"/>
+    <text x="272" y="180" font-family="Georgia, serif" font-size="56" font-weight="bold" fill="#C0392B">A</text>
+    <path d="M316,340 L296,300 L306,300 L306,272 L326,272 L326,300 L336,300 Z"
+          fill="#C0392B" stroke="#120B26" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M316,246 L296,286 L306,286 L306,314 L326,314 L326,286 L336,286 Z"
+          fill="#C0392B" stroke="#120B26" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+  <!-- Chips and the 21 tally -->
+  <g transform="rotate(-8 160 404)">
+    <circle cx="150" cy="404" r="34" fill="#C0392B" stroke="#120B26" stroke-width="9"/>
+    <circle cx="150" cy="404" r="22" fill="none" stroke="#FFF9EE" stroke-width="7" stroke-dasharray="9 8"/>
+  </g>
+  <g transform="rotate(6 384 400)">
+    <circle cx="384" cy="400" r="34" fill="#1B3A6B" stroke="#120B26" stroke-width="9"/>
+    <circle cx="384" cy="400" r="22" fill="none" stroke="#FFF9EE" stroke-width="7" stroke-dasharray="9 8"/>
+  </g>
+  <text x="252" y="428" font-family="Georgia, serif" font-size="76" font-weight="bold"
+        fill="#D4AF37" stroke="#120B26" stroke-width="4" text-anchor="middle">21</text>
+</svg>

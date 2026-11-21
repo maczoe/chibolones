@@ -86,8 +86,8 @@ func _check(condition: bool, label: String) -> void:
 
 
 func _test_board_defs() -> void:
-	_check(content.board_count() == 23,
-			"ContentDB should index 23 boards, got %d" % content.board_count())
+	_check(content.board_count() == 24,
+			"ContentDB should index 24 boards, got %d" % content.board_count())
 	var names := {}
 	var paths := {}
 	var styles := {}
