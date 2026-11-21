@@ -8,7 +8,7 @@ economy.gd::GDScript::7560569116922074468::1794181882::0::1::::<>Node<><>0<>0<><
 event_bus.gd::GDScript::2604164700079944662::1794156880::0::1::::<>Node<><>0<>0<><>::
 game.gd::GDScript::2720891129310533455::1795285109::0::1::::<>Node<><>0<>0<><>::
 ::res://data/::1794117497
-::res://data/art/::1795284963
+::res://data/art/::1795287007
 emblem_01_classic.svg::CompressedTexture2D::4644213580810234185::1794119609::1794119820::1::::<><><>0<>0<>0fd9a3cbb2e30d1c6ec9b09914e743a3<>res://.godot/imported/emblem_01_classic.svg-f6b9e890798d74bd1522217e8cfffc8d.ctex::
 emblem_02_cuerda.svg::CompressedTexture2D::2904671458345600865::1794119609::1794119820::1::::<><><>0<>0<>73f6d5c440811704520351aa0af019d6<>res://.godot/imported/emblem_02_cuerda.svg-de7de21c437e79285321fc510a2857ce.ctex::
 emblem_03_mojado.svg::CompressedTexture2D::9126559518290101440::1794119609::1794119820::1::::<><><>0<>0<>f7119653bac05ebe998d3827c414b878<>res://.godot/imported/emblem_03_mojado.svg-fa7e9bd066b24cdd7bc1f1525825e051.ctex::
@@ -30,13 +30,14 @@ emblem_18_cronometrado.svg::CompressedTexture2D::3749922336704138355::1794119650
 emblem_19_espejismo.svg::CompressedTexture2D::1833147976171786650::1794119650::1794119820::1::::<><><>0<>0<>1aa402e24258b52812ae4f1d87eb1730<>res://.godot/imported/emblem_19_espejismo.svg-422c7d983a30e156ff7f826b298de396.ctex::
 emblem_20_quinto_cinco.svg::CompressedTexture2D::2915349341942740117::1794119650::1794119820::1::::<><><>0<>0<>4484ce7b62ebba06f688b4edfe39e8ca<>res://.godot/imported/emblem_20_quinto_cinco.svg-1580ac431a16063cc69f2cd49492c983.ctex::
 emblem_21_calcetas.svg::CompressedTexture2D::8030069166323813145::1795284923::1795284963::1::::<><><>0<>0<>a0d0dafcd1266c0716813f78024b25ee<>res://.godot/imported/emblem_21_calcetas.svg-f4b2b1d5e092ddefc1318093577fabee.ctex::
+emblem_22_tijeras.svg::CompressedTexture2D::4661045541374703824::1795287007::1795287020::1::::<><><>0<>0<>3e52ce7ab4f405aa712e21fac2d0976b<>res://.godot/imported/emblem_22_tijeras.svg-b3b4f3792fa6da6e71f596344b460f54.ctex::
 ufo.svg::CompressedTexture2D::1541224468241055330::1794106989::1794107016::1::::<><><>0<>0<>503c03fff776f2d6425e48528eec8148<>res://.godot/imported/ufo.svg-cfb66fa4f7218d29ab7199ad47ef6852.ctex::
 ::res://data/audio/::1794166108
 fanfare.wav::AudioStreamWAV::6365645207376625168::1794165331::1794166108::1::::<><><>0<>0<>0391692ce93c1699e96fb373a6cc3e39<>res://.godot/imported/fanfare.wav-e5e6b3c91a02ba136e8eb3390033b2eb.sample::
 thunk.wav::AudioStreamWAV::7337605208291420474::1794109946::1794110119::1::::<><><>0<>0<>d7dea3750478f5d5c913628a0855dba1<>res://.godot/imported/thunk.wav-601fb47d8db467c2d12d7fa509bff216.sample::
 ::res://data/balance/::1794173089
 shooting_rules.tres::Resource/ShootingRules::-1::1794173089::0::1::::<><><>0<>0<><>::res://scripts/core/shooting_rules.gd
-::res://data/boards/::1795284923
+::res://data/boards/::1795287007
 board_01_classic.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_01_classic.svg
 board_02_cuerda.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_02_cuerda.svg
 board_03_mojado.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_03_mojado.svg
@@ -57,7 +58,8 @@ board_17_cuerdas.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>
 board_18_cronometrado.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_18_cronometrado.svg
 board_19_espejismo.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_19_espejismo.svg
 board_20_quinto_cinco.tres::Resource/BoardDef::-1::1794119553::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_20_quinto_cinco.svg
-board_21_par_de_calcetas.tres::Resource/BoardDef::-1::1795285903::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_21_calcetas.svg
+board_21_par_de_calcetas.tres::Resource/BoardDef::-1::1795286066::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_21_calcetas.svg
+board_22_las_tijeras.tres::Resource/BoardDef::-1::1795287007::0::1::::<><><>0<>0<><>::res://scripts/core/board_def.gd<>res://data/art/emblem_22_tijeras.svg
 ::res://data/marbles/::1794181882
 agata.tres::Resource/MarbleDef::-1::1794181882::0::1::::<><><>0<>0<><>::res://scripts/core/marble_def.gd
 common.tres::Resource/MarbleDef::-1::1794181882::0::1::::<><><>0<>0<><>::res://scripts/core/marble_def.gd
@@ -167,8 +169,8 @@ pause_menu.gd::GDScript::9101189577997621615::1794163940::0::1::::<>Control<><>0
 result_screen.gd::GDScript::4194601542508115408::1794173089::0::1::::<>Control<><>0<>0<><>::
 shop_screen.gd::GDScript::172495008778674610::1794198616::0::1::::<>Control<><>0<>0<><>::
 win_screen.gd::GDScript::6826798653569755636::1794173089::0::1::::<>Control<><>0<>0<><>::
-::res://tests/::1795285020
-debug_mode.gd::GDScript::3842139858811965159::1795284938::0::1::::<>SceneTree<><>0<>0<><>::
+::res://tests/::1795287017
+debug_mode.gd::GDScript::3842139858811965159::1795287017::0::1::::<>SceneTree<><>0<>0<><>::
 guide.gd::GDScript::3156275850152583352::1794158672::0::1::::<>SceneTree<><>0<>0<><>::
 hooks.gd::GDScript::2974372148515183711::1794181882::0::1::::<>SceneTree<><>0<>0<><>::
 inventory.gd::GDScript::134491331764063961::1794196255::0::1::::<>SceneTree<><>0<>0<><>::
@@ -181,7 +183,7 @@ run_loop.gd::GDScript::3280128870377748441::1794196255::0::1::::<>SceneTree<><>0
 shooting_tilt.gd::GDScript::7453303854588318259::1794173089::0::1::::<>SceneTree<><>0<>0<><>::
 shop_focus.gd::GDScript::8441231418737300948::1794198567::0::1::::<>SceneTree<><>0<>0<><>::
 smoke.gd::GDScript::8222728545560557750::1794111267::0::1::::<>SceneTree<><>0<>0<><>::
-themes.gd::GDScript::6818503257698505279::1795285842::0::1::::<>SceneTree<><>0<>0<><>::
+themes.gd::GDScript::6818503257698505279::1795287017::0::1::::<>SceneTree<><>0<>0<><>::
 w3_flow.gd::GDScript::7767938197087040732::1794181882::0::1::::<>SceneTree<><>0<>0<><>::
 wind_indicator.gd::GDScript::7041352268396243919::1794173089::0::1::::<>SceneTree<><>0<>0<><>::
 win_flow.gd::GDScript::4388904903255423994::1795284852::0::1::::<>SceneTree<><>0<>0<><>::
