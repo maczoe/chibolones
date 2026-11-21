@@ -131,6 +131,26 @@ func rule_label() -> String:
 	return ""
 
 
+## Index of the next goal a LIST objective still has to hit (0 when no
+## goal was hit yet); the checker keys its search states on it.
+func goal_progress() -> int:
+	return _next_goal
+
+
+## Independent copy of this state (same objective, own list-goal progress)
+## so simulations never advance the live board's goal tracking.
+func copy_state() -> ObjectiveState:
+	var state := ObjectiveState.new()
+	state._kind = _kind
+	state._target = _target
+	state._range_min = _range_min
+	state._range_max = _range_max
+	state._goals = _goals.duplicate()
+	state._rule = _rule
+	state._next_goal = _next_goal
+	return state
+
+
 func _matches_rule(total: int) -> bool:
 	match _rule:
 		&"even":

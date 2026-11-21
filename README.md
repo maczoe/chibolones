@@ -278,6 +278,18 @@ godot --headless --path . --script res://tests/shooting_tilt.gd
 godot --headless --path . --script res://tests/win_flow.gd
 godot --headless --path . --script res://tests/lost_marble.gd
 godot --headless --path . --script res://tests/wind_indicator.gd
+godot --headless --path . --script res://tests/objectives.gd
+```
+
+## Board winnability checker
+
+Every board must be winnable with the baseline inventory (5 common
+marbles, 5 shots — design-decisions-v2.md D12). The checker proves it by
+analysis over the board's own hole matrix and objective, and exits 1 when
+any board fails; run it before landing new board content:
+
+```
+godot --headless --path . --script res://tools/check_boards.gd
 ```
 
 `tests/run_loop.gd` covers M1 without rendering: economy math, the 20-board

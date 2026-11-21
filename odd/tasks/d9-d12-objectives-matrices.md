@@ -43,9 +43,9 @@ content with the new primitives lands in the next wave.
 
 | ID | Spec | Route | Commit |
 | --- | --- | --- | --- |
-| T1 | S1, S2, S8 | BoardDef objective-kind data + validation (parent inline, test-first) | — |
-| T2 | S1, S3, S7 | board.gd/_run_win_reached/_round_over/game.gd/hud.gd wiring (parent inline, test-first) | — |
-| T3 | S4, S5 | hole_values matrix + trap holes in board.gd (parent inline, test-first) | — |
+| T1 | S1, S2, S8 | BoardDef objective-kind data + validation (parent inline, test-first) | 5bbf4b5 |
+| T2 | S1, S3, S7 | board.gd/_run_win_reached/_round_over/game.gd/hud.gd wiring (parent inline, test-first) | 5bbf4b5 |
+| T3 | S4, S5 | hole_values matrix + trap holes in board.gd (parent inline, test-first) | 5bbf4b5 |
 | T4 | S6 | winnability checker core + headless CLI (parent inline, test-first) | — |
 | T5 | S1-S8 | full suite + gdcheck + docs + close (parent inline) | — |
 
@@ -66,3 +66,11 @@ path in board.gd); Writer rule does not fire for one unit of behavior.
   board.gd:1529-1536 build loop + _add_hole:1602 (already takes per-hole
   value), possible-score formula board.gd:1012 breaks with matrices;
   shuffle rewrites hole.score from row pools (board_theme.gd:265-292).
+- L4 (2026-11-21): T1-T3 delivered in commit 5bbf4b5 (737 lines: engine
+  slice, past the ~400-line guidance — single coupled seam, kept as one
+  reviewable unit; D9 and D12 share the same test file and board.gd
+  paths, splitting would churn the same lines twice). Win check moved
+  from flight frames to score_changed (list goals count once per score
+  change). tests/win_flow.gd updated to the new immediate-win seam.
+  Smoke grep artifact resolved: SMOKE OK. gdcheck OK on all changed
+  files; gdscript-formatter not on PATH (skipped, reported at close).

@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_objective_evaluation()
 	await _test_board_wiring()
 	await _test_matrix_and_traps()
+	_test_winnability_checker()
 	_finish()
 
 
@@ -371,6 +372,68 @@ func _test_matrix_and_traps() -> void:
 	_reset_matrix_def()
 
 
+# --- (e) Winnability checker (D12, S6) --------------------------------------
+
+
+func _test_winnability_checker() -> void:
+	# Classic def, threshold 60, five 10/20/30/50 rows: winnable with 5
+	# baseline shots (e.g. 10+50 or 20+20+20).
+	var def: BoardDef = content.board_def(0)
+	def.objective_kind = BoardDef.ObjectiveKind.THRESHOLD
+	def.objective_target = 60
+	def.hole_values.clear()
+	def.trap_holes.clear()
+	var report := BoardChecker.check(def)
+	_check(report.winnable, "classic threshold 60 should be winnable")
+	_check(report.shots_needed <= 5,
+			"classic board should win within 5 baseline shots, needs %d" % report.shots_needed)
+	_check(report.example.size() > 0 and _sum(report.example) >= 60,
+			"the example line should reach the objective, got %s" % str(report.example))
+
+	# The hole pool excludes traps (they void the throw, they never score).
+	def.trap_holes.assign([true, true, true, true, true, true, true, true, true, true,
+			true, true, true, true, true, true, true, true, true, true])
+	report = BoardChecker.check(def)
+	_check(not report.winnable, "a board of only traps is not winnable")
+	def.trap_holes.clear()
+
+	# Unreachable exact target: no hole combination hits =95.
+	def.objective_kind = BoardDef.ObjectiveKind.EXACT
+	def.objective_target = 95
+	report = BoardChecker.check(def)
+	_check(not report.winnable, "exact =95 over {10,20,30,50} should be unwinnable")
+	_check(report.reason != "", "an unwinnable board should explain why")
+
+	# Reachable exact target with a reachable-by-2 example.
+	def.objective_target = 100
+	report = BoardChecker.check(def)
+	_check(report.winnable, "exact =100 over {10,20,30,50} should be winnable")
+	_check(_sum(report.example) == 100,
+			"exact example should sum exactly 100, got %d" % _sum(report.example))
+
+	# Goal list: goals must be hit in order by cumulative totals.
+	def.objective_kind = BoardDef.ObjectiveKind.LIST
+	def.objective_goals.assign([20, 50])
+	report = BoardChecker.check(def)
+	_check(report.winnable, "list =20 then =50 over {10,20,30,50} should be winnable")
+	_check(_sum(report.example) == 50, "list example should end at 50, got %d" % _sum(report.example))
+
+	# Math rule: even target reachable.
+	def.objective_kind = BoardDef.ObjectiveKind.MATH
+	def.objective_rule = &"even"
+	def.objective_target = 20
+	report = BoardChecker.check(def)
+	_check(report.winnable, "math even >=20 should be winnable")
+
+	# Range bounds reachable.
+	def.objective_kind = BoardDef.ObjectiveKind.RANGE
+	def.objective_range_min = 90
+	def.objective_range_max = 110
+	report = BoardChecker.check(def)
+	_check(report.winnable, "range 90-110 over {10,20,30,50} should be winnable")
+	_reset_def()
+
+
 ## Row score of the classic def (data accessor for the fallback checks).
 func board_def_row_score(row: int) -> int:
 	return content.board_def(0).row_scores[row]
@@ -378,3 +441,10 @@ func board_def_row_score(row: int) -> int:
 
 func _state(def: BoardDef) -> ObjectiveState:
 	return ObjectiveState.for_def(def)
+
+
+func _sum(values: Array[int]) -> int:
+	var total := 0
+	for value in values:
+		total += value
+	return total
