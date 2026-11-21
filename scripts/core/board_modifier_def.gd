@@ -39,6 +39,13 @@ extends Resource
 ## Embed multiplier for the center column (1 = off).
 @export var center_mult: float = 1.0
 
+@export_group("Mole rules")
+## Guac-a-mole: how many holes are traps at any moment (0 = off). The trap
+## set re-rolls on a timer; occupied holes never turn into traps.
+@export var mole_trap_count: int = 0
+## Seconds between mole re-rolls.
+@export var mole_trap_interval: float = 2.5
+
 
 ## M3 hook contract: the trigger half of the shared contract, symmetric
 ## with PrizeDef.on_event. Modifiers react through the same dispatcher;

@@ -39,6 +39,7 @@ func _run() -> void:
 	_test_objective_evaluation()
 	await _test_board_wiring()
 	await _test_matrix_and_traps()
+	await _test_mole_traps()
 	_test_winnability_checker()
 	_finish()
 
@@ -437,6 +438,106 @@ func _test_winnability_checker() -> void:
 ## Row score of the classic def (data accessor for the fallback checks).
 func board_def_row_score(row: int) -> int:
 	return content.board_def(0).row_scores[row]
+
+
+# --- (f) Guacamole: moving trap holes (D12 dynamic traps) --------------------
+
+
+func _test_mole_traps() -> void:
+	# The guacamole bonificador: trap holes pop up and hide on a timer
+	# (whack-a-mole), mixed with the traditional values.
+	var modifier: BoardModifierDef = content.modifier_def(&"guacamole")
+	_check(modifier != null, "the guacamole modifier should be indexed")
+	if modifier == null:
+		return
+	var fast_interval := 0.05
+	var real_interval: float = modifier.mole_trap_interval
+	modifier.mole_trap_interval = fast_interval
+	game.start_run()
+	game.current_board_in_run = 1
+	var def: BoardDef = content.board_def(0)
+	def.objective_kind = BoardDef.ObjectiveKind.THRESHOLD
+	def.objective_target = 60
+	def.modifiers.assign([&"guacamole"])
+	var board: Node3D = (load("res://scenes/board/board.tscn") as PackedScene).instantiate()
+	root.add_child(board)
+	await physics_frame
+	# Wait for at least two mole rolls.
+	await self.create_timer(fast_interval * 4.0).timeout
+	var traps := _trap_holes(board)
+	_check(traps.size() == modifier.mole_trap_count,
+			"guacamole should trap exactly %d holes, got %d"
+			% [modifier.mole_trap_count, traps.size()])
+	if traps.is_empty():
+		board.queue_free()
+		await physics_frame
+		modifier.mole_trap_interval = real_interval
+		def.modifiers.clear()
+		return
+	for hole in traps:
+		_check(str(hole.label.text) == "X", "a mole hole should paint an X")
+	# The moles keep moving: a later roll changes the configuration.
+	var first_set := _trap_ids(board)
+	var changed := false
+	for i in 12:
+		await self.create_timer(fast_interval * 3.0).timeout
+		if _trap_ids(board) != first_set:
+			changed = true
+			break
+	_check(changed, "the mole traps should change configuration over time")
+	# Embedding into a live mole voids the throw (tiro anulado).
+	var trap_hole: Dictionary = _trap_holes(board)[0]
+	var ammo_before: int = game.ammo.size()
+	board._embed(_loose_marble(board, trap_hole), trap_hole, 0.0)
+	await physics_frame
+	_check(board.score_engine.total == 0, "a mole embed should not score")
+	_check(game.ammo.size() == ammo_before, "a mole embed should not spend ammo")
+	# An occupied hole never becomes a mole.
+	var free_hole: Dictionary = _open_hole(board)
+	board._embed(_loose_marble(board, free_hole), free_hole, 0.0)
+	await physics_frame
+	for i in 12:
+		await self.create_timer(fast_interval * 3.0).timeout
+		for hole in _trap_holes(board):
+			_check(not bool(hole.occupied), "an occupied hole should never turn into a mole")
+	board.queue_free()
+	await physics_frame
+	modifier.mole_trap_interval = real_interval
+	def.modifiers.clear()
+
+
+func _trap_holes(board: Node) -> Array:
+	var found: Array = []
+	for hole in board.holes:
+		if bool(hole.get("trap", false)):
+			found.append(hole)
+	return found
+
+
+func _trap_ids(board: Node) -> Array:
+	var ids: Array = []
+	for hole in _trap_holes(board):
+		ids.append(hole.index)
+	ids.sort()
+	return ids
+
+
+func _open_hole(board: Node) -> Dictionary:
+	for hole in board.holes:
+		if not bool(hole.get("trap", false)) and not bool(hole.occupied):
+			return hole
+	return board.holes[0]
+
+
+func _loose_marble(board: Node, hole: Dictionary) -> RigidBody3D:
+	var marble := RigidBody3D.new()
+	var shape := CollisionShape3D.new()
+	shape.shape = SphereShape3D.new()
+	marble.add_child(shape)
+	board.board.add_child(marble)
+	marble.global_position = board.board.to_global(hole.pos)
+	board.active_marbles.append(marble)
+	return marble
 
 
 func _state(def: BoardDef) -> ObjectiveState:

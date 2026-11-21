@@ -43,6 +43,11 @@ var phase_notch := false
 var grid_swing_speed := 0.0
 var center_mult := 1.0
 var decision_timer_sec := 0.0
+## Guac-a-mole: traps on a timer. Count of simultaneous moles and seconds
+## between re-rolls.
+var mole_trap_count := 0
+var mole_trap_interval := 0.0
+var mole_timer: Timer
 ## Source name of the wall multiplier, for the score breakdown line.
 var wall_source: StringName = &""
 
@@ -79,14 +84,71 @@ func setup(owner_board: Node3D, defs: Array[BoardModifierDef]) -> void:
 		cover_notch = cover_notch or def.cover_notch
 		phase_notch = phase_notch or def.phase_notch
 		center_mult *= def.center_mult
+		mole_trap_count = maxi(mole_trap_count, def.mole_trap_count)
+		if def.mole_trap_interval > 0.0:
+			mole_trap_interval = maxf(mole_trap_interval, def.mole_trap_interval)
 		if not is_equal_approx(def.wall_hit_mult, 1.0):
 			wall_hit_mult *= def.wall_hit_mult
 			wall_source = StringName(def.display_name)
+	if mole_trap_count > 0:
+		_start_moles()
+
+
+## Guac-a-mole: trap holes pop up and hide on a timer. A re-roll picks
+## that many not-yet-occupied holes, paints them as traps (X, red ring)
+## and restores every previous trap to its real value; an embed into a
+## live trap voids the throw (tiro anulado, D12).
+func _start_moles() -> void:
+	_roll_moles()
+	mole_timer = Timer.new()
+	mole_timer.wait_time = mole_trap_interval
+	mole_timer.timeout.connect(_roll_moles)
+	add_child(mole_timer)
+	mole_timer.start()
+
+
+func _roll_moles() -> void:
+	if board == null:
+		return
+	for hole in board.holes:
+		if bool(hole.get("trap", false)):
+			_clear_trap(hole)
+	var candidates: Array[Dictionary] = []
+	for hole in board.holes:
+		if not bool(hole.occupied):
+			candidates.append(hole)
+	candidates.shuffle()
+	var count: int = mini(mole_trap_count, candidates.size())
+	for i in count:
+		_set_trap(candidates[i])
+
+
+const TRAP_RING_COLOR := Color(1.0, 0.2, 0.25)
+
+
+func _set_trap(hole: Dictionary) -> void:
+	hole.trap = true
+	hole.score = 0
+	hole.label.text = "X"
+	var mat: StandardMaterial3D = hole.ring.material_override
+	if mat != null:
+		mat.emission = TRAP_RING_COLOR
+	board.paint_hole(hole)
+
+
+func _clear_trap(hole: Dictionary) -> void:
+	hole.trap = false
+	var value: int = board.board_def.hole_value(hole.row, hole.col)
+	hole.score = value
+	hole.label.text = str(value)
+	var mat: StandardMaterial3D = hole.ring.material_override
+	if mat != null:
+		mat.emission = board.board_def.notch_glow_color
+	board.paint_hole(hole)
 
 
 func active() -> bool:
 	return not modifiers.is_empty()
-
 
 func has(id: StringName) -> bool:
 	for def in modifiers:

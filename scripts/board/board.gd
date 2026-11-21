@@ -1332,7 +1332,7 @@ func paint_hole(hole: Dictionary) -> void:
 	var open: bool = not hole.covered and not hole.phase_hidden
 	hole.ring.visible = open
 	if open:
-		hole.label.modulate = Color(0.95, 0.9, 0.75)
+		hole.label.modulate = board_def.notch_label_color
 	else:
 		hole.label.modulate = Color(0.7, 0.65, 0.55, 0.3)
 
