@@ -41,6 +41,9 @@ var strip_panel: PanelContainer
 ## Objective progress (artboard bar under the target value).
 var progress_bar: ProgressBar
 var _objective := 0
+## D9 objective state of the run board (null outside a run): renders the
+## kind-specific target line.
+var _objective_state: ObjectiveState = null
 var _score := 0
 ## Generated orb placeholder textures, cached by color string.
 var _orb_cache := {}
@@ -90,17 +93,22 @@ func set_score(value: int) -> void:
 
 
 ## Run objective for this board. Boards played without a run (headless
-## tests) pass 0 and show no objective stat.
-func set_target(value: int) -> void:
+## tests) pass 0 and no state, and show no objective stat. A D9 state
+## renders its own target line ("=50", "40-60", "par >=20").
+func set_target(value: int, state: ObjectiveState = null) -> void:
 	_objective = value
+	_objective_state = state
 	progress_bar.max_value = maxi(value, 1)
 	_update_objective()
 	var card := label_target.get_parent().get_parent()
-	card.visible = value > 0
+	card.visible = value > 0 or state != null
 
 
 func _update_objective() -> void:
-	label_target.text = "%d / %d" % [_score, _objective]
+	var target_text := str(_objective)
+	if _objective_state != null:
+		target_text = _objective_state.target_text()
+	label_target.text = "%d / %s" % [_score, target_text]
 	progress_bar.value = _score
 
 
@@ -267,9 +275,10 @@ func show_game_over(score: int, possible: int) -> void:
 	flash("Fin de la ronda")
 
 
-## Board lost inside a run: same overlay, the run objective as the measure.
-func show_defeat(score: int, objective: int) -> void:
-	label_final.text = "Puntaje total: %d de %d necesarios" % [score, objective]
+## Board lost inside a run: same overlay, the run objective as the measure
+## (already kind-formatted by the board, e.g. "=50").
+func show_defeat(score: int, objective: String) -> void:
+	label_final.text = "Puntaje total: %d de %s necesarios" % [score, objective]
 	end_overlay.visible = true
 	flash("Te vencio el tablero")
 

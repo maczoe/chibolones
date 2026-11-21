@@ -265,7 +265,8 @@ func _apply_magnet(delta: float) -> void:
 func shuffle_values() -> void:
 	var free: Array[Dictionary] = []
 	for hole in board.holes:
-		if not hole.occupied:
+		# Trap holes (D12) never join the shuffle: their X and 0 are fixed.
+		if not hole.occupied and not hole.get("trap", false):
 			free.append(hole)
 	if free.size() < 2:
 		return

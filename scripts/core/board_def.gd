@@ -15,6 +15,17 @@ extends Resource
 ## Painted score per row, nearest player row first.
 @export var row_scores: Array[int] = [10, 20, 30, 50]
 
+@export_group("Notch matrix (D12)")
+## Per-hole values, row-major (rows*cols entries). 0 or a missing entry
+## falls back to row_scores[row]. The classic 10/20/30/50 board leaves
+## this empty; a themed matrix paints e.g. a single 30 trap-column.
+@export var hole_values: Array[int] = []
+## Trap holes, row-major, same indexing as hole_values. A marble landing
+## in a trap sinks with no score and the throw is voided (tiro anulado);
+## the shot budget is untouched.
+@export var trap_holes: Array[bool] = []
+
+
 @export_group("Board geometry")
 @export var width: float = 3.9
 @export var length: float = 6.4
@@ -43,10 +54,27 @@ extends Resource
 @export var skip_speed: float = 4.5
 
 @export_group("Objective")
-## 0 = no numeric objective (POC behavior); otherwise the board is won by
-## reaching this score. Used from M1 on. The run scales this base by the
-## block difficulty factor (Game.objective_for_board).
+## How this board is won (design-decisions-v2.md D9). THRESHOLD is the
+## classic `score >= objective_target` (current behavior, scaled by the
+## run's block factor); the other kinds read their own fields below and
+## are absolute — scaling an exact target would break the designed matrix.
+enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH }
+
+@export var objective_kind: ObjectiveKind = ObjectiveKind.THRESHOLD
+## THRESHOLD: score to reach. EXACT: the exact final score. RANGE: ignored
+## (see objective_range_min/max). LIST: ignored (see objective_goals).
+## MATH: minimum score before the rule can win.
+## 0 = no numeric objective (POC behavior). The run scales this base by the
+## block difficulty factor (Game.objective_for_board) on THRESHOLD only.
 @export var objective_target: int = 0
+## RANGE: inclusive bounds; invalid bounds fall back to exact of the target.
+@export var objective_range_min: int = 0
+@export var objective_range_max: int = 0
+## LIST: cumulative totals to hit exactly, in order.
+@export var objective_goals: Array[int] = []
+## MATH: rule the final score must satisfy once the minimum is reached.
+@export var objective_rule: StringName = &"even"
+
 
 @export_group("Board rules")
 ## Bonificadores of this board, by id (content-plan §4.3): each id is
@@ -115,6 +143,21 @@ func deck_art_texture() -> Texture2D:
 ## waves so a typo in a .tres never leaves the board without a void.
 func backdrop_shader_path() -> String:
 	return BACKDROP_SHADERS.get(backdrop_style, BACKDROP_SHADERS[&"waves"])
+
+
+## Value painted on one hole, by grid position: the per-hole matrix when
+## it defines one, the row default otherwise.
+func hole_value(row: int, col: int) -> int:
+	var idx := row * cols + col
+	if idx >= 0 and idx < hole_values.size() and hole_values[idx] != 0:
+		return hole_values[idx]
+	return row_scores[row] if row >= 0 and row < row_scores.size() else 0
+
+
+## True when the hole at this grid position is a trap (D12 loss hole).
+func is_trap_hole(row: int, col: int) -> bool:
+	var idx := row * cols + col
+	return idx >= 0 and idx < trap_holes.size() and trap_holes[idx]
 
 
 func launch_z() -> float:
