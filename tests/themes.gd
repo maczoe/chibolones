@@ -86,8 +86,8 @@ func _check(condition: bool, label: String) -> void:
 
 
 func _test_board_defs() -> void:
-	_check(content.board_count() == 20,
-			"ContentDB should index 20 boards, got %d" % content.board_count())
+	_check(content.board_count() == 21,
+			"ContentDB should index 21 boards, got %d" % content.board_count())
 	var names := {}
 	var paths := {}
 	var styles := {}
@@ -163,10 +163,16 @@ func _test_modifier_mapping() -> void:
 		for modifier in defs:
 			_check(modifier != null,
 					"board %d should resolve every modifier through ContentDB" % n)
-	# Endless boards keep running: the def index clamps to the last board.
+	# Endless boards keep running: they resolve one of the boss-tier defs
+	# (whichever the endless draw picks), never an unknown def.
 	var endless_ids: Array = game.modifier_ids(24)
-	_check(_same_ids(endless_ids, EXPECTED_MODIFIERS[20]),
-			"an endless board should reuse board 20 rules, got %s" % str(endless_ids))
+	var boss_tiers: Array = [4, 8, 12, 16, 20]
+	var endless_ok := false
+	for tier in boss_tiers:
+		if _same_ids(endless_ids, EXPECTED_MODIFIERS[tier]):
+			endless_ok = true
+	_check(endless_ok,
+			"an endless board should reuse a boss-tier def's rules, got %s" % str(endless_ids))
 
 
 # --- (c) Objective semantics unchanged (S3) --------------------------------
