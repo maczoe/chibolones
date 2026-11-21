@@ -46,8 +46,8 @@ content with the new primitives lands in the next wave.
 | T1 | S1, S2, S8 | BoardDef objective-kind data + validation (parent inline, test-first) | 5bbf4b5 |
 | T2 | S1, S3, S7 | board.gd/_run_win_reached/_round_over/game.gd/hud.gd wiring (parent inline, test-first) | 5bbf4b5 |
 | T3 | S4, S5 | hole_values matrix + trap holes in board.gd (parent inline, test-first) | 5bbf4b5 |
-| T4 | S6 | winnability checker core + headless CLI (parent inline, test-first) | — |
-| T5 | S1-S8 | full suite + gdcheck + docs + close (parent inline) | — |
+| T4 | S6 | winnability checker core + headless CLI (parent inline, test-first) | 2f011cb |
+| T5 | S1-S8 | full suite + gdcheck + docs + close (parent inline) | docs close |
 
 Route rationale: single tightly-coupled seam (one scoring/objective code
 path in board.gd); Writer rule does not fire for one unit of behavior.
@@ -74,3 +74,18 @@ path in board.gd); Writer rule does not fire for one unit of behavior.
   change). tests/win_flow.gd updated to the new immediate-win seam.
   Smoke grep artifact resolved: SMOKE OK. gdcheck OK on all changed
   files; gdscript-formatter not on PATH (skipped, reported at close).
+- L5 (2026-11-21): T4 delivered in commit 2f011cb (BoardChecker BFS over
+  (total, goal-progress) states + tools/check_boards.gd CLI; all 20
+  current boards winnable in 2 shots). Slice boundary: 1037 lines over 2
+  commits — D9 engine and checker are separable seams, split at the
+  natural boundary (engine wiring vs analysis tool); delivery shape
+  (single PR vs chained) decided at publish time with the user.
+- L6 (2026-11-21): T5 close. Full 17-script suite GREEN + checker CLI
+  exit 0. tools/check_boards.gd first draft printed no rows (autoload
+  _ready defers to first frame in --script mode); fixed by awaiting
+  physics_frame like every tests/ script. First checker draft also had a
+  typed-array runtime error that the OK-print masked (abort before
+  _finish leaves the process hanging with no FAIL line) — the suite
+  runner now treats NO-OUTPUT as failure. Unit closed: engine + checker
+  only; board content redesign with the new primitives is the next wave
+  (per L2 scope decision).

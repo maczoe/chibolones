@@ -9,7 +9,10 @@ changes how the next throw plays out.
 
 Status: **v0.4 — M0.5 delivered** (style circo surreal validated in
 engine, camera/juice/QoL, sample content); content refinement plan in
-`content-plan.md`, style rules in `style-guide.md`.
+`content-plan.md`, style rules in `style-guide.md`. The economy and
+board-variety pivot (prize classes, objective kinds, chests, tickets)
+is decided in `design-decisions-v2.md`, which overrides this doc and
+`content-plan.md` where they conflict.
 
 ---
 
