@@ -151,7 +151,7 @@ func _test_modifier_defs() -> void:
 		&"iman": {"magnet_strength": 1.5},
 		&"trapecio": {"grid_swing_speed": 1.0},
 		&"cronometrado": {"decision_timer_sec": 4.0},
-		&"guacamole": {"mole_trap_count": 4},
+		&"guacamole": {"mole_trap_count": 5},
 	}
 	var seen := {}
 	for id in expected:

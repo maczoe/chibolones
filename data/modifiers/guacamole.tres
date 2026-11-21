@@ -7,5 +7,5 @@ script = ExtResource("1_modifier")
 id = &"guacamole"
 display_name = "Guac-a-mole"
 description = "Los topos del guacamole: agujeros trampa saltan y se esconden sin avisar."
-mole_trap_count = 4
+mole_trap_count = 5
 mole_trap_interval = 2.5
