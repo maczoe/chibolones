@@ -7,7 +7,7 @@
 script = ExtResource("1_board")
 theme_name = "Par de Calcetas"
 objective_kind = 4
-objective_target = 2
+objective_target = 8
 objective_rule = &"even"
 row_scores = Array[int]([1, 3, 5, 7])
 length = 8.0
