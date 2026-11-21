@@ -65,14 +65,12 @@ func _start_run() -> Node3D:
 
 
 ## Win the board through the real seam (embed event -> ScoreEngine ->
-## resting marble in flight -> _run_win_reached), like tests/run_loop.gd.
+## score_changed re-evaluates the objective immediately, D9), like
+## tests/run_loop.gd.
 func _win_the_board() -> Node3D:
 	var board := _start_run()
 	await physics_frame
 	root.get_node("EventBus").embed.emit(0, board.run_objective)
-	board.state = board.ThrowState.FLIGHT
-	board.launch_timer = 0.0
-	board.active_marbles.append(_resting_marble(board))
 	await physics_frame
 	await physics_frame
 	return board
@@ -231,9 +229,6 @@ func _test_run_won_summary_hosts_result_overlay() -> void:
 	game.current_board_in_run = 20
 	await physics_frame
 	root.get_node("EventBus").embed.emit(0, board.run_objective)
-	board.state = board.ThrowState.FLIGHT
-	board.launch_timer = 0.0
-	board.active_marbles.append(_resting_marble(board))
 	await physics_frame
 	await physics_frame
 	_check(game.run_won, "winning board 20 should set run_won")

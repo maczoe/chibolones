@@ -98,6 +98,10 @@ var idle_guide_shown := false
 ## Run objective for this board: 0 when the board is played outside a run
 ## (headless tests, --script mode), which keeps the plain POC round over.
 var run_objective := 0
+## D9 objective of the run board (null outside a run): the win check, the
+## HUD target line and the defeat label all read this one state, so every
+## objective kind lives in exactly one place.
+var objective_state: ObjectiveState = null
 ## The win/loss of this board was already reported to the Game run flow.
 var board_result_sent := false
 var launch_marker: MeshInstance3D
@@ -159,8 +163,14 @@ func _ready() -> void:
 	# opened without a run (headless tests) has no objective and keeps the
 	# plain round-over overlay.
 	if _inventory_mode():
-		run_objective = Game.objective_for_board(Game.current_board_in_run,
-				board_def.objective_target if board_def.objective_target > 0 else 60)
+		# D9: threshold keeps the block scaling; the other kinds are absolute
+		# (scaling an exact target would break the designed matrix).
+		if board_def.objective_kind == BoardDef.ObjectiveKind.THRESHOLD:
+			run_objective = Game.objective_for_board(Game.current_board_in_run,
+					board_def.objective_target if board_def.objective_target > 0 else 60)
+		else:
+			run_objective = board_def.objective_target
+		objective_state = ObjectiveState.for_def(board_def, run_objective)
 		# S5: the ammo is the whole run inventory again. The ammo is the throw
 		# budget (S9), so rules.shots_per_board stays untouched for the boards
 		# played without a run. Globo's extra throw joins the budget (W3).
@@ -183,12 +193,17 @@ func _ready() -> void:
 	add_child(score_engine)
 	hud = HudScript.new()
 	add_child(hud)
+	# D9: every score change re-evaluates the objective (list goals count
+	# exactly once per score change; the win never waits a flight frame).
+	# Connected before the HUD so the target line already shows the next
+	# list goal when the HUD renders.
+	score_engine.score_changed.connect(_on_score_changed)
 	score_engine.score_changed.connect(hud.set_score)
 	EventBus.embed.connect(_on_embed_celebrate)
 	EventBus.wall_hit.connect(_on_wall_hit)
 	add_child(preload("res://scripts/board/juice.gd").new())
 	hud.set_shots(shots_left, shots_total)
-	hud.set_target(run_objective)
+	hud.set_target(run_objective, objective_state)
 	hud.set_money(Game.money)
 	Game.money_changed.connect(hud.set_money)
 	hud.set_prizes(Game.prizes)
@@ -952,6 +967,17 @@ func _embed(marble: RigidBody3D, hole: Dictionary, speed: float = 0.0) -> void:
 	# except Trampa, which sticks wherever it touches, any speed.
 	if speed >= effective_skip_speed() and not _def_has(&"embed_anywhere"):
 		return
+	# D12 trap hole (tiro anulado): the marble sinks with no score, no ammo
+	# spent and the throw not resolved — it comes back like a refund, and
+	# the trap stays open for the next danger.
+	if hole.get("trap", false):
+		active_marbles.erase(marble)
+		settle_times.erase(marble)
+		stuck_track.erase(marble)
+		marble.queue_free()
+		pending_result = "Cayo en la trampa: tiro anulado, 0 puntos"
+		EventBus.throw_ended.emit(&"trapped")
+		return
 	active_marbles.erase(marble)
 	settle_times.erase(marble)
 	hole.occupied = true
@@ -1012,11 +1038,12 @@ func _round_over() -> void:
 	if board_result_sent:
 		return
 	var possible: int = shots_total * board_def.row_scores[board_def.rows - 1]
-	if run_objective > 0 and score_engine.total < run_objective:
-		# Run board lost: the shots ran out under the objective, so the run
-		# is over. Game owns the run summary screen.
+	if objective_state != null and not objective_state.evaluate(score_engine.total):
+		# Run board lost: the shots ran out without the objective satisfied
+		# (D9: an overshoot never loses instantly — it only fails here), so
+		# the run is over. Game owns the run summary screen.
 		board_result_sent = true
-		hud.show_defeat(score_engine.total, run_objective)
+		hud.show_defeat(score_engine.total, _objective_label())
 		EventBus.board_ended.emit(score_engine.total)
 		Game.board_lost.call_deferred()
 		return
@@ -1024,13 +1051,19 @@ func _round_over() -> void:
 	EventBus.board_ended.emit(score_engine.total)
 
 
+## D9: any score change re-evaluates the run objective right away (the
+## flight-frame check stays as a safety net for exotic paths).
+func _on_score_changed(_total: int) -> void:
+	_run_win_reached()
+
+
 ## Run objective reached during the throw. The remaining marbles are frozen
 ## and freed here, and Game is called one frame later so the physics frame
 ## finishes before the scene changes to the shop.
 func _run_win_reached() -> bool:
-	if board_result_sent or run_objective <= 0:
+	if board_result_sent or objective_state == null:
 		return false
-	if score_engine.total < run_objective:
+	if not objective_state.evaluate(score_engine.total):
 		return false
 	board_result_sent = true
 	for marble in active_marbles.duplicate():
@@ -1240,13 +1273,25 @@ func _board_number() -> int:
 
 
 ## Rule text for the top-center cue: each bonificador's description, so
-## the board announces what it does. Empty when the board has no rule.
+## the board announces what it does; a non-threshold objective (D9)
+## announces itself too, so the player can plan around it. Empty when the
+## board has no rule.
 func _effects_line() -> String:
 	var lines: Array[String] = []
 	for modifier in active_modifiers():
 		if modifier != null:
-			lines.append("%s: %s" % [modifier.display_name, modifier.description])
+				lines.append("%s: %s" % [modifier.display_name, modifier.description])
+	if objective_state != null and objective_state.kind() != BoardDef.ObjectiveKind.THRESHOLD:
+		lines.append(objective_state.announce_text())
 	return "\n".join(lines)
+
+
+## The objective as the HUD and defeat overlay name it: the kind's own
+## text ("=50", "40-60", "par >=20") or the plain threshold number.
+func _objective_label() -> String:
+	if objective_state == null:
+		return str(run_objective)
+	return objective_state.target_text()
 
 
 ## The board's active bonificadores, asked by ScoreEngine for their score
@@ -1533,7 +1578,8 @@ func _build_board() -> void:
 					-board_def.spacing_x * (board_def.cols - 1) / 2.0 + col * board_def.spacing_x,
 					0.0,
 					board_def.first_row_z + row * board_def.spacing_z)
-			_add_hole(pos, board_def.row_scores[row], row * board_def.cols + col)
+			_add_hole(pos, board_def.hole_value(row, col), row * board_def.cols + col,
+					board_def.is_trap_hole(row, col))
 
 	# Aim marker: a slim strip that slides sideways while aiming.
 	launch_marker = MeshInstance3D.new()
@@ -1599,7 +1645,11 @@ func _add_wall(pos: Vector3, size: Vector3, side: String) -> void:
 	wall.position = pos
 
 
-func _add_hole(pos: Vector3, score: int, index: int) -> void:
+func _add_hole(pos: Vector3, score: int, index: int, trap := false) -> void:
+	# A trap hole never scores (tiro anulado, D12): the value it paints is
+	# the X, not a number.
+	if trap:
+		score = 0
 	# A notch is carved at marble size: a dark disc slightly wider than a
 	# marble marks the carved spot on the wood surface.
 	var disc := MeshInstance3D.new()
@@ -1626,14 +1676,16 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 	var ring_mat := StandardMaterial3D.new()
 	ring_mat.albedo_color = board_def.notch_glow_color.darkened(0.4)
 	ring_mat.emission_enabled = true
-	ring_mat.emission = board_def.notch_glow_color
+	ring_mat.emission = Color(1.0, 0.2, 0.25) if trap else board_def.notch_glow_color
 	ring_mat.emission_energy_multiplier = 2.0
 	ring.material_override = ring_mat
 	ring.position = pos + Vector3(0, 0.011, 0)
 	notch_root.add_child(ring)
 
 	var label := Label3D.new()
-	label.text = str(score)
+	# A trap hole (D12) is painted as a red X: the number would lie, the
+	# throw it swallows is worth nothing.
+	label.text = "X" if trap else str(score)
 	label.font_size = 96
 	label.pixel_size = 0.002
 	label.modulate = Color(0.95, 0.9, 0.75)
@@ -1654,6 +1706,7 @@ func _add_hole(pos: Vector3, score: int, index: int) -> void:
 		"pos": pos,
 		"base": pos,
 		"score": score,
+		"trap": trap,
 		"occupied": false,
 		"covered": false,
 		"phase_hidden": false,
