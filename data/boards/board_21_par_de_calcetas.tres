@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_21_calcetas.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "Par de Calcetas"
+objective_kind = 4
+objective_target = 2
+objective_rule = &"even"
+row_scores = Array[int]([1, 3, 5, 7])
+length = 8.0
+board_color = Color(0.655, 0.718, 0.910, 1)
+frame_color = Color(0.620, 0.470, 0.330, 1)
+notch_glow_color = Color(1.000, 0.820, 0.250, 1)
+bulb_color = Color(1.000, 0.560, 0.640, 1)
+bulb_pattern_speed = 7.0
+light_color = Color(1.000, 0.930, 0.820, 1)
+ambient_energy = 0.62
+backdrop_color_a = Color(0.490, 0.780, 0.890, 1)
+backdrop_color_b = Color(1.000, 0.950, 0.870, 1)
+backdrop_color_c = Color(1.000, 0.600, 0.640, 1)
+backdrop_speed = 0.5
+backdrop_scale = 12.0
+backdrop_style = &"waves"
+floor_checker_a = Color(1.000, 0.960, 0.900, 1)
+floor_checker_b = Color(0.655, 0.718, 0.910, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5
