@@ -306,24 +306,32 @@ var win_overlay: Control
 var result_overlay: Control
 
 
-func host_win_overlay() -> void:
-	if win_overlay != null or state != ThrowState.ROUND_OVER:
-		return
-	# The board keeps rendering and its bulbs keep chasing: only the player
-	# controls go quiet (state ROUND_OVER gates every action below).
+## The run wants the win sequence on screen. Returns whether the board hosted
+## it: the phase (WIN) is the authority, never the board's internal state — the
+## throw that scored is often still resolving when this runs, and refusing in
+## that window left the phase on WIN with nothing on screen (the reported
+## softlock). Idempotent: a second call keeps the overlay already up.
+##
+## The board keeps rendering and its bulbs keep chasing: only the player
+## controls go quiet.
+func host_win_overlay() -> bool:
+	if win_overlay != null:
+		return true
 	var layer := CanvasLayer.new()
 	layer.layer = 2  # over the HUD layer, under nothing else
 	add_child(layer)
 	win_overlay = (load(WIN_SCENE) as PackedScene).instantiate()
 	layer.add_child(win_overlay)
+	return true
 
 
 ## The run summary (win after board 20, or defeat) plays over this live
 ## board too, replacing any win overlay and the HUD defeat panel, so one
-## message owns the screen at a time (user request, 2026-11-08).
-func host_result_overlay() -> void:
-	if result_overlay != null or state != ThrowState.ROUND_OVER:
-		return
+## message owns the screen at a time (user request, 2026-11-08). Returns
+## whether it hosted, with the same rule as host_win_overlay.
+func host_result_overlay() -> bool:
+	if result_overlay != null:
+		return true
 	if win_overlay != null and is_instance_valid(win_overlay):
 		win_overlay.get_parent().queue_free()
 		win_overlay = null
@@ -333,6 +341,7 @@ func host_result_overlay() -> void:
 	add_child(layer)
 	result_overlay = (load(RESULT_SCENE) as PackedScene).instantiate()
 	layer.add_child(result_overlay)
+	return true
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -905,6 +914,12 @@ func _update_flight(delta: float) -> void:
 			EventBus.throw_ended.emit(&"timed_out")
 			_consume_throw()
 		if shots_left > 0:
+			# The board already reported its result: the volley is over for good.
+			# Without this the tail handed the turn back to the player, so a won
+			# board kept taking throws (playtest 2026-11-21: score 60 -> 130).
+			if board_result_sent:
+				state = ThrowState.ROUND_OVER
+				return
 			state = ThrowState.AIM
 			launch_marker.visible = true
 			_reset_step_timer()

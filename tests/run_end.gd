@@ -32,6 +32,7 @@ func _ensure_autoloads() -> void:
 func _run() -> void:
 	await physics_frame
 	await _test_winning_a_run_board_shows_the_win_sequence()
+	await _test_win_survives_the_throw_ending_right_after_it()
 	await _test_losing_a_run_board_shows_the_summary()
 	await _test_the_board_can_explain_why_it_did_not_report()
 	# A GDScript error aborts one test function without touching `failed`, so a
@@ -61,7 +62,7 @@ func _open_run_board() -> Node3D:
 	return board
 
 
-## Reaching the objective mid-board wins: the win sequence plays over the live
+## Reaching the objective mid-flight wins: the win sequence plays over the live
 ## board and the phase leaves BOARD. A win the game forgets to show is the
 ## softlock the player sees as "I can't win and I can't lose".
 func _test_winning_a_run_board_shows_the_win_sequence() -> void:
@@ -169,6 +170,38 @@ func _test_the_board_can_explain_why_it_did_not_report() -> void:
 		"the round-end line should name an already reported result"
 	)
 	board.board_result_sent = false
+	board.queue_free()
+	current_scene = null
+	await physics_frame
+	game.enter_menu()
+	await physics_frame
+
+
+## The reported softlock (user playtest, 2026-11-21): the win fires on the
+## scoring embed, the same throw then resolves and the board returns to AIM
+## before the deferred board_won runs, so the overlay host sees a board that is
+## no longer ROUND_OVER, refuses, and the phase still moves to WIN. The result
+## is a live board, the WIN phase, and nothing on screen.
+func _test_win_survives_the_throw_ending_right_after_it() -> void:
+	var board := _open_run_board()
+	await physics_frame
+	var target: int = board.run_objective
+	board.score_engine.total = target
+	board._on_score_changed(target)
+	# Same frame: the flight loop keeps running with no marble left, and its
+	# tail used to hand the turn back to the player (the log's score 60 -> 130).
+	board.state = board.ThrowState.FLIGHT
+	await physics_frame
+	await physics_frame
+	_check(game.phase == game.Phase.WIN, "the phase should be WIN, is %s" % game.phase)
+	_check(
+		board.state == board.ThrowState.ROUND_OVER,
+		"a won board must not hand the turn back, state is %s" % board.state
+	)
+	_check(
+		board.win_overlay != null or current_scene != board,
+		"the win sequence must reach the screen even when the throw ended after the win"
+	)
 	board.queue_free()
 	current_scene = null
 	await physics_frame

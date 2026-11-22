@@ -153,12 +153,19 @@ area (classes/consumables, chests, discard) unless the user asks otherwise.
   node leaves the board.
 - S21: run boards stop routing their ending (user bug report: "en la run ahora
   no se puede ganar ni perder, softlock al terminar las canicas"; happens "siempre,
-  sin tocar cofres"). Every simulated run ending passes in tests, so the defect
-  lives in state no test reproduces: a run board whose `_inventory_mode()` is
-  false never consumes ammo, never evaluates the objective and never reports.
-  Fix the cause once evidence names it; until then the board prints one
-  diagnostic line at start and one at round end in debug builds so the next
-  playtest names the wrong condition.
+  sin tocar cofres"). CLOSED with evidence (2026-11-21): the playtest log shows
+  `phase=WIN ... result_sent=true` at round end, so the win WAS routed and the
+  phase moved — the board simply never showed the GANADOR overlay. Two defects:
+  the overlay host refused when the board was no longer in ROUND_OVER (the throw
+  that scored was still resolving) while `_host_overlay` reported the call as
+  handled, so nothing was on screen; and the flight loop's tail handed the turn
+  back afterwards, which is why the same board kept taking throws (score 60 ->
+  130 in the screenshots).
+- S22: a hosting scene answers whether it hosted. `host_win_overlay` and
+  `host_result_overlay` return bool, the phase is the authority instead of the
+  board's internal state, and `_host_overlay` falls back to the scene switch when
+  the host declines. A board that already reported its result never returns to
+  AIM.
 
 ## Implementation notes for wave 2 (T12-T16)
 

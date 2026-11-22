@@ -578,9 +578,10 @@ func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 
 
 ## Offer the current scene the chance to host a screen overlay in place
-## (win sequence, run summary). Returns false when there is no host, so the
-## caller keeps the old scene switch. Never touches run state: the phase and
-## routing stay the same.
+## (win sequence, run summary). Returns false when there is no host OR the host
+## did not take it, so the caller keeps the old scene switch: a refusing host
+## must never be mistaken for one that showed the screen, or the phase moves
+## while nothing is on it (reported softlock, 2026-11-21).
 func _host_overlay(host_method: StringName) -> bool:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
@@ -588,8 +589,7 @@ func _host_overlay(host_method: StringName) -> bool:
 	var scene := tree.current_scene
 	if not scene.has_method(host_method):
 		return false
-	scene.call(host_method)
-	return true
+	return bool(scene.call(host_method))
 
 
 ## CONTINUAR on the win interstitial: back to the run flow — the shop after
