@@ -43,27 +43,94 @@ game-loop mover").
 - S8: Cosmetic prizes have no gameplay effect; they are recorded as collected
   only. Persistence and the library UI belong to D11/W4 and are OUT of scope
   here; this unit must not invent a save file.
+- S12: Chest = trigger volume resting on the deck, not a wall: the marble rolls
+  through it, the chest opens, and the marble keeps rolling with its score
+  untouched. No physics deflection, no consumed marble (S6).
+- S13: Every board carries one fixed chest plus one hidden chest rolled by
+  chance; both are BoardDef data with defaults, so the 25 existing boards need
+  no per-board edit and a board can still opt out.
+- S14: A chest draws loot in two steps: rarity by weight, then a class inside
+  that rarity (permanent / consumable / cosmetic). A def the run already owns
+  or collected is skipped, so every chest is a new toy; an empty pool pays cash
+  instead of granting nothing.
+- S15: A chest grants through `Game.add_prize()`, the same routing seam the shop
+  uses, so the class decides the shelf (S2, S10).
+- S16: The reveal never pauses the flight: a short chest animation plus one HUD
+  cue naming the prize and its class, inside the 2-3 s budget. Only the discard
+  choice of S11 pauses the board.
 
 ## Tasks
 
 | ID | Spec | Route | Commit |
 | --- | --- | --- | --- |
-| T1 | S1, S4, S9 | `PrizeDef.prize_class` (permanent/consumable/cosmetic) + reclassify the four data files + instant-effect params | pending |
-| T2 | S2 | Prize bag slots: permanents enter only into a free slot; buy gate and cap text follow | pending |
-| T3 | S10, S7 | Run consumable inventory on Game (cap, add, remove) | pending |
-| T4 | S10, S9 | Consumable use: input actions + HUD rail + the four instant effect seams | pending |
-| T5 | S8 | Cosmetic class: no gameplay effect, recorded in the run's collection list | pending |
-| T6 | S5, S6 | Chest primitive: deck trigger volume, marble passes through and keeps rolling, 2-3 s reveal, drop | pending |
-| T7 | S5 | Chest loot: class+rarity draw, one fixed chest plus a hidden roll on every board (BoardDef data) | pending |
-| T8 | S11 | Full-bag discard choice: reveal pauses the board and the player picks the prize to drop | pending |
-| T9 | S2, S4, S10 | UI: class on shop cards, consumable rail with keys, chest reveal | pending |
-| T10 | all | Tests green, board checker still green, docs (GDD + content plan) | pending |
+| T1 | S1, S4, S9 | `PrizeDef.prize_class` (permanent/consumable/cosmetic) + reclassify the four data files + instant-effect params | 2895873 |
+| T2 | S2 | Prize bag slots: permanents enter only into a free slot; buy gate and cap text follow | 2895873 |
+| T3 | S10, S7 | Run consumable inventory on Game (cap, add, remove) | 2895873 |
+| T4 | S10, S9 | Consumable use: input actions + HUD rail + the four instant effect seams | 2895873 |
+| T5 | S8 | Cosmetic class: no gameplay effect, recorded in the run's collection list | 2895873 |
+| T6 | S5, S6, S12, S13, S16 | Chest primitive: deck trigger volume, marble passes through and keeps rolling, 2-3 s reveal, drop | 3cf3458 |
+| T7 | S5, S14, S15 | Chest loot: class+rarity draw, one fixed chest plus a hidden roll on every board (BoardDef data) | 3cf3458 |
+| T8 | S11 | Full-bag discard choice: reveal pauses the board and the player picks the prize to drop | 4636c69 |
+| T9 | S2, S4, S10 | UI: class on shop cards, consumable rail with keys (chest reveal belongs to T6) | 2895873 |
+| T10 | all | Tests green, board checker still green, docs (GDD + content plan) | 4636c69 |
 | T11 | all | Delivery PR | pending |
 
 Route: sequential inline slices. The two halves are dependent, not independent —
 chest loot cannot draw a class that does not exist yet — so no parallel writers
-and no disjoint surfaces: slice A = T1-T5 (classes, bag, consumables), slice B =
-T6-T9 (chests, loot, discard, UI).
+and no disjoint surfaces: slice A = T1-T5 + T9 (commit 2895873, 721 lines, one
+behavior area; recorded here because it passed the ~400-line slice guidance and
+the delivery shape is chosen at publishing), slice B = T6-T7 (chests), slice C =
+T8 (discard) plus the verification follow-up 7437793, then T11 (delivery PR).
+The branch carries four commits and ~2.4k authored lines: publishing as one PR
+breaks the 400-line review guidance, so the delivery shape is a chained split by
+area (classes/consumables, chests, discard) unless the user asks otherwise.
+
+## Implementation notes for T6-T7 (parent design decisions, not new specs)
+
+- `BoardDef` gains defaults only, so the 25 boards need no edit: `chest_fixed:
+  bool = true`, `chest_hidden_chance: float = 0.25`, `chest_cash_fallback: int
+  = 3` (paid when the shelf has no room; T8 replaces it with the discard
+  choice).
+- Placement: a chest sits on the deck behind the notch rows, at
+  `z = first_row_z + (rows - 1) * spacing_z + spacing_z * 0.9`. The fixed one is
+  centered on `x = 0`; the hidden one rolls `x` in `±width * 0.35` and is
+  skipped when it would land within 0.6 of the fixed chest.
+- Visual: a `Node3D` chest root holding one gold `BoxMesh` (~0.34 x 0.22 x
+  0.34), no collision body — it is a trigger, never an obstacle (S12). Keep the
+  node in an array of chest dicts (`pos`, `opened`, `node`) like the existing
+  `holes` array.
+- Detection: a `_check_chests(local)` call from `_update_flight` after the notch
+  proximity loop, horizontal distance <= 0.28 and `local.y` <= 0.4. One-shot:
+  `opened` guards it. Never consume the marble, never touch the score.
+- Loot: `Economy.chest_draw(owned_ids, collected_ids, seed)` returning
+  `{"def_id": String, "cash": int}` — rarity by `RARITY_WEIGHTS`, then a uniform
+  class inside that rarity, skipping defs the run already owns or collected;
+  empty pool returns `cash`. Deterministic for a seed so tests never flake.
+- Grant: `Game.add_prize(def)`; on a refused grant pay `chest_cash_fallback`.
+- Reveal: chest tween (scale + spin) and one `hud.flash` naming prize and class,
+  inside the 2-3 s budget. No modal, no pause (S16).
+
+## Implementation notes for T8 (parent design decisions)
+
+- The draw already refuses a class with no room; T8 replaces the cash answer for
+  that case (the empty-pool answer keeps paying `chest_cash_fallback`).
+- One new `Game.discard_prize(def) -> bool` seam: remove an owned prize from its
+  shelf with NO money move (selling pays rescue value and is the shop's rule,
+  not the chest's).
+- UI: a small `scripts/board/chest_choice.gd` CanvasLayer built in code — title
+  naming the chest prize, one button per owned prize of that class with its
+  effect line, and a `picked(prize)` signal. Public `pick(index)` so a headless
+  test can decide without simulating clicks. `process_mode = PROCESS_MODE_ALWAYS`
+  and `get_tree().paused = true` while it is up, exactly like pause_menu.gd; it
+  resumes the tree on every close path, including `_exit_tree`, so a torn-down
+  panel can never strand the board paused. A rejected `pick` stays inert (panel
+  open, tree paused): unpausing under a live modal would run the board behind it.
+- On `picked`: `Game.discard_prize(old)`, `Game.add_prize(drawn)`, refresh both
+  HUD rails, one `hud.flash`, close and unpause. No cash is paid on this path.
+- Tests: shelf full + a chest that draws a permanent → panel appears, board is
+  paused, `pick(0)` drops the chosen prize and grants the chest one (shelf size
+  unchanged, money unchanged), panel closes and the tree resumes; picking
+  outside the list is rejected and changes nothing.
 
 ## Log
 
@@ -90,3 +157,35 @@ T6-T9 (chests, loot, discard, UI).
 - L6 (2026-11-21): decisiones de activación y bolso cerradas: consumibles
   guardados y usados con una tecla durante el tablero (S10); cofre con
   permanente y bolso lleno = el jugador elige el descarte (S11).
+- L7 (2026-11-21): slice A entregado en 2895873 (clases, estantes, consumibles
+  instantáneos, cosméticos, etiqueta de clase en la tienda, rail del HUD).
+  Precio de los 4 consumibles bajado a $2-$4 para que un uso único no cueste lo
+  mismo que un permanente; queda para el playtest del usuario. Dos invariantes
+  existentes obligaron ajustes: bandas de rareza ($2-3 común, $4-5 poco común,
+  $7 raro) y "todo premio tiene precio positivo" — los cosméticos quedan
+  exentos por clase (precio 0) con una regla explícita en su lugar. La suite
+  pasó de 18 a 19 scripts y quedó verde; boards checker 25/25.
+- L8 (2026-11-21): slice B entregado en 3cf3458: cofres de cubierta con draw
+  rareza→clase. Correcciones del padre sobre el trabajo delegado: un solo origen
+  para el fallback en efectivo (era una constante duplicada en Economy y en
+  BoardDef), el invariante "el cofre cae sobre la cubierta en los 25 tableros"
+  (el `length` por defecto de BoardDef es 6.4 y todo el contenido usa 8.0), y un
+  piso de checks en tests/chests.gd porque un error de GDScript aborta una
+  función de test sin tocar `failed` — la suite podía imprimir OK con tests que
+  nunca corrieron (deuda del patrón viejo, anotada para el resto de las suites).
+  Suite completa de 20 scripts verde, boards checker 25/25.
+- L9 (2026-11-21): verificador independiente sobre A+B: PASS con notas. Tres
+  notas eran defectos y se arreglaron en 7437793: el cofre no abría con canica
+  rápida (la comprobación estaba debajo del gate de skip-speed, un umbral
+  invisible para el jugador) y ahora abre en cualquier pasada con un piso de
+  trigger para que una canica caída no abra desde abajo; el loadout de debug
+  salteaba el ruteo por clase; y w3_flow había quedado flojo con un total de dos
+  estantes, más el piso de checks que pasó de 170 a ojo al total exacto (190).
+- L10 (2026-11-21): T8 entregado en 4636c69: panel de descarte que pausa el
+  tablero y es dueño del unpause (incluido _exit_tree), Game.discard_prize sin
+  pago, y el fallback en efectivo reducido a pool vacío o def irresoluble. El
+  test del estante lleno se reescribió a la regla nueva (no se borró cobertura)
+  y el piso exacto pasó a 194. Suite de 21 scripts verde, checker 25/25.
+  Dos cosas quedan para el playtest del usuario: el descarte es obligatorio (no
+  hay opción de rechazar y quedarse con el efectivo) y los precios de los
+  consumibles son una decisión de tuning mía ($2-$4).

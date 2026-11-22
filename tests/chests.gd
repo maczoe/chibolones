@@ -50,12 +50,12 @@ func _run() -> void:
 	await _test_marble_keeps_rolling_through_a_chest()
 	await _test_fast_marble_opens_the_chest()
 	await _test_second_check_changes_nothing()
-	await _test_full_shelves_pay_cash()
+	await _test_full_shelves_offer_the_discard_choice()
 	# A GDScript error aborts one test function without touching `failed`, so a
 	# suite would print OK with tests that never ran. The count is deterministic,
 	# so the exact full-pass total is the guard: one dead test always fails here.
 	# Adding a test means bumping this number with it.
-	_check(checks_run >= 190, "only %d checks ran: a test died before asserting" % checks_run)
+	_check(checks_run >= 194, "only %d checks ran: a test died before asserting" % checks_run)
 	print("CHESTS FAIL" if failed else "CHESTS OK")
 	quit(1 if failed else 0)
 
@@ -593,12 +593,17 @@ func _test_second_check_changes_nothing() -> void:
 	_close(board)
 
 
-## S14/S15: the shelf of the drawn class is full, so the chest pays the
-## BoardDef cash fallback and changes nothing else.
-func _test_full_shelves_pay_cash() -> void:
+## S11/S14/S15: the shelf of the drawn class is full, so the chest no longer
+## pays the BoardDef cash fallback: the reveal presents the discard choice,
+## pulses the board and changes nothing until the player picks. The cash
+## fallback stays for an empty pool only
+## (_test_empty_pool_on_a_board_pays_the_fallback).
+func _test_full_shelves_offer_the_discard_choice() -> void:
 	game.start_run()
-	# Every shelf full and every consumable/cosmetic owned, so the pool only
-	# has permanents left: a refused grant is the only possible outcome.
+	# Every shelf full: the permanents and the consumables at their caps, the
+	# cosmetics collected. The pool still holds the defs the run does not own,
+	# but every class it can draw is at its cap, so a refused grant is the only
+	# possible outcome.
 	game.prizes.assign([content.prize_def("carpa"), content.prize_def("osito")])
 	(
 		game
@@ -627,21 +632,38 @@ func _test_full_shelves_pay_cash() -> void:
 	var money_before: int = game.money
 	var fallback: int = board.board_def.chest_cash_fallback
 	board._check_chests(chest.pos)
-	await physics_frame
 	_check(chest.opened, "touching a chest should open it")
+	var panel: CanvasLayer = board.get_node_or_null("ChestChoice")
+	_check(panel != null, "a refused grant should present the discard choice (S11)")
+	_check(paused, "the discard choice should pause the board (S11)")
 	_check(
-		game.money == money_before + fallback,
+		game.money == money_before,
 		(
-			"a chest the shelves cannot hold should pay the $%d fallback, $%d -> $%d"
+			"a refused grant must not pay the $%d fallback any more (S11), $%d -> $%d"
 			% [fallback, money_before, game.money]
 		)
 	)
 	_check(
 		_shelf_line() == shelf,
-		"a refused grant must not touch a shelf (%s -> %s)" % [shelf, _shelf_line()]
+		"a refused grant must not touch a shelf before the pick (%s -> %s)" % [shelf, _shelf_line()]
 	)
-	_check(
-		board.hud.last_flash.contains("$%d" % fallback),
-		"the reveal should pay the cash amount, got '%s'" % board.hud.last_flash
-	)
+	if panel != null:
+		_check(panel.is_open(), "the discard panel should be open")
+		if panel.drawn != null:
+			# The draw picks the class, so the offer is that class's own shelf:
+			# the permanents or, when a consumable wins the draw, the three
+			# consumables (the pool has four and the shelf holds three).
+			var owned: int = (
+				game.consumables.size()
+				if panel.drawn.prize_class == PrizeDef.PrizeClass.CONSUMABLE
+				else game.prizes.size()
+			)
+			_check(
+				panel.options.size() == owned,
+				(
+					"the panel should offer the %d owned %ss, got %d"
+					% [owned, panel.drawn.class_name_text().to_lower(), panel.options.size()]
+				)
+			)
 	_close(board)
+	_check(not paused, "closing a pending choice must not leave the tree paused")
