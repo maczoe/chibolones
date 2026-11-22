@@ -127,3 +127,67 @@ func _weighted_pick(pool: Array, rng: RandomNumberGenerator) -> Resource:
 		if roll <= 0:
 			return def
 	return pool.back()
+
+
+## D10/S14: what one chest holds. Rarity first, by the same weights the shop
+## rolls, then a class inside that rarity, then one def of the class; defs
+## the run already owns or collected never come back, so every chest is a
+## new toy. A seed >= 0 makes the draw deterministic (tests); -1 randomizes.
+## Returns {"def_id": String, "cash": int}: an empty pool hands nothing
+## over, and the board pays its own `chest_cash_fallback` for both that case
+## and a refused grant — the cash number is board data, not an economy
+## constant, so tuning it never has to happen twice.
+func chest_draw(owned_ids: Array[String], collected_ids: Array[String], seed: int) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	if seed >= 0:
+		rng.seed = seed
+	else:
+		rng.randomize()
+	var pool := _chest_pool(owned_ids, collected_ids)
+	if pool.is_empty():
+		return {"def_id": "", "cash": 0}
+	# Step 1: the rarity, weighted so a rare stays a treat.
+	var groups := _chest_groups(pool)
+	var rarity := _weighted_rarity(groups.keys(), rng)
+	# Step 2: a class inside that rarity, uniform, then one of its defs.
+	var by_class: Dictionary = groups[rarity]
+	var classes := by_class.keys()
+	var candidates: Array = by_class[classes[rng.randi_range(0, classes.size() - 1)]]
+	var def: Resource = candidates[rng.randi_range(0, candidates.size() - 1)]
+	return {"def_id": def.id, "cash": 0}
+
+
+## Prizes a chest may still give: everything the run does not own and has
+## not collected yet (S14).
+func _chest_pool(owned_ids: Array[String], collected_ids: Array[String]) -> Array:
+	var pool: Array = []
+	for def in ContentDB.prizes():
+		if owned_ids.has(def.id) or collected_ids.has(def.id):
+			continue
+		pool.append(def)
+	return pool
+
+
+## The pool split by rarity and then by class, so the second step can pick
+## a class uniformly instead of re-reading every def.
+func _chest_groups(pool: Array) -> Dictionary:
+	var groups := {}
+	for def in pool:
+		var by_class: Dictionary = groups.get(def.rarity, {})
+		var slot: Array = by_class.get(def.prize_class, [])
+		slot.append(def)
+		by_class[def.prize_class] = slot
+		groups[def.rarity] = by_class
+	return groups
+
+
+func _weighted_rarity(rarities: Array, rng: RandomNumberGenerator) -> String:
+	var total := 0
+	for rarity in rarities:
+		total += int(RARITY_WEIGHTS.get(rarity, 10))
+	var roll := rng.randi_range(1, total)
+	for rarity in rarities:
+		roll -= int(RARITY_WEIGHTS.get(rarity, 10))
+		if roll <= 0:
+			return String(rarity)
+	return String(rarities.back())

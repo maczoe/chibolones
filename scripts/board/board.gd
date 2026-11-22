@@ -15,6 +15,25 @@ const ANNOUNCE_DELAY := 1.2
 ## homing steer, both scaled by the marble mass like the wind.
 const REMOLINO_PULL_SCALE := 6.0
 const HOMING_PULL := 8.0
+## D10 chests (S12): the trigger is generous on the horizontal plane so the
+## marble rolls over it, and blind above it so a body that fell through the
+## deck opens nothing. A trigger, never a collider: it must not deflect.
+const CHEST_TRIGGER_RADIUS := 0.28
+const CHEST_TRIGGER_HEIGHT := 0.4
+## The gold box resting on the deck, small enough to read as a pickup and
+## wide enough to see behind the last notch row.
+const CHEST_SIZE := Vector3(0.34, 0.22, 0.34)
+const CHEST_COLOR := Color("ffcc33")
+## The hidden chest keeps clear of the fixed one, so two chests never stack
+## into one unreadable box. A colliding placement is rolled again.
+const CHEST_CLEARANCE := 0.6
+const CHEST_SPAWN_TRIES := 8
+## Reveal (S16): a pop and a spin while the marble keeps rolling. The whole
+## animation stays far inside the 2-3 s the throw loop can afford.
+const CHEST_POP := 0.18
+const CHEST_SPIN_TIME := 0.6
+const CHEST_SETTLE := 0.2
+const CHEST_POP_SCALE := 1.25
 
 enum ThrowState { AIM, TILT, POWER, FLIGHT, ROUND_OVER, CAMERA }
 
@@ -149,6 +168,9 @@ var cam_azimuth_deg := 0.0  # 0 = in front of the player edge
 var cam_elev_deg := 0.0  # elevation over the surface plane
 var cam_default_elev_deg := 0.0
 var holes: Array[Dictionary] = []  # {pos, score, occupied}
+## D10 chests on the deck: {pos, opened, node}. Board-local like `holes`,
+## which is the space the flight loop checks them in.
+var chests: Array[Dictionary] = []
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}  # marble -> seconds under slow speed
 ## Stuck-detector checkpoints: marble -> {"pos": Vector3, "checks": int}.
@@ -819,6 +841,9 @@ func _update_flight(delta: float) -> void:
 			if d <= reach:
 				_embed(marble, hole, speed)
 				break
+		# D10/S12: the chests rest on the deck the marble rolls over, so the
+		# check belongs to the same pass and never to a collision body.
+		_check_chests(local)
 		if is_instance_valid(marble) and not marble.freeze:
 			if speed < rules.settle_speed:
 				settle_times[marble] = float(settle_times.get(marble, 0.0)) + delta
@@ -1706,6 +1731,8 @@ func _build_board() -> void:
 				board_def.is_trap_hole(row, col)
 			)
 
+	_build_chests()
+
 	# Aim marker: a slim strip that slides sideways while aiming.
 	launch_marker = MeshInstance3D.new()
 	var marker_mesh := BoxMesh.new()
@@ -1943,6 +1970,148 @@ func _place_bulb(pos: Vector3, mesh: SphereMesh) -> void:
 
 func _on_embed_celebrate(_notch_index: int, _value: int) -> void:
 	celebrate_left = 3.0
+
+
+# --- Chests (D10) ------------------------------------------------------------
+
+
+## S13: one fixed chest on every board plus, when the BoardDef rolls it, one
+## hidden chest elsewhere on the same deck band. Both sit behind the notch
+## rows, so a throw still has to travel to find them.
+func _build_chests() -> void:
+	var chest_z := (
+		board_def.first_row_z
+		+ (board_def.rows - 1) * board_def.spacing_z
+		+ board_def.spacing_z * 0.9
+	)
+	if board_def.chest_fixed:
+		_add_chest(Vector3(0.0, 0.0, chest_z))
+	if board_def.chest_hidden_chance <= 0.0 or randf() >= board_def.chest_hidden_chance:
+		return
+	# The hidden chest rolls its column. A placement that would land on top
+	# of the fixed one is not a find: it is rolled again, and if the rolls all
+	# collide it takes the far edge of the band, which is always clear.
+	for i in CHEST_SPAWN_TRIES:
+		var hidden_x := randf_range(-board_def.width * 0.35, board_def.width * 0.35)
+		var hidden := Vector3(hidden_x, 0.0, chest_z)
+		if _chest_is_clear(hidden):
+			_add_chest(hidden)
+			return
+	for side in [1.0, -1.0]:
+		var edge := Vector3(board_def.width * 0.35 * side, 0.0, chest_z)
+		if _chest_is_clear(edge):
+			_add_chest(edge)
+			return
+
+
+func _chest_is_clear(pos: Vector3) -> bool:
+	for chest in chests:
+		if Vector2(pos.x - chest.pos.x, pos.z - chest.pos.z).length() < CHEST_CLEARANCE:
+			return false
+	return true
+
+
+## One gold box on the deck: a Node3D plus a box mesh, no body of any kind
+## (S12). Under the tilted board node, like the notches, so it rests on the
+## play surface instead of in the world's horizontal plane.
+func _add_chest(pos: Vector3) -> void:
+	var chest := Node3D.new()
+	chest.name = "Chest"
+	var mesh_i := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = CHEST_SIZE
+	mesh_i.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = CHEST_COLOR
+	mat.roughness = 0.45
+	# Emissive so the pickup reads on the dark deck between the neon rows.
+	mat.emission_enabled = true
+	mat.emission = CHEST_COLOR
+	mat.emission_energy_multiplier = 0.7
+	mesh_i.material_override = mat
+	# Box meshes center on their own middle: lift half the height to rest it
+	# on the surface (y = 0).
+	mesh_i.position.y = CHEST_SIZE.y / 2.0
+	chest.add_child(mesh_i)
+	chest.position = pos
+	board.add_child(chest)
+	chests.append({"pos": pos, "opened": false, "node": chest})
+
+
+## S12/S16: a marble rolling through a chest opens it, once. Called for every
+## marble from the flight loop; it never consumes the marble and never edits
+## the score, so the throw carries on untouched.
+func _check_chests(local: Vector3) -> void:
+	if local.y > CHEST_TRIGGER_HEIGHT:
+		return
+	for chest in chests:
+		if chest.opened:
+			continue
+		var d := Vector2(local.x - chest.pos.x, local.z - chest.pos.z).length()
+		if d <= CHEST_TRIGGER_RADIUS:
+			_open_chest(chest)
+
+
+## S14/S15: one draw, one grant through the shop's seam, one short reveal. A
+## class shelf with no room pays the board's cash fallback instead, so the
+## chest always gives something.
+func _open_chest(chest: Dictionary) -> void:
+	chest.opened = true
+	_reveal_chest(chest.node)
+	var draw := Economy.chest_draw(_owned_prize_ids(), _collected_prize_ids(), -1)
+	var def: PrizeDef = null
+	if String(draw["def_id"]) != "":
+		def = ContentDB.find_prize_def(String(draw["def_id"]))
+	if def != null and Game.add_prize(def):
+		# S16: one cue naming the prize and the shelf its class went to.
+		hud.flash("Cofre: %s (%s)" % [def.display_name, def.class_name_text()])
+		hud.set_prizes(Game.prizes)
+		hud.set_consumables(Game.consumables)
+		return
+	var cash: int = int(draw["cash"])
+	if cash <= 0:
+		cash = board_def.chest_cash_fallback
+	Game.add_money(cash)
+	hud.flash("Cofre: +$%d" % cash)
+
+
+## S16: the reveal never pauses the flight. The chest pops and spins in real
+## time while the marble keeps rolling; the duration constants keep it inside
+## the throw loop's budget.
+func _reveal_chest(node: Node3D) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var start: Vector3 = node.scale
+	var tw := node.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(node, "scale", start * CHEST_POP_SCALE, CHEST_POP)
+	tw.tween_property(node, "rotation:y", node.rotation.y + TAU, CHEST_SPIN_TIME).set_trans(
+		Tween.TRANS_CUBIC
+	)
+	tw.chain().tween_property(node, "scale", start, CHEST_SETTLE)
+
+
+## Prizes this run already owns: the chest skips them so it always gives a
+## new toy (S14). Commons live on the consumable shelf, so both count.
+func _owned_prize_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for prize in Game.prizes:
+		if prize != null:
+			ids.append(prize.id)
+	for prize in Game.consumables:
+		if prize != null:
+			ids.append(prize.id)
+	return ids
+
+
+## Cosmetics collected this run (S8): recorded only, but still skipped by the
+## chest draw so a cosmetic never drops twice.
+func _collected_prize_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for prize in Game.cosmetics:
+		if prize != null:
+			ids.append(prize.id)
+	return ids
 
 
 func _animate_bulbs(delta: float) -> void:
