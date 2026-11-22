@@ -108,15 +108,22 @@ Rebote (refund even off the sides), Nitro (speed x1.6, one-shot), Trampa
 throw's score). Rarities: 5 common, 3 uncommon, 2 rare — pricing in
 economy.tres per §2.
 
-### 4.2 Prizes (M3) — 10
-Osito de Peluche (+50 flat on board end), Trompo de Madera (x1.5 per
-wall hit, shipped), Muñeco de Nieve (embeds settle instead of staying
-fast: skip_speed halved), Pelota de Goma (marbles bounce x1.3),
-Billete de la Suerte (+$2 per refund), Globo (one extra throw per
-board), Boleto Retro (first throw each board replays if it scored 0),
-Carpa en Miniatura (+1 marble slot in the bag), Rayo (fire marbles
-speed x1.5), Corona del Circo (x1.1 to everything, rare). Rarities:
-6 common, 3 uncommon, 1 rare.
+### 4.2 Prizes (M3) — 13, three classes (D8)
+Permanent usable, on the run prize shelf (`PRIZE_CAP` = 2): Osito de
+Peluche (+50 flat on board end), Trompo de Madera (x1.5 per wall hit,
+shipped), Pelota de Goma (marbles bounce x1.3), Carpa en Miniatura (+1
+marble slot in the bag), Rayo (fire marbles speed x1.5), Corona del
+Circo (x1.1 to everything, rare).
+
+Consumable usable, carried in the consumable shelf (`CONSUMABLE_CAP` =
+3) and spent from the board with 1/2/3; a single use replaces the old
+passive numbers: Globo (+1 throw now), Boleto Retro (repeat the last
+throw), Billete de la Suerte (+$2 now), Muñeco de Nieve (this board's
+capture threshold x0.5).
+
+Cosmetic, collection only, never sold: Banderín de la Feria, Silbato de
+Hojalata, Foto del Recuerdo. Rarities across the 13: 8 common, 4
+uncommon, 1 rare.
 
 ### 4.3 Bonificadores (M2) — 10 — implemented (W2)
 Cuerda (bouncy walls +mult), Mojado (low friction), Borracho (value

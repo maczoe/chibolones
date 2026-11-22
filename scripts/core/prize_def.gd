@@ -6,10 +6,17 @@ extends Resource
 ## edits the score breakdown of one embed. M3 grows the event surface; the
 ## contract and the pipeline are already the single seam.
 
+## D8 prize classes (S1). A permanent usable prize lives on the run shelf for
+## the whole run, limited by the shelf slots; a consumable is used once from
+## the board and is gone (S10); a cosmetic never affects play and only feeds
+## the collection.
+enum PrizeClass { PERMANENT, CONSUMABLE, COSMETIC }
+
 @export var id: String = "prize"
 @export var display_name: String = "Premio"
 @export var rarity: String = "common"
 @export var price: int = 0
+@export var prize_class: PrizeClass = PrizeClass.PERMANENT
 @export var flavor: String = ""
 ## W3: which effect this prize carries. Empty string = no active effect
 ## (a shelf trophy). The effect decides the events the prize reacts to and
@@ -32,6 +39,13 @@ const EFFECT_EVENTS := {
 	# Queried by the board, no trigger events.
 	&"extra_throw": [],
 	&"skip_speed_scale": [],
+	# D8 consumables (S9): applied once from the board, so they carry no
+	# passive trigger events either. The board reads effect+params when the
+	# player spends the prize.
+	&"instant_extra_throw": [],
+	&"instant_replay": [],
+	&"instant_money": [],
+	&"instant_skip_scale": [],
 }
 
 
@@ -76,38 +90,62 @@ func on_event(event: StringName, ctx: Dictionary) -> void:
 
 ## W3b: what this prize does, one readable line for the shop and the HUD.
 func effect_description() -> String:
+	if prize_class == PrizeClass.COSMETIC:
+		return "De coleccion: no cambia nada en el juego"
+	var text := ""
 	match effect:
 		&"wall_mult":
-			return (
+			text = (
 				"Puntua x%s por cada pared que golpea el tiro"
 				% format_mult(float(params.get("mult", 1.0)))
 			)
 		&"board_end_flat":
-			return "+%d puntos al terminar cada tablero" % int(params.get("flat", 0))
+			text = "+%d puntos al terminar cada tablero" % int(params.get("flat", 0))
 		&"refund_money":
-			return "+$%d cada vez que la feria te devuelve un tiro" % int(params.get("amount", 0))
+			text = "+$%d cada vez que la feria te devuelve un tiro" % int(params.get("amount", 0))
 		&"score_mult_all":
-			return "Todo puntua x%s" % format_mult(float(params.get("mult", 1.0)))
+			text = "Todo puntua x%s" % format_mult(float(params.get("mult", 1.0)))
 		&"bounce_scale":
-			return "Las canicas rebotan x%s" % format_mult(float(params.get("bounce", 1.0)))
+			text = "Las canicas rebotan x%s" % format_mult(float(params.get("bounce", 1.0)))
 		&"fire_speed_mult":
-			return (
+			text = (
 				"Las canicas de fuego salen x%s de velocidad"
 				% format_mult(float(params.get("mult", 1.0)))
 			)
 		&"extra_throw":
-			return "+%d tiro por tablero" % int(params.get("per_board", 1))
+			text = "+%d tiro por tablero" % int(params.get("per_board", 1))
 		&"skip_speed_scale":
-			return (
+			text = (
 				"Las canicas lentas se quedan antes (umbral de empotrado x%s)"
 				% format_mult(float(params.get("scale", 1.0)))
 			)
 		&"first_throw_replay":
-			return "Si tu primer tiro del tablero hace 0, se repite"
+			text = "Si tu primer tiro del tablero hace 0, se repite"
 		&"bag_slots":
-			return "+%d lugar para canicas en el bolso" % int(params.get("slots", 1))
+			text = "+%d lugar para canicas en el bolso" % int(params.get("slots", 1))
+		&"instant_extra_throw":
+			text = "Al usarlo: +%d tiro ahora" % int(params.get("throws", 1))
+		&"instant_replay":
+			text = "Al usarlo: repite tu ultimo tiro"
+		&"instant_money":
+			text = "Al usarlo: +$%d ahora" % int(params.get("amount", 0))
+		&"instant_skip_scale":
+			text = (
+				"Al usarlo: este tablero empotra al umbral x%s"
+				% format_mult(float(params.get("scale", 1.0)))
+			)
+	return text
+
+
+## D8/S10: the class as the shop and the HUD name it.
+func class_name_text() -> String:
+	match prize_class:
+		PrizeClass.CONSUMABLE:
+			return "CONSUMIBLE"
+		PrizeClass.COSMETIC:
+			return "COSMETICO"
 		_:
-			return ""
+			return "PERMANENTE"
 
 
 ## M2 hook contract, part 2: edit one embed's score. `ctx` carries the

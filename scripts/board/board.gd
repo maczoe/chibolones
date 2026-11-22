@@ -52,6 +52,9 @@ var shots_left := 0
 ## The launched marble was already taken from the ammo: one consumption per
 ## throw, whatever resolves it.
 var throw_consumed := false
+## D8/S9: capture-threshold scale the current board's instant consumable set
+## (Muñeco de Nieve x0.5). One board only; a new board starts at 1.0.
+var consumable_skip_scale := 1.0
 var aim_x := 0.0
 var aim_limit := 0.0
 var shot_tilt := 0.0
@@ -209,6 +212,7 @@ func _ready() -> void:
 	hud.set_money(Game.money)
 	Game.money_changed.connect(hud.set_money)
 	hud.set_prizes(Game.prizes)
+	hud.set_consumables(Game.consumables)
 	_refresh_hand()
 	# W3c HUD: the board rule goes to the top-center cue, the name to the
 	# sidebar title with the run subtitle.
@@ -289,6 +293,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if Game.phase != Game.Phase.WIN and Game.phase != Game.Phase.RESULT:
 			Game.restart_board()
 		return
+	# D8/S10: consumables are spent with 1/2/3 at any throw stage, so a replay
+	# or an extra throw is available the moment the player needs it.
+	if Game.phase != Game.Phase.WIN and Game.phase != Game.Phase.RESULT:
+		for slot in Game.CONSUMABLE_CAP:
+			if event.is_action_pressed("use_consumable_%d" % (slot + 1)):
+				use_consumable(slot)
+				break
 	if event.is_action_pressed("cancel"):
 		# X / B: step back one stage of the throw flow.
 		match state:
@@ -1183,13 +1194,74 @@ func _prize_extra_throws() -> int:
 
 
 ## Effective capture threshold: the board's own skip speed scaled by every
-## owned skip-speed prize (Muñeco de Nieve halves it).
+## owned skip-speed prize (Muñeco de Nieve halves it) and by the current
+## board's instant consumable (D8, one board only).
 func effective_skip_speed() -> float:
-	var scale := 1.0
+	var scale := consumable_skip_scale
 	for prize in Game.prizes:
 		if prize != null and prize.effect == &"skip_speed_scale":
 			scale *= float(prize.params.get("scale", 1.0))
 	return board_def.skip_speed * scale
+
+
+## D8/S10: spend the consumable at shelf index. The effect applies first and
+## only then leaves the shelf, so a use that cannot apply anything (a replay
+## with no resolved throw) is rejected and the prize stays.
+func use_consumable(index: int) -> bool:
+	if not _inventory_mode() or index < 0 or index >= Game.consumables.size():
+		return false
+	var prize: PrizeDef = Game.consumables[index]
+	if prize == null or not _apply_consumable(prize):
+		return false
+	Game.take_consumable(index)
+	hud.set_consumables(Game.consumables)
+	return true
+
+
+## S9: the four instant consumable effects, one branch each. The def carries
+## the numbers, the board owns the seam.
+func _apply_consumable(prize: PrizeDef) -> bool:
+	match prize.effect:
+		&"instant_extra_throw":
+			var extra := int(prize.params.get("throws", 1))
+			shots_total += extra
+			shots_left += extra
+			hud.set_shots(shots_left, shots_total)
+			hud.flash("%s: +%d tiro" % [prize.display_name, extra])
+			return true
+		&"instant_replay":
+			if not grant_replay():
+				return false
+			hud.flash("%s: tiro repetido" % prize.display_name)
+			return true
+		&"instant_money":
+			var amount := int(prize.params.get("amount", 0))
+			Game.add_money(amount)
+			hud.flash("%s: +$%d" % [prize.display_name, amount])
+			return true
+		&"instant_skip_scale":
+			consumable_skip_scale = float(prize.params.get("scale", 1.0))
+			hud.flash(
+				(
+					"%s: este tablero empotra al umbral x%s"
+					% [prize.display_name, PrizeDef.format_mult(consumable_skip_scale)]
+				)
+			)
+			return true
+	return false
+
+
+## S9: hand the last resolved throw back (Boleto Retro as a consumable, and
+## the passive first_throw_replay seam). The marble was already spent, so it
+## returns to the ammo, which is also the throw budget.
+func grant_replay() -> bool:
+	if resolved_throws < 1 or launched_def == null:
+		return false
+	Game.restore_ammo(launched_def)
+	shots_left = Game.ammo.size()
+	hud.set_shots(shots_left, shots_total)
+	EventBus.refund.emit()
+	return true
 
 
 ## The launched marble carries an effect id (W3 MarbleDef.effects).
@@ -1262,14 +1334,8 @@ func _boleto_replay(outcome: StringName) -> bool:
 		return false
 	if not _prize_has(&"first_throw_replay"):
 		return false
-	if launched_def == null:
-		return false
-	Game.restore_ammo(launched_def)
-	shots_left = Game.ammo.size()
-	hud.set_shots(shots_left, shots_total)
 	pending_result = "Boleto Retro: el primer tiro se repite"
-	EventBus.refund.emit()
-	return true
+	return grant_replay()
 
 
 ## Any owned run prize carries this effect id.

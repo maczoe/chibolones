@@ -78,10 +78,20 @@ func shop_stock(block: int, seed: int = -1) -> Dictionary:
 		rng.randomize()
 	return {
 		"marbles": _draw_stock(ContentDB.marbles(), STOCK_MARBLES, block, rng),
-		"prizes": _draw_stock(ContentDB.prizes(), STOCK_PRIZES, block, rng),
+		"prizes": _draw_stock(_sellable_prizes(), STOCK_PRIZES, block, rng),
 		"extra_pack_price": extra_marble_pack_price(block),
 		"reroll_price": reroll_price(),
 	}
+
+
+## D8: cosmetics never reach the shop — their source is chests and the
+## gachapon — and a class the shop does not sell would otherwise list at $0.
+func _sellable_prizes() -> Array:
+	var out: Array = []
+	for def in ContentDB.prizes():
+		if def.prize_class != PrizeDef.PrizeClass.COSMETIC:
+			out.append(def)
+	return out
 
 
 ## Count-many picks without replacement, weighted by rarity.

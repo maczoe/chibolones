@@ -125,9 +125,13 @@ func _test_item_pricing() -> void:
 			["common", "uncommon", "rare"].has(def.rarity),
 			"marble %s must have a valid rarity, got '%s'" % [def.id, def.rarity]
 		)
-	# Every prize def carries a price and a valid rarity.
+	# Every prize def that is for sale carries a price and a valid rarity;
+	# D8 cosmetics are not for sale and carry no price at all.
 	for def in content.prizes():
-		_check(def.price > 0, "prize %s must own a positive base price" % def.id)
+		if def.prize_class == PrizeDef.PrizeClass.COSMETIC:
+			_check(def.price == 0, "cosmetic prize %s must not be priced" % def.id)
+		else:
+			_check(def.price > 0, "prize %s must own a positive base price" % def.id)
 		_check(
 			["common", "uncommon", "rare"].has(def.rarity),
 			"prize %s must have a valid rarity, got '%s'" % [def.id, def.rarity]
@@ -163,8 +167,15 @@ func _test_item_pricing() -> void:
 		"glass break chance must be 0.20, got %s" % glass.break_chance
 	)
 	_check(is_equal_approx(glass.score_mult, 2.0), "glass score mult must stay x2")
-	# Rarity bands (S3): commons $2-3, uncommons $4-5, rares $7.
+	# Rarity bands (S3): commons $2-3, uncommons $4-5, rares $7. D8 cosmetics are
+	# not for sale, so the band rule gives way to the stronger rule: no price.
 	for def in content.marbles() + content.prizes():
+		if def is PrizeDef and def.prize_class == PrizeDef.PrizeClass.COSMETIC:
+			_check(
+				def.price == 0,
+				"%s is cosmetic and must not be priced, got $%d" % [def.id, def.price]
+			)
+			continue
 		var band: Array = {"common": [2, 3], "uncommon": [4, 5], "rare": [7, 7]}[def.rarity]
 		_check(
 			def.price >= band[0] and def.price <= band[1],

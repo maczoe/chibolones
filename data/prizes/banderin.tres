@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "banderin"
+display_name = "Banderín de la Feria"
+rarity = "common"
+price = 0
+prize_class = 2
+flavor = "Un triangulo de tela que ya vio diez runs mejores que esta."
+effect = &""
+params = {}

@@ -181,7 +181,12 @@ func _stall_card(kind: String, def: Resource, price: int) -> PanelContainer:
 	column.add_theme_constant_override("separation", 5)
 	card.add_child(column)
 
-	column.add_child(_candy_label(kind, 12, Color("4deeea")))
+	# D8: the card names the prize class beside the kind, so a single-use prize
+	# never reads like a permanent one. `kind` itself stays the routing key.
+	var kind_text := kind
+	if def is PrizeDef and def.prize_class != PrizeDef.PrizeClass.PERMANENT:
+		kind_text = "%s - %s" % [kind, def.class_name_text()]
+	column.add_child(_candy_label(kind_text, 12, Color("4deeea")))
 
 	var orb := TextureRect.new()
 	orb.texture = orb_for(_item_color(kind, def))

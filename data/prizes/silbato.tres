@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "silbato"
+display_name = "Silbato de Hojalata"
+rarity = "uncommon"
+price = 0
+prize_class = 2
+flavor = "Suena igual de desafinado desde 1974."
+effect = &""
+params = {}

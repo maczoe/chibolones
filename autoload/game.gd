@@ -18,6 +18,9 @@ const START_MONEY := 5
 ## W3 bag caps: marble slots per run (Carpa adds), prize shelf slots.
 const MARBLE_CAP := 10
 const PRIZE_CAP := 2
+## D8/S10: consumable prizes the player carries and spends from the board.
+## They never take a prize shelf slot; the shelf holds permanents only.
+const CONSUMABLE_CAP := 3
 ## Endless mode pays one extra dollar per board won on top of the block-5
 ## rate (content-plan §2).
 const ENDLESS_BONUS := 1
@@ -52,6 +55,13 @@ var inventory: Array[MarbleDef] = []
 var ammo: Array[MarbleDef] = []
 ## Prizes owned this run: permanent effects (M2 hook contract).
 var prizes: Array[PrizeDef] = []
+## D8/S10: consumables carried this run, spent one at a time from the board
+## with a key. Not in `prizes`, so the permanent hook contract never reads
+## them and no shelf slot is taken.
+var consumables: Array[PrizeDef] = []
+## D8 cosmetics collected this run: no effect, collection only (S8). The
+## library that persists them is D11/W4; here they are just recorded.
+var cosmetics: Array[PrizeDef] = []
 
 ## True between start_run() and the end of that run (loss or back to menu).
 ## A board opened without a run (headless tests) keeps its POC behavior.
@@ -75,6 +85,55 @@ func marble_cap() -> int:
 ## Prize shelf slots this run (fixed in W3, no prize expands it).
 func prize_cap() -> int:
 	return PRIZE_CAP
+
+
+## Move money through the one signal every HUD reads (instant consumables,
+## chest rewards).
+func add_money(amount: int) -> void:
+	if amount == 0:
+		return
+	money += amount
+	money_changed.emit(money)
+
+
+## D8: can this def find a home right now? Permanents need a free shelf slot,
+## consumables a free consumable slot, cosmetics always fit.
+func can_add_prize(def: PrizeDef) -> bool:
+	if def == null:
+		return false
+	match def.prize_class:
+		PrizeDef.PrizeClass.CONSUMABLE:
+			return consumables.size() < CONSUMABLE_CAP
+		PrizeDef.PrizeClass.COSMETIC:
+			return true
+		_:
+			return prizes.size() < prize_cap()
+
+
+## D8: route one owned prize to the shelf its class belongs to. The one entry
+## point for every acquisition source (shop, chests). Returns false and
+## touches nothing when the class has no room.
+func add_prize(def: PrizeDef) -> bool:
+	if not can_add_prize(def):
+		return false
+	match def.prize_class:
+		PrizeDef.PrizeClass.CONSUMABLE:
+			consumables.append(def)
+		PrizeDef.PrizeClass.COSMETIC:
+			cosmetics.append(def)
+		_:
+			prizes.append(def)
+	return true
+
+
+## S10: spend one consumable by shelf index. The board applies the effect
+## first and only then calls this, so a rejected use keeps the prize.
+func take_consumable(index: int) -> PrizeDef:
+	if index < 0 or index >= consumables.size():
+		return null
+	var taken: PrizeDef = consumables[index]
+	consumables.remove_at(index)
+	return taken
 
 
 var boards_cleared := 0
@@ -146,14 +205,17 @@ func buy_marble(def: MarbleDef) -> bool:
 	return true
 
 
-## Buy one prize def onto the run shelf.
+## Buy one prize def: the class decides where it lands (D8). A permanent
+## needs a free shelf slot, a consumable a free consumable slot. Returns
+## false and touches nothing when blocked or short of money.
 func buy_prize(def: PrizeDef) -> bool:
-	if def == null or prizes.size() >= prize_cap():
+	if not can_add_prize(def):
 		return false
-	if money < Economy.marble_price(def.price, block):
+	var price := Economy.marble_price(def.price, block)
+	if money < price:
 		return false
-	money -= Economy.marble_price(def.price, block)
-	prizes.append(def)
+	money -= price
+	add_prize(def)
 	money_changed.emit(money)
 	return true
 
@@ -228,6 +290,8 @@ func start_run() -> void:
 	money = START_MONEY
 	inventory.clear()
 	prizes.clear()
+	consumables.clear()
+	cosmetics.clear()
 	for marble_id in STARTING_MARBLES:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
@@ -274,6 +338,11 @@ func start_debug_run(config: Dictionary) -> bool:
 	for def in config.get("prizes", []):
 		if def is PrizeDef and not prizes.has(def):
 			prizes.append(def)
+	consumables.clear()
+	for def in config.get("consumables", []):
+		if def is PrizeDef and not consumables.has(def):
+			consumables.append(def)
+	cosmetics.clear()
 	extra_throws = 0
 	endless_mode = false
 	run_won = false

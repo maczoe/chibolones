@@ -94,7 +94,15 @@ func _test_full_cycle() -> void:
 	_check(
 		game.inventory.size() == 7, "5 commons + marble + pack = 7, got %d" % game.inventory.size()
 	)
-	_check(game.prizes.size() == 2, "trompo + the bought prize = 2, got %d" % game.prizes.size())
+	# D8: the bought prize lands on the shelf its class declares — the permanent
+	# prize rail or the consumable shelf — and never on both.
+	_check(
+		game.prizes.size() + game.consumables.size() == 2,
+		(
+			"trompo + the bought prize = 2 across both shelves, got %d + %d"
+			% [game.prizes.size(), game.consumables.size()]
+		)
+	)
 
 	# (3) The next board carries the purchases.
 	game.shop_continue()
