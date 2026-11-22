@@ -13,7 +13,7 @@ signal embedded_marble_hit(notch_index: int, impact_speed: float)
 ## A marble embedded in a notch (value = painted score of the notch).
 signal embed(notch_index: int, value: int)
 ## The throw was returned by the forgiving player edge (shot not consumed).
-signal refund()
+signal refund
 ## The active marble finished its throw: "embedded", "settled",
 ## "off_board", "refunded" or "timed_out".
 signal throw_ended(outcome: StringName)

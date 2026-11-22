@@ -17,7 +17,8 @@ extends RefCounted
 
 
 ## One checker verdict for a board def.
-class Report extends RefCounted:
+class Report:
+	extends RefCounted
 	## True when some sequence of <= max shots of baseline hole values
 	## satisfies the objective.
 	var winnable := false
@@ -70,8 +71,10 @@ static func check(def: BoardDef, max_shots: int = BASELINE_SHOTS) -> Report:
 		frontier = next
 		if frontier.is_empty():
 			break
-	report.reason = "no sequence of up to %d baseline values %s satisfies the objective %s" \
-			% [max_shots, str(values), objective.target_text()]
+	report.reason = (
+		"no sequence of up to %d baseline values %s satisfies the objective %s"
+		% [max_shots, str(values), objective.target_text()]
+	)
 	return report
 
 

@@ -63,19 +63,19 @@ func _test_objective_defaults() -> void:
 	# Existing boards carry no objective_kind key: they must keep today's
 	# semantics (threshold over objective_target) untouched.
 	var def := BoardDef.new()
-	_check(def.objective_kind == BoardDef.ObjectiveKind.THRESHOLD,
-			"a fresh BoardDef should default to THRESHOLD, got %s" % def.objective_kind)
-	_check(def.objective_target == 0,
-			"a fresh BoardDef should default to objective_target 0")
-	_check(def.objective_goals.is_empty(),
-			"a fresh BoardDef should default to no goal list")
-	_check(def.objective_rule == &"even",
-			"a fresh BoardDef should default to the 'even' math rule")
+	_check(
+		def.objective_kind == BoardDef.ObjectiveKind.THRESHOLD,
+		"a fresh BoardDef should default to THRESHOLD, got %s" % def.objective_kind
+	)
+	_check(def.objective_target == 0, "a fresh BoardDef should default to objective_target 0")
+	_check(def.objective_goals.is_empty(), "a fresh BoardDef should default to no goal list")
+	_check(def.objective_rule == &"even", "a fresh BoardDef should default to the 'even' math rule")
 	# D12 defaults: no matrix, no trap holes.
-	_check(def.hole_values.is_empty(),
-			"a fresh BoardDef should default to no per-hole matrix")
-	_check(def.hole_value(2, 3) == def.row_scores[2],
-			"without a matrix, hole_value(row, col) should fall back to row_scores")
+	_check(def.hole_values.is_empty(), "a fresh BoardDef should default to no per-hole matrix")
+	_check(
+		def.hole_value(2, 3) == def.row_scores[2],
+		"without a matrix, hole_value(row, col) should fall back to row_scores"
+	)
 
 
 # --- (b) Objective evaluation per kind (S1, S3, S8) -------------------------
@@ -166,8 +166,14 @@ func _def(kind: int, target: int, goals: Array = [], rule: StringName = &"even")
 ## Open a board inside a run over a def mutated in memory to carry the
 ## given objective; the ContentDB cache hands the same instance to the
 ## board scene, so no test .tres is needed.
-func _open_kind_board(kind: int, target: int, goals: Array = [],
-			rule: StringName = &"even", range_min := 0, range_max := 0) -> Node:
+func _open_kind_board(
+	kind: int,
+	target: int,
+	goals: Array = [],
+	rule: StringName = &"even",
+	range_min := 0,
+	range_max := 0
+) -> Node:
 	game.start_run()
 	game.current_board_in_run = 1
 	var def: BoardDef = content.board_def(0)
@@ -203,14 +209,23 @@ func _test_board_wiring() -> void:
 	# EXACT: the HUD names the kind, the exact total wins, an overshoot
 	# does NOT win instantly (S3) and loses only when shots run out.
 	var board = await _open_kind_board(BoardDef.ObjectiveKind.EXACT, 50)
-	_check(_text(board.hud, "label_target") == "0 / =50",
-			"exact HUD should read '0 / =50', got '%s'" % _text(board.hud, "label_target"))
-	_check(_text(board.hud, "label_board_effects").contains("exacto"),
+	_check(
+		_text(board.hud, "label_target") == "0 / =50",
+		"exact HUD should read '0 / =50', got '%s'" % _text(board.hud, "label_target")
+	)
+	_check(
+		_text(board.hud, "label_board_effects").contains("exacto"),
+		(
 			"exact board should announce its objective, got '%s'"
-			% _text(board.hud, "label_board_effects"))
+			% _text(board.hud, "label_board_effects")
+		)
+	)
 	root.get_node("EventBus").embed.emit(0, 50)
 	await physics_frame
-	_check(board.score_engine.total == 50, "exact embed should score 50, got %d" % board.score_engine.total)
+	_check(
+		board.score_engine.total == 50,
+		"exact embed should score 50, got %d" % board.score_engine.total
+	)
 	_check(board.board_result_sent, "exact total 50 should win the board")
 	board.queue_free()
 	await physics_frame
@@ -224,16 +239,19 @@ func _test_board_wiring() -> void:
 	board._round_over()
 	await physics_frame
 	_check(board.board_result_sent, "overshoot with no shots left should lose the board")
-	_check(_text(board.hud, "label_final").contains("=50"),
-			"exact defeat should name the missed objective, got '%s'"
-			% _text(board.hud, "label_final"))
+	_check(
+		_text(board.hud, "label_final").contains("=50"),
+		"exact defeat should name the missed objective, got '%s'" % _text(board.hud, "label_final")
+	)
 	board.queue_free()
 	await physics_frame
 
 	# RANGE: HUD shows the inclusive bounds.
 	board = await _open_kind_board(BoardDef.ObjectiveKind.RANGE, 50, [], &"even", 40, 60)
-	_check(_text(board.hud, "label_target") == "0 / 40-60",
-			"range HUD should read '0 / 40-60', got '%s'" % _text(board.hud, "label_target"))
+	_check(
+		_text(board.hud, "label_target") == "0 / 40-60",
+		"range HUD should read '0 / 40-60', got '%s'" % _text(board.hud, "label_target")
+	)
 	root.get_node("EventBus").embed.emit(0, 55)
 	await physics_frame
 	_check(board.board_result_sent, "range total 55 inside 40-60 should win")
@@ -242,18 +260,26 @@ func _test_board_wiring() -> void:
 
 	# LIST: HUD tracks the next goal; hitting all goals in order wins.
 	board = await _open_kind_board(BoardDef.ObjectiveKind.LIST, 0, [20, 40])
-	_check(_text(board.hud, "label_target") == "0 / =20",
-			"list HUD should read '0 / =20', got '%s'" % _text(board.hud, "label_target"))
+	_check(
+		_text(board.hud, "label_target") == "0 / =20",
+		"list HUD should read '0 / =20', got '%s'" % _text(board.hud, "label_target")
+	)
 	root.get_node("EventBus").embed.emit(0, 15)
 	await physics_frame
-	_check(_text(board.hud, "label_target") == "15 / =20",
-			"list HUD should still ask for =20 at 15, got '%s'" % _text(board.hud, "label_target"))
+	_check(
+		_text(board.hud, "label_target") == "15 / =20",
+		"list HUD should still ask for =20 at 15, got '%s'" % _text(board.hud, "label_target")
+	)
 	_check(not board.board_result_sent, "list 15 should not hit =20")
 	root.get_node("EventBus").embed.emit(0, 5)
 	await physics_frame
-	_check(_text(board.hud, "label_target") == "20 / =40",
+	_check(
+		_text(board.hud, "label_target") == "20 / =40",
+		(
 			"list HUD should advance to =40 after hitting =20, got '%s'"
-			% _text(board.hud, "label_target"))
+			% _text(board.hud, "label_target")
+		)
+	)
 	root.get_node("EventBus").embed.emit(0, 20)
 	await physics_frame
 	_check(board.board_result_sent, "list =20 then =40 should win")
@@ -262,17 +288,26 @@ func _test_board_wiring() -> void:
 
 	# ANY: HUD lists every winning total; hitting any one of them wins.
 	board = await _open_kind_board(BoardDef.ObjectiveKind.ANY, 0, [30, 60])
-	_check(_text(board.hud, "label_target") == "0 / =30/60",
-			"any HUD should read '0 / =30/60', got '%s'" % _text(board.hud, "label_target"))
-	_check(_text(board.hud, "label_board_effects").contains("30"),
+	_check(
+		_text(board.hud, "label_target") == "0 / =30/60",
+		"any HUD should read '0 / =30/60', got '%s'" % _text(board.hud, "label_target")
+	)
+	_check(
+		_text(board.hud, "label_board_effects").contains("30"),
+		(
 			"any board should announce its winning totals, got '%s'"
-			% _text(board.hud, "label_board_effects"))
+			% _text(board.hud, "label_board_effects")
+		)
+	)
 	root.get_node("EventBus").embed.emit(0, 25)
 	await physics_frame
 	_check(not board.board_result_sent, "any 25 outside the set should not win")
 	root.get_node("EventBus").embed.emit(0, 35)
 	await physics_frame
-	_check(board.score_engine.total == 60, "any embeds should accumulate, got %d" % board.score_engine.total)
+	_check(
+		board.score_engine.total == 60,
+		"any embeds should accumulate, got %d" % board.score_engine.total
+	)
 	_check(board.board_result_sent, "any total 60 hitting the set should win")
 	board.queue_free()
 	await physics_frame
@@ -280,8 +315,10 @@ func _test_board_wiring() -> void:
 	# MATH: HUD names the rule; even rule wins on an even total past the
 	# minimum, never on an odd one.
 	board = await _open_kind_board(BoardDef.ObjectiveKind.MATH, 20, [], &"even")
-	_check(_text(board.hud, "label_target").contains("par"),
-			"math HUD should name the rule, got '%s'" % _text(board.hud, "label_target"))
+	_check(
+		_text(board.hud, "label_target").contains("par"),
+		"math HUD should name the rule, got '%s'" % _text(board.hud, "label_target")
+	)
 	root.get_node("EventBus").embed.emit(0, 21)
 	await physics_frame
 	_check(not board.board_result_sent, "math odd 21 should not win an even board")
@@ -300,12 +337,24 @@ func _test_board_wiring() -> void:
 	var plain: Node3D = (load("res://scenes/board/board.tscn") as PackedScene).instantiate()
 	root.add_child(plain)
 	await physics_frame
-	_check(plain.run_objective == 60, "threshold board 1 should keep target 60, got %d" % plain.run_objective)
-	_check(_text(plain.hud, "label_target") == "0 / 60",
-			"threshold HUD should keep the score/target line, got '%s'" % _text(plain.hud, "label_target"))
-	_check(not _text(plain.hud, "label_board_effects").contains("Objetivo"),
+	_check(
+		plain.run_objective == 60,
+		"threshold board 1 should keep target 60, got %d" % plain.run_objective
+	)
+	_check(
+		_text(plain.hud, "label_target") == "0 / 60",
+		(
+			"threshold HUD should keep the score/target line, got '%s'"
+			% _text(plain.hud, "label_target")
+		)
+	)
+	_check(
+		not _text(plain.hud, "label_board_effects").contains("Objetivo"),
+		(
 			"threshold board should not announce a special objective, got '%s'"
-			% _text(plain.hud, "label_board_effects"))
+			% _text(plain.hud, "label_board_effects")
+		)
+	)
 	plain.queue_free()
 	await physics_frame
 	_reset_def()
@@ -340,21 +389,39 @@ func _reset_matrix_def() -> void:
 func _test_matrix_and_traps() -> void:
 	var board = await _open_matrix_board()
 	# Matrix values land on the holes and their painted labels.
-	_check(int(board.holes[1].score) == 10, "hole 1 should carry matrix value 10, got %d" % board.holes[1].score)
-	_check(int(board.holes[6].score) == 20, "hole 6 should carry matrix value 20, got %d" % board.holes[6].score)
-	_check(str(board.holes[6].label.text) == "20", "hole 6 label should read '20', got '%s'" % board.holes[6].label.text)
+	_check(
+		int(board.holes[1].score) == 10,
+		"hole 1 should carry matrix value 10, got %d" % board.holes[1].score
+	)
+	_check(
+		int(board.holes[6].score) == 20,
+		"hole 6 should carry matrix value 20, got %d" % board.holes[6].score
+	)
+	_check(
+		str(board.holes[6].label.text) == "20",
+		"hole 6 label should read '20', got '%s'" % board.holes[6].label.text
+	)
 	# Entries beyond the matrix fall back to the row default.
-	_check(int(board.holes[8].score) == board_def_row_score(1),
-			"hole 8 should fall back to its row score, got %d" % board.holes[8].score)
-	_check(int(board.holes[19].score) == board_def_row_score(3),
-			"hole 19 should fall back to its row score, got %d" % board.holes[19].score)
+	_check(
+		int(board.holes[8].score) == board_def_row_score(1),
+		"hole 8 should fall back to its row score, got %d" % board.holes[8].score
+	)
+	_check(
+		int(board.holes[19].score) == board_def_row_score(3),
+		"hole 19 should fall back to its row score, got %d" % board.holes[19].score
+	)
 
 	# Trap holes: flagged in the dict, painted as X, not counted as values.
 	_check(bool(board.holes[0].trap), "hole 0 should be a trap")
 	_check(bool(board.holes[7].trap), "hole 7 should be a trap")
 	_check(not bool(board.holes[1].trap), "hole 1 should not be a trap")
-	_check(str(board.holes[0].label.text) == "X", "trap label should read 'X', got '%s'" % board.holes[0].label.text)
-	_check(int(board.holes[0].score) == 0, "a trap hole should score 0, got %d" % board.holes[0].score)
+	_check(
+		str(board.holes[0].label.text) == "X",
+		"trap label should read 'X', got '%s'" % board.holes[0].label.text
+	)
+	_check(
+		int(board.holes[0].score) == 0, "a trap hole should score 0, got %d" % board.holes[0].score
+	)
 
 	# Embedding into a trap voids the throw (S5): no score, no ammo spent,
 	# the marble leaves the board and can be thrown again.
@@ -368,13 +435,22 @@ func _test_matrix_and_traps() -> void:
 	board.active_marbles.append(marble)
 	board._embed(marble, board.holes[0], 0.0)
 	await physics_frame
-	_check(board.score_engine.total == 0, "a trap embed should not score, got %d" % board.score_engine.total)
-	_check(game.ammo.size() == ammo_before,
+	_check(
+		board.score_engine.total == 0,
+		"a trap embed should not score, got %d" % board.score_engine.total
+	)
+	_check(
+		game.ammo.size() == ammo_before,
+		(
 			"a trap embed should not spend ammo (tiro anulado), got %d of %d"
-			% [game.ammo.size(), ammo_before])
+			% [game.ammo.size(), ammo_before]
+		)
+	)
 	_check(not marble in board.active_marbles, "the trapped marble should leave the board")
-	_check(str(board.pending_result).contains("trampa"),
-			"the trap should tell the player, got '%s'" % str(board.pending_result))
+	_check(
+		str(board.pending_result).contains("trampa"),
+		"the trap should tell the player, got '%s'" % str(board.pending_result)
+	)
 	_check(not bool(board.holes[0].occupied), "a trap hole should stay open for repeat danger")
 
 	# A normal hole on the same board still scores through the matrix.
@@ -387,15 +463,22 @@ func _test_matrix_and_traps() -> void:
 	board.active_marbles.append(normal)
 	board._embed(normal, board.holes[6], 0.0)
 	await physics_frame
-	_check(board.score_engine.total == 20, "matrix hole 6 should score 20, got %d" % board.score_engine.total)
+	_check(
+		board.score_engine.total == 20,
+		"matrix hole 6 should score 20, got %d" % board.score_engine.total
+	)
 
 	# Borracho's value shuffle never touches traps: the X stays an X and
 	# the 0 stays out of the shuffle pool.
 	board.board_theme.shuffle_values()
-	_check(str(board.holes[0].label.text) == "X",
-			"shuffle should keep the trap X, got '%s'" % board.holes[0].label.text)
-	_check(int(board.holes[0].score) == 0,
-			"shuffle should keep the trap score 0, got %d" % board.holes[0].score)
+	_check(
+		str(board.holes[0].label.text) == "X",
+		"shuffle should keep the trap X, got '%s'" % board.holes[0].label.text
+	)
+	_check(
+		int(board.holes[0].score) == 0,
+		"shuffle should keep the trap score 0, got %d" % board.holes[0].score
+	)
 	board.queue_free()
 	await physics_frame
 	_reset_matrix_def()
@@ -414,14 +497,40 @@ func _test_winnability_checker() -> void:
 	def.trap_holes.clear()
 	var report := BoardChecker.check(def)
 	_check(report.winnable, "classic threshold 60 should be winnable")
-	_check(report.shots_needed <= 5,
-			"classic board should win within 5 baseline shots, needs %d" % report.shots_needed)
-	_check(report.example.size() > 0 and _sum(report.example) >= 60,
-			"the example line should reach the objective, got %s" % str(report.example))
+	_check(
+		report.shots_needed <= 5,
+		"classic board should win within 5 baseline shots, needs %d" % report.shots_needed
+	)
+	_check(
+		report.example.size() > 0 and _sum(report.example) >= 60,
+		"the example line should reach the objective, got %s" % str(report.example)
+	)
 
 	# The hole pool excludes traps (they void the throw, they never score).
-	def.trap_holes.assign([true, true, true, true, true, true, true, true, true, true,
-			true, true, true, true, true, true, true, true, true, true])
+	def.trap_holes.assign(
+		[
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true
+		]
+	)
 	report = BoardChecker.check(def)
 	_check(not report.winnable, "a board of only traps is not winnable")
 	def.trap_holes.clear()
@@ -437,15 +546,19 @@ func _test_winnability_checker() -> void:
 	def.objective_target = 100
 	report = BoardChecker.check(def)
 	_check(report.winnable, "exact =100 over {10,20,30,50} should be winnable")
-	_check(_sum(report.example) == 100,
-			"exact example should sum exactly 100, got %d" % _sum(report.example))
+	_check(
+		_sum(report.example) == 100,
+		"exact example should sum exactly 100, got %d" % _sum(report.example)
+	)
 
 	# Goal list: goals must be hit in order by cumulative totals.
 	def.objective_kind = BoardDef.ObjectiveKind.LIST
 	def.objective_goals.assign([20, 50])
 	report = BoardChecker.check(def)
 	_check(report.winnable, "list =20 then =50 over {10,20,30,50} should be winnable")
-	_check(_sum(report.example) == 50, "list example should end at 50, got %d" % _sum(report.example))
+	_check(
+		_sum(report.example) == 50, "list example should end at 50, got %d" % _sum(report.example)
+	)
 
 	# Math rule: even target reachable.
 	def.objective_kind = BoardDef.ObjectiveKind.MATH
@@ -493,9 +606,10 @@ func _test_mole_traps() -> void:
 	# Wait for at least two mole rolls.
 	await self.create_timer(fast_interval * 4.0).timeout
 	var traps := _trap_holes(board)
-	_check(traps.size() == modifier.mole_trap_count,
-			"guacamole should trap exactly %d holes, got %d"
-			% [modifier.mole_trap_count, traps.size()])
+	_check(
+		traps.size() == modifier.mole_trap_count,
+		"guacamole should trap exactly %d holes, got %d" % [modifier.mole_trap_count, traps.size()]
+	)
 	if traps.is_empty():
 		board.queue_free()
 		await physics_frame

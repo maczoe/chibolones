@@ -81,11 +81,13 @@ func shop_stock(block: int, seed: int = -1) -> Dictionary:
 		"prizes": _draw_stock(ContentDB.prizes(), STOCK_PRIZES, block, rng),
 		"extra_pack_price": extra_marble_pack_price(block),
 		"reroll_price": reroll_price(),
-}
+	}
 
 
 ## Count-many picks without replacement, weighted by rarity.
-func _draw_stock(pool: Array, count: int, block: int, rng: RandomNumberGenerator) -> Array[Dictionary]:
+func _draw_stock(
+	pool: Array, count: int, block: int, rng: RandomNumberGenerator
+) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var remaining := pool.duplicate()
 	for i in count:
@@ -93,10 +95,15 @@ func _draw_stock(pool: Array, count: int, block: int, rng: RandomNumberGenerator
 			break
 		var def: Resource = _weighted_pick(remaining, rng)
 		remaining.erase(def)
-		out.append({
-			"def_id": def.id,
-			"price": marble_price(def.price, block),
-		})
+		(
+			out
+			. append(
+				{
+					"def_id": def.id,
+					"price": marble_price(def.price, block),
+				}
+			)
+		)
 	return out
 
 

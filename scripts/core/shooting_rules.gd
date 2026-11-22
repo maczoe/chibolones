@@ -22,6 +22,7 @@ extends Resource
 ## per-side cap sits at 60 degrees.
 @export var tilt_max_deg: float = 60.0
 
+
 ## Speed of one tilt frame under acceleration: keys ramp by held time,
 ## the gamepad axis scales the result, releasing or reversing resets the
 ## ramp on the board side (fine adjust). hold_time is seconds the same
@@ -31,6 +32,7 @@ func tilt_frame_speed(axis_value: float, hold_time: float) -> float:
 	# Smoothstep keeps the middle of the ramp gradual instead of linear.
 	ramp = ramp * ramp * (3.0 - 2.0 * ramp)
 	return lerpf(tilt_speed_min, tilt_speed, ramp) * absf(axis_value)
+
 
 @export_group("Power & launch")
 @export var min_speed: float = 2.2

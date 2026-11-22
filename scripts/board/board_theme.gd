@@ -150,6 +150,7 @@ func _clear_trap(hole: Dictionary) -> void:
 func active() -> bool:
 	return not modifiers.is_empty()
 
+
 func has(id: StringName) -> bool:
 	for def in modifiers:
 		if def.id == id:
@@ -266,8 +267,12 @@ func _physics_process(delta: float) -> void:
 
 
 func _apply_wind() -> void:
-	var force := board.global_transform.basis.x.normalized() \
-			* wind_strength * WIND_FORCE_SCALE * wind_direction
+	var force := (
+		board.global_transform.basis.x.normalized()
+		* wind_strength
+		* WIND_FORCE_SCALE
+		* wind_direction
+	)
 	for marble in board.active_marbles:
 		if is_instance_valid(marble) and not marble.freeze:
 			# W3: a wind_steady marble (Agata) feels none of it.
@@ -283,8 +288,9 @@ func _apply_marble_steering() -> void:
 	for marble in board.active_marbles:
 		if not is_instance_valid(marble) or marble.freeze:
 			continue
-		var steer: Vector3 = board.marble_force(marble,
-				board.board.to_local(marble.global_position))
+		var steer: Vector3 = board.marble_force(
+			marble, board.board.to_local(marble.global_position)
+		)
 		if steer.length_squared() > 0.0:
 			marble.apply_central_force(board.global_transform.basis * steer)
 
@@ -307,10 +313,12 @@ func _apply_magnet(delta: float) -> void:
 				# so force here only feeds the bounce loop. Drain speed
 				# instead and let the physics settle the marble.
 				marble.linear_velocity = marble.linear_velocity.move_toward(
-						Vector3.ZERO, MAGNET_CONTACT_DAMP * delta)
+					Vector3.ZERO, MAGNET_CONTACT_DAMP * delta
+				)
 				continue
-			marble.apply_central_force(basis * pull.normalized()
-					* magnet_strength * MAGNET_FORCE_SCALE * marble.mass)
+			marble.apply_central_force(
+				basis * pull.normalized() * magnet_strength * MAGNET_FORCE_SCALE * marble.mass
+			)
 			# One embedded marble pulls at a time: two opposite pulls would
 			# cancel out and read as the magnet doing nothing.
 			break

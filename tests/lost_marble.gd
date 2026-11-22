@@ -79,6 +79,7 @@ func _ghost_marble(board: Node3D, local: Vector3) -> RigidBody3D:
 
 # --- (a) An embedded marble is a dead obstacle, not a trampoline -------------
 
+
 func _test_embed_material_is_dead() -> void:
 	var board := _open_board()
 	await physics_frame
@@ -91,12 +92,12 @@ func _test_embed_material_is_dead() -> void:
 	var phys: PhysicsMaterial = victim.physics_material_override
 	_check(phys != null, "an embedded marble should carry its own material")
 	if phys != null:
-		_check(phys.bounce <= 0.2,
-				"an embedded marble should barely bounce, got %s" % phys.bounce)
+		_check(phys.bounce <= 0.2, "an embedded marble should barely bounce, got %s" % phys.bounce)
 	_close(board)
 
 
 # --- (b) The magnet pulls at range... ----------------------------------------
+
 
 func _test_magnet_pulls_at_range() -> void:
 	var board := _open_board(true)
@@ -109,15 +110,16 @@ func _test_magnet_pulls_at_range() -> void:
 	board.active_marbles.append(marble)
 	board.board_theme._apply_magnet(1.0 / 60.0)
 	await physics_frame
-	var toward: Vector3 = (board.board.to_global(hole_pos)
-			- marble.global_position).normalized()
-	_check(marble.linear_velocity.dot(toward) > 0.05,
-			"the magnet should pull toward the embedded marble, velocity is %s"
-			% marble.linear_velocity)
+	var toward: Vector3 = (board.board.to_global(hole_pos) - marble.global_position).normalized()
+	_check(
+		marble.linear_velocity.dot(toward) > 0.05,
+		"the magnet should pull toward the embedded marble, velocity is %s" % marble.linear_velocity
+	)
 	_close(board)
 
 
 # --- (c) ...but damps at contact instead of grinding the marble --------------
+
 
 func _test_magnet_damps_at_contact() -> void:
 	var board := _open_board(true)
@@ -131,13 +133,15 @@ func _test_magnet_damps_at_contact() -> void:
 	marble.linear_velocity = Vector3(0.5, 0, 0)
 	board.board_theme._apply_magnet(1.0 / 60.0)
 	await physics_frame
-	_check(marble.linear_velocity.length() < 0.5,
-			"at contact the magnet should damp, velocity is %s"
-			% marble.linear_velocity)
+	_check(
+		marble.linear_velocity.length() < 0.5,
+		"at contact the magnet should damp, velocity is %s" % marble.linear_velocity
+	)
 	_close(board)
 
 
 # --- (d) A settled marble is lost with the abduction --------------------------
+
 
 func _test_settle_abducts() -> void:
 	var board := _open_board()
@@ -145,8 +149,7 @@ func _test_settle_abducts() -> void:
 	# Keep the capture assist out of the way: this marble rests in the launch
 	# band, away from any notch.
 	board.board_def.capture_pull = 0.0
-	var marble := _ghost_marble(board, Vector3(0.0, 0.05,
-			board.board_def.launch_z()))
+	var marble := _ghost_marble(board, Vector3(0.0, 0.05, board.board_def.launch_z()))
 	board.state = board.ThrowState.FLIGHT
 	board.launch_timer = 0.0
 	board.active_marbles.append(marble)
@@ -157,24 +160,26 @@ func _test_settle_abducts() -> void:
 		await physics_frame
 		if not is_instance_valid(marble):
 			break
-	_check(not board.active_marbles.has(marble),
-			"a settled marble should leave active_marbles at once")
-	_check(is_instance_valid(marble),
-			"the abduction should keep the marble alive to animate it")
+	_check(
+		not board.active_marbles.has(marble), "a settled marble should leave active_marbles at once"
+	)
+	_check(is_instance_valid(marble), "the abduction should keep the marble alive to animate it")
 	if is_instance_valid(marble):
 		_check(marble.freeze, "an abducted marble should stop simulating")
 		var risen_y: float = 0.0
 		for i in 20:
 			await physics_frame
 			risen_y = marble.global_position.y
-		_check(risen_y > start_y + 0.2,
-				"the marble should rise on the vertical, y %s -> %s"
-				% [start_y, risen_y])
+		_check(
+			risen_y > start_y + 0.2,
+			"the marble should rise on the vertical, y %s -> %s" % [start_y, risen_y]
+		)
 	board.board_def.capture_pull = 0.4
 	_close(board)
 
 
 # --- (e) A timed-out volley abducts its leftovers too -------------------------
+
 
 func _test_timeout_abducts() -> void:
 	var board := _open_board()
@@ -185,16 +190,18 @@ func _test_timeout_abducts() -> void:
 	board.active_marbles.append(marble)
 	await physics_frame
 	await physics_frame
-	_check(board.active_marbles.is_empty(),
-			"the timeout should end the volley")
-	_check(is_instance_valid(marble),
-			"the timeout should abduct the marble, not pop it out of existence")
+	_check(board.active_marbles.is_empty(), "the timeout should end the volley")
+	_check(
+		is_instance_valid(marble),
+		"the timeout should abduct the marble, not pop it out of existence"
+	)
 	if is_instance_valid(marble):
 		_check(marble.freeze, "an abducted marble should stop simulating")
 	_close(board)
 
 
 # --- (f) A marble that barely moves is lost after ~2 s, not at the timeout ---
+
 
 func _test_stuck_marble_is_lost_early() -> void:
 	var board := _open_board()
@@ -210,13 +217,13 @@ func _test_stuck_marble_is_lost_early() -> void:
 	# threshold, never settling (velocity keeps reset above settle_speed).
 	for i in 155:
 		marble.linear_velocity = Vector3(0.3, 0, 0)
-		marble.global_position = board.board.to_global(
-				Vector3(sin(i * 0.9) * 0.03, 0.5, 0.0))
+		marble.global_position = board.board.to_global(Vector3(sin(i * 0.9) * 0.03, 0.5, 0.0))
 		await physics_frame
 		if not is_instance_valid(marble):
 			break
-	_check(not board.active_marbles.has(marble),
-			"a stuck marble should be lost without waiting for the timeout")
-	_check(is_instance_valid(marble),
-			"the stuck loss should abduct the marble like any other loss")
+	_check(
+		not board.active_marbles.has(marble),
+		"a stuck marble should be lost without waiting for the timeout"
+	)
+	_check(is_instance_valid(marble), "the stuck loss should abduct the marble like any other loss")
 	_close(board)

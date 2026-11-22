@@ -18,14 +18,17 @@ func _run() -> void:
 	await physics_frame
 	var content := root.get_node("ContentDB")
 	var reports := BoardChecker.check_all(content)
-	print("Board winnability vs baseline inventory (%d shots):"
-			% BoardChecker.BASELINE_SHOTS)
+	print("Board winnability vs baseline inventory (%d shots):" % BoardChecker.BASELINE_SHOTS)
 	for i in reports.size():
 		var report: BoardChecker.Report = reports[i]
 		var def: BoardDef = content.board_def(i)
 		if report.winnable:
-			print("OK   %2d %-28s %s in %d shots"
-					% [i + 1, def.theme_name, str(report.example), report.shots_needed])
+			print(
+				(
+					"OK   %2d %-28s %s in %d shots"
+					% [i + 1, def.theme_name, str(report.example), report.shots_needed]
+				)
+			)
 		else:
 			failed = true
 			print("FAIL %2d %-28s %s" % [i + 1, def.theme_name, report.reason])

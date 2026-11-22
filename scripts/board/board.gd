@@ -60,11 +60,11 @@ var shot_tilt := 0.0
 ## reversing resets both, so taps and reversals give fine adjustment.
 var tilt_hold_time := 0.0
 var tilt_last_dir := 0.0
-var tilt_max_left := 0.0    # per-side aim limits, so the guide cannot point
-var tilt_max_right := 0.0   # past the side walls from this launch spot
+var tilt_max_left := 0.0  # per-side aim limits, so the guide cannot point
+var tilt_max_right := 0.0  # past the side walls from this launch spot
 var power := 0.0
 var power_dir := 1.0
-var pending_result := ""   # resolution message flashed when the volley ends
+var pending_result := ""  # resolution message flashed when the volley ends
 var launch_timer := 0.0
 var throw_index := 0
 
@@ -142,12 +142,12 @@ var celebrate_left := 0.0
 var cam: Camera3D
 var cam_look_target: Vector3
 var cam_orbit_radius := 8.0
-var cam_azimuth_deg := 0.0   # 0 = in front of the player edge
-var cam_elev_deg := 0.0      # elevation over the surface plane
+var cam_azimuth_deg := 0.0  # 0 = in front of the player edge
+var cam_elev_deg := 0.0  # elevation over the surface plane
 var cam_default_elev_deg := 0.0
-var holes: Array[Dictionary] = []          # {pos, score, occupied}
+var holes: Array[Dictionary] = []  # {pos, score, occupied}
 var active_marbles: Array[RigidBody3D] = []
-var settle_times := {}                     # marble -> seconds under slow speed
+var settle_times := {}  # marble -> seconds under slow speed
 ## Stuck-detector checkpoints: marble -> {"pos": Vector3, "checks": int}.
 var stuck_track := {}
 
@@ -166,8 +166,10 @@ func _ready() -> void:
 		# D9: threshold keeps the block scaling; the other kinds are absolute
 		# (scaling an exact target would break the designed matrix).
 		if board_def.objective_kind == BoardDef.ObjectiveKind.THRESHOLD:
-			run_objective = Game.objective_for_board(Game.current_board_in_run,
-					board_def.objective_target if board_def.objective_target > 0 else 60)
+			run_objective = Game.objective_for_board(
+				Game.current_board_in_run,
+				board_def.objective_target if board_def.objective_target > 0 else 60
+			)
 		else:
 			run_objective = board_def.objective_target
 		objective_state = ObjectiveState.for_def(board_def, run_objective)
@@ -386,8 +388,7 @@ func _physics_process(delta: float) -> void:
 				tilt_hold_time = 0.0
 				tilt_last_dir = move_dir
 			var speed := rules.tilt_frame_speed(turn, tilt_hold_time)
-			shot_tilt = clampf(shot_tilt + move_dir * speed * delta,
-					-tilt_max_left, tilt_max_right)
+			shot_tilt = clampf(shot_tilt + move_dir * speed * delta, -tilt_max_left, tilt_max_right)
 			shot_guide.rotation.y = deg_to_rad(shot_tilt)
 		ThrowState.POWER:
 			power += power_dir * rules.power_speed * delta
@@ -417,10 +418,16 @@ func _physics_process(delta: float) -> void:
 				lift += 1.0
 			if Input.is_action_pressed("move_down"):
 				lift -= 1.0
-			cam_azimuth_deg = clampf(cam_azimuth_deg + orbit * rules.cam_orbit_speed * delta,
-					-rules.cam_azimuth_limit_deg, rules.cam_azimuth_limit_deg)
-			cam_elev_deg = clampf(cam_elev_deg + lift * rules.cam_orbit_speed * delta,
-					rules.cam_min_elev_deg, rules.cam_max_elev_deg)
+			cam_azimuth_deg = clampf(
+				cam_azimuth_deg + orbit * rules.cam_orbit_speed * delta,
+				-rules.cam_azimuth_limit_deg,
+				rules.cam_azimuth_limit_deg
+			)
+			cam_elev_deg = clampf(
+				cam_elev_deg + lift * rules.cam_orbit_speed * delta,
+				rules.cam_min_elev_deg,
+				rules.cam_max_elev_deg
+			)
 			_apply_camera()
 		_:
 			pass
@@ -428,10 +435,14 @@ func _physics_process(delta: float) -> void:
 
 func _apply_camera() -> void:
 	var horiz := cam_orbit_radius * cos(deg_to_rad(cam_elev_deg))
-	cam.position = cam_look_target + Vector3(
+	cam.position = (
+		cam_look_target
+		+ Vector3(
 			sin(deg_to_rad(cam_azimuth_deg)) * horiz,
 			cam_orbit_radius * sin(deg_to_rad(cam_elev_deg)),
-			-cos(deg_to_rad(cam_azimuth_deg)) * horiz)
+			-cos(deg_to_rad(cam_azimuth_deg)) * horiz
+		)
+	)
 	cam.look_at(cam_look_target, Vector3.UP)
 
 
@@ -498,8 +509,7 @@ func _reset_step_timer() -> void:
 ## aim convention: wind_direction +1 pushes toward world +X, which reads as
 ## screen-left.
 func _show_wind_indicator(announce_text: bool) -> void:
-	if backdrop_arrows_mat == null or board_theme == null \
-				or board_theme.wind_strength <= 0.0:
+	if backdrop_arrows_mat == null or board_theme == null or board_theme.wind_strength <= 0.0:
 		return
 	# A fade-out from the previous launch may still be running: it must not
 	# fight the turn-start turn-on.
@@ -509,8 +519,7 @@ func _show_wind_indicator(announce_text: bool) -> void:
 	backdrop_arrows_mat.set_shader_parameter("wind_dir", dir)
 	backdrop_arrows_mat.set_shader_parameter("wind_arrow", 1.0)
 	if announce_text:
-		_queue_announcement("Viento hacia la %s"
-				% ("izquierda" if dir > 0.0 else "derecha"))
+		_queue_announcement("Viento hacia la %s" % ("izquierda" if dir > 0.0 else "derecha"))
 
 
 ## --- Pause (ESC / Start) ---------------------------------------------------
@@ -555,13 +564,14 @@ func _tick_idle(delta: float) -> void:
 ## a held gameplay action. Edge taps are also caught by the events handled
 ## in the same frame.
 func _any_input_active() -> bool:
-	if Input.get_vector("move_left", "move_right", "move_up", "move_down") \
-				!= Vector2.ZERO:
+	if Input.get_vector("move_left", "move_right", "move_up", "move_down") != Vector2.ZERO:
 		return true
-	return Input.is_action_pressed("shoot") \
-			or Input.is_action_pressed("cancel") \
-			or Input.is_action_pressed("camera_mode") \
-			or Input.is_action_pressed("restart")
+	return (
+		Input.is_action_pressed("shoot")
+		or Input.is_action_pressed("cancel")
+		or Input.is_action_pressed("camera_mode")
+		or Input.is_action_pressed("restart")
+	)
 
 
 ## Marble the next throw uses: the selected ammo entry, or the base def when
@@ -636,10 +646,14 @@ func _update_tilt_limits() -> void:
 	# is the hard ceiling (S5: 60 degrees per side, 120 total).
 	var dist_to_far := board_def.length / 2.0 - board_def.launch_z()
 	var side_margin := board_def.width / 2.0 - board_def.aim_limit_margin
-	tilt_max_left = minf(rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far))
-			* rules.tilt_range_mult, rules.tilt_max_deg)
-	tilt_max_right = minf(rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far))
-			* rules.tilt_range_mult, rules.tilt_max_deg)
+	tilt_max_left = minf(
+		rad_to_deg(atan(maxf(0.0, side_margin + aim_x) / dist_to_far)) * rules.tilt_range_mult,
+		rules.tilt_max_deg
+	)
+	tilt_max_right = minf(
+		rad_to_deg(atan(maxf(0.0, side_margin - aim_x) / dist_to_far)) * rules.tilt_range_mult,
+		rules.tilt_max_deg
+	)
 
 
 func _launch(tilt_deg: float, power_value: float) -> void:
@@ -669,8 +683,7 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 		if wind_fade_tween != null and wind_fade_tween.is_valid():
 			wind_fade_tween.kill()
 		wind_fade_tween = create_tween()
-		wind_fade_tween.tween_property(backdrop_arrows_mat,
-				"shader_parameter/wind_arrow", 0.0, 0.6)
+		wind_fade_tween.tween_property(backdrop_arrows_mat, "shader_parameter/wind_arrow", 0.0, 0.6)
 	# Glass durability (S3): one roll per throw, before the marble exists. A
 	# broken marble leaves the ammo and the throw goes on with the next one.
 	if _try_break(def):
@@ -691,8 +704,9 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	marble.set_meta("def", def)
 	# W3 contract: prizes may still edit the fresh marble's physics (bounce,
 	# speed) before the impulse is applied.
-	var spawn_ctx := {"board": self, "body": marble, "def": def,
-			"bounce_scale": 1.0, "speed_mult": 1.0}
+	var spawn_ctx := {
+		"board": self, "body": marble, "def": def, "bounce_scale": 1.0, "speed_mult": 1.0
+	}
 	Game.dispatch_event(&"marble_spawn", spawn_ctx)
 	if not is_equal_approx(float(spawn_ctx["bounce_scale"]), 1.0):
 		marble.physics_material_override.bounce *= float(spawn_ctx["bounce_scale"])
@@ -700,8 +714,11 @@ func _launch(tilt_deg: float, power_value: float) -> void:
 	# Direction includes the locked shot tilt: positive tilts toward the
 	# player's left on screen, exactly like the guide line showed.
 	var dir := (board.global_transform.basis * Vector3(sin(tilt_rad), 0.0, 1.0)).normalized()
-	var speed := lerpf(rules.min_speed, rules.max_speed, power_value / 100.0) \
-			* def.speed_mult * float(spawn_ctx["speed_mult"])
+	var speed := (
+		lerpf(rules.min_speed, rules.max_speed, power_value / 100.0)
+		* def.speed_mult
+		* float(spawn_ctx["speed_mult"])
+	)
 	marble.apply_central_impulse(dir * speed * marble.mass)
 	active_marbles.append(marble)
 	settle_times.clear()
@@ -735,12 +752,16 @@ func _update_flight(delta: float) -> void:
 			EventBus.refund.emit()
 			EventBus.throw_ended.emit(&"refunded")
 			continue
-		if local.z > board_def.length / 2.0 + rules.edge_margin \
-				or absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
-				or local.y < -0.05:
+		if (
+			local.z > board_def.length / 2.0 + rules.edge_margin
+			or absf(local.x) > board_def.width / 2.0 + rules.edge_margin
+			or local.y < -0.05
+		):
 			_discard_marble(marble)
-			if absf(local.x) > board_def.width / 2.0 + rules.edge_margin \
-					and _def_has(&"side_refund"):
+			if (
+				absf(local.x) > board_def.width / 2.0 + rules.edge_margin
+				and _def_has(&"side_refund")
+			):
 				pending_result = "Rebote volvio del costado: se puede volver a tirar"
 				EventBus.refund.emit()
 				EventBus.throw_ended.emit(&"refunded")
@@ -751,8 +772,11 @@ func _update_flight(delta: float) -> void:
 			continue
 		# Teledirigida: the target notch captures the marble whenever its
 		# center crosses the capture circle, however fast it flies.
-		if _def_has(&"homing") and not homing_target.is_empty() \
-				and local.distance_to(homing_target["pos"]) < board_def.capture_radius:
+		if (
+			_def_has(&"homing")
+			and not homing_target.is_empty()
+			and local.distance_to(homing_target["pos"]) < board_def.capture_radius
+		):
 			_embed(marble, homing_target, speed)
 			continue
 		# A fast marble hops over the notches, a slow one embeds itself when
@@ -905,13 +929,20 @@ func _abduct_marble(marble: RigidBody3D) -> void:
 	var top := marble.global_position + Vector3(0, ABDUCT_HEIGHT, 0)
 	var tw := marble.create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(marble, "global_position", top, ABDUCT_TIME) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	tw.tween_property(marble, "rotation:y", marble.rotation.y + TAU * 1.5,
-			ABDUCT_TIME)
+	(
+		tw
+		. tween_property(marble, "global_position", top, ABDUCT_TIME)
+		. set_trans(Tween.TRANS_SINE)
+		. set_ease(Tween.EASE_IN)
+	)
+	tw.tween_property(marble, "rotation:y", marble.rotation.y + TAU * 1.5, ABDUCT_TIME)
 	tw.tween_property(marble, "scale", Vector3.ONE * 0.3, ABDUCT_TIME)
-	tw.tween_property(beam, "position:y", beam.position.y + ABDUCT_HEIGHT,
-			ABDUCT_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	(
+		tw
+		. tween_property(beam, "position:y", beam.position.y + ABDUCT_HEIGHT, ABDUCT_TIME)
+		. set_trans(Tween.TRANS_SINE)
+		. set_ease(Tween.EASE_IN)
+	)
 	tw.tween_property(beam_mat, "albedo_color:a", 0.0, ABDUCT_TIME)
 	tw.chain().tween_callback(marble.queue_free)
 	tw.chain().tween_callback(beam.queue_free)
@@ -935,9 +966,15 @@ func _apply_capture_pull(marble: RigidBody3D, local: Vector3) -> void:
 	if best.is_empty():
 		return
 	var pull := Vector3(best.pos.x - local.x, 0.0, best.pos.z - local.z)
-	marble.apply_central_force(board.global_transform.basis \
-			* pull.normalized() * board_def.capture_pull \
-			* CAPTURE_PULL_FORCE_SCALE * marble.mass)
+	marble.apply_central_force(
+		(
+			board.global_transform.basis
+			* pull.normalized()
+			* board_def.capture_pull
+			* CAPTURE_PULL_FORCE_SCALE
+			* marble.mass
+		)
+	)
 
 
 ## A run board spends the marble inventory: the ammo is the throw budget and
@@ -1019,7 +1056,8 @@ func _embed(marble: RigidBody3D, hole: Dictionary, speed: float = 0.0) -> void:
 func _score_context(hole: Dictionary) -> Dictionary:
 	return {
 		"board": self,
-		"throw": {
+		"throw":
+		{
 			"marble": launched_def,
 			"notch": hole,
 			"wall_hits": wall_hits,
@@ -1280,7 +1318,7 @@ func _effects_line() -> String:
 	var lines: Array[String] = []
 	for modifier in active_modifiers():
 		if modifier != null:
-				lines.append("%s: %s" % [modifier.display_name, modifier.description])
+			lines.append("%s: %s" % [modifier.display_name, modifier.description])
 	if objective_state != null and objective_state.kind() != BoardDef.ObjectiveKind.THRESHOLD:
 		lines.append(objective_state.announce_text())
 	return "\n".join(lines)
@@ -1463,7 +1501,7 @@ func _build_room() -> void:
 	var floor_y := -board_def.skirt_height - 0.1
 	for def in [
 		# [yaw degrees, position, material]
-		[0.0, Vector3(0, floor_y + wall_h / 2.0, back_z), wind_mat],       # back
+		[0.0, Vector3(0, floor_y + wall_h / 2.0, back_z), wind_mat],  # back
 		[90.0, Vector3(-room_half, floor_y + wall_h / 2.0, back_z - room_half), mat],  # left
 		[-90.0, Vector3(room_half, floor_y + wall_h / 2.0, back_z - room_half), mat],  # right
 	]:
@@ -1541,8 +1579,11 @@ func _build_board() -> void:
 	# play surface to the floor, visual only, slightly larger than the board.
 	skirt = MeshInstance3D.new()
 	var skirt_mesh := BoxMesh.new()
-	skirt_mesh.size = Vector3(board_def.width + 2.0 * board_def.wall_thickness,
-			board_def.skirt_height, board_def.length + 2.0 * board_def.wall_thickness)
+	skirt_mesh.size = Vector3(
+		board_def.width + 2.0 * board_def.wall_thickness,
+		board_def.skirt_height,
+		board_def.length + 2.0 * board_def.wall_thickness
+	)
 	skirt.mesh = skirt_mesh
 	skirt.material_override = _paint_material(board_def.frame_color, 0.18)
 	skirt.position.y = -board_def.skirt_height / 2.0 - board_def.thickness / 2.0
@@ -1554,14 +1595,27 @@ func _build_board() -> void:
 	# and forgiving (throw returned).
 	for side in [-1.0, 1.0]:
 		_add_wall(
-				Vector3(side * (board_def.width / 2.0 + board_def.wall_thickness / 2.0),
-						board_def.wall_height / 2.0, 0.0),
-				Vector3(board_def.wall_thickness, board_def.wall_height, board_def.length),
-				"left" if side < 0.0 else "right")
+			Vector3(
+				side * (board_def.width / 2.0 + board_def.wall_thickness / 2.0),
+				board_def.wall_height / 2.0,
+				0.0
+			),
+			Vector3(board_def.wall_thickness, board_def.wall_height, board_def.length),
+			"left" if side < 0.0 else "right"
+		)
 	_add_wall(
-			Vector3(0.0, board_def.wall_height / 2.0, board_def.length / 2.0 + board_def.wall_thickness / 2.0),
-			Vector3(board_def.width + 2.0 * board_def.wall_thickness, board_def.wall_height, board_def.wall_thickness),
-			"back")
+		Vector3(
+			0.0,
+			board_def.wall_height / 2.0,
+			board_def.length / 2.0 + board_def.wall_thickness / 2.0
+		),
+		Vector3(
+			board_def.width + 2.0 * board_def.wall_thickness,
+			board_def.wall_height,
+			board_def.wall_thickness
+		),
+		"back"
+	)
 
 	_add_fair_bulbs()
 	_add_deck_art()
@@ -1575,11 +1629,16 @@ func _build_board() -> void:
 	for row in board_def.rows:
 		for col in board_def.cols:
 			var pos := Vector3(
-					-board_def.spacing_x * (board_def.cols - 1) / 2.0 + col * board_def.spacing_x,
-					0.0,
-					board_def.first_row_z + row * board_def.spacing_z)
-			_add_hole(pos, board_def.hole_value(row, col), row * board_def.cols + col,
-					board_def.is_trap_hole(row, col))
+				-board_def.spacing_x * (board_def.cols - 1) / 2.0 + col * board_def.spacing_x,
+				0.0,
+				board_def.first_row_z + row * board_def.spacing_z
+			)
+			_add_hole(
+				pos,
+				board_def.hole_value(row, col),
+				row * board_def.cols + col,
+				board_def.is_trap_hole(row, col)
+			)
 
 	# Aim marker: a slim strip that slides sideways while aiming.
 	launch_marker = MeshInstance3D.new()
@@ -1702,21 +1761,26 @@ func _add_hole(pos: Vector3, score: int, index: int, trap := false) -> void:
 	# The hole keeps everything the rules need: its board-local position and
 	# the one it was carved at (Trapecio sways the grid), the current value
 	# (Borracho rewrites it), the rule flags and the visuals to repaint.
-	holes.append({
-		"pos": pos,
-		"base": pos,
-		"score": score,
-		"trap": trap,
-		"occupied": false,
-		"covered": false,
-		"phase_hidden": false,
-		"index": index,
-		"col": index % board_def.cols,
-		"row": index / board_def.cols,
-		"disc": disc,
-		"ring": ring,
-		"label": label,
-	})
+	(
+		holes
+		. append(
+			{
+				"pos": pos,
+				"base": pos,
+				"score": score,
+				"trap": trap,
+				"occupied": false,
+				"covered": false,
+				"phase_hidden": false,
+				"index": index,
+				"col": index % board_def.cols,
+				"row": index / board_def.cols,
+				"disc": disc,
+				"ring": ring,
+				"label": label,
+			}
+		)
+	)
 
 
 func _add_deck_art() -> void:

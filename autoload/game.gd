@@ -75,6 +75,8 @@ func marble_cap() -> int:
 ## Prize shelf slots this run (fixed in W3, no prize expands it).
 func prize_cap() -> int:
 	return PRIZE_CAP
+
+
 var boards_cleared := 0
 ## Endless opt-in from the run-won screen (GDD D6).
 var endless_mode := false
@@ -259,8 +261,7 @@ func start_debug_run(config: Dictionary) -> bool:
 	if marbles.is_empty() or ContentDB.board_count() <= 0:
 		return false
 	debug_mode = true
-	debug_board_index = clampi(int(config.get("board_index", 0)), 0,
-			ContentDB.board_count() - 1)
+	debug_board_index = clampi(int(config.get("board_index", 0)), 0, ContentDB.board_count() - 1)
 	current_board_in_run = 1
 	block = 1
 	boards_cleared = 0

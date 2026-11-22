@@ -60,6 +60,7 @@ func _close(board: Node3D) -> void:
 
 # --- (a) The opening announcements never carry the controls line -----------
 
+
 func _test_no_opening_controls_hint() -> void:
 	var board := _open_board()
 	await physics_frame
@@ -70,15 +71,19 @@ func _test_no_opening_controls_hint() -> void:
 		seen[board.hud.label_msg.text] = true
 		await physics_frame
 	var texts: Array = seen.keys()
-	_check(texts.any(func(t): return t.contains("Tablero")),
-			"the board should still announce its name, saw %s" % [texts])
+	_check(
+		texts.any(func(t): return t.contains("Tablero")),
+		"the board should still announce its name, saw %s" % [texts]
+	)
 	for text in texts:
-		_check(not text.contains("ESPACIO"),
-				"no opening cue should teach controls, found '%s'" % text)
+		_check(
+			not text.contains("ESPACIO"), "no opening cue should teach controls, found '%s'" % text
+		)
 	_close(board)
 
 
 # --- (b) 20 idle seconds in AIM show the controls guide once ----------------
+
 
 func _test_idle_brings_guide_back() -> void:
 	var board := _open_board()
@@ -88,26 +93,28 @@ func _test_idle_brings_guide_back() -> void:
 	# Simulate the idle clock directly: 20 s in AIM without actions.
 	board.idle_time = board.GUIDE_IDLE_SECONDS
 	board._tick_idle(0.016)
-	_check(board.idle_guide_shown,
-			"20 idle seconds should mark the guide as shown")
-	_check(hud.label_msg.text.contains("ESPACIO"),
-			"the idle guide should show the controls, shows '%s'"
-			% hud.label_msg.text)
+	_check(board.idle_guide_shown, "20 idle seconds should mark the guide as shown")
+	_check(
+		hud.label_msg.text.contains("ESPACIO"),
+		"the idle guide should show the controls, shows '%s'" % hud.label_msg.text
+	)
 	# One guide per idle episode: a second tick does not repeat the flash.
 	hud.label_msg.text = ""
 	board._tick_idle(0.016)
-	_check(hud.label_msg.text == "",
-			"the idle guide should not repeat until the next input")
+	_check(hud.label_msg.text == "", "the idle guide should not repeat until the next input")
 	# Any action resets the episode: the guide hides again for 20 s.
 	Input.action_press("shoot")
 	board._tick_idle(0.016)
 	Input.action_release("shoot")
-	_check(not board.idle_guide_shown and is_equal_approx(board.idle_time, 0.0),
-			"an active input should reset the idle episode")
+	_check(
+		not board.idle_guide_shown and is_equal_approx(board.idle_time, 0.0),
+		"an active input should reset the idle episode"
+	)
 	_close(board)
 
 
 # --- (c) Per-step hints stay hidden during normal play -----------------------
+
 
 func _test_step_hints_stay_hidden() -> void:
 	var board := _open_board()
@@ -117,14 +124,14 @@ func _test_step_hints_stay_hidden() -> void:
 	hud.label_msg.text = ""
 	board.shots_left = 3
 	board._begin_tilt()
-	_check(hud.label_msg.text == "",
-			"the tilt hint should stay hidden during normal play")
+	_check(hud.label_msg.text == "", "the tilt hint should stay hidden during normal play")
 	# The tutorial flag turns the same hint on.
 	board.tutorial_mode = true
 	board.state = board.ThrowState.AIM
 	board.shots_left = 3
 	board._begin_tilt()
-	_check(hud.label_msg.text.contains("Inclina"),
-			"tutorial mode should show the tilt hint, shows '%s'"
-			% hud.label_msg.text)
+	_check(
+		hud.label_msg.text.contains("Inclina"),
+		"tutorial mode should show the tilt hint, shows '%s'" % hud.label_msg.text
+	)
 	_close(board)

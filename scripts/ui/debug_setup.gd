@@ -29,8 +29,8 @@ var label_hint: Label
 var start_button: Button
 var back_button: Button
 
-var _marble_labels: Dictionary = {}   # marble id -> counter label
-var _prize_buttons: Dictionary = {}   # prize id -> toggle button
+var _marble_labels: Dictionary = {}  # marble id -> counter label
+var _prize_buttons: Dictionary = {}  # prize id -> toggle button
 
 ## Last launched setup (board index, prize ids, marble ids): coming back
 ## from a finished debug match restores it, so tweaking one pick and
@@ -178,8 +178,7 @@ func start_match() -> void:
 ## ContentDB so a content change can never crash the restore, and keep the
 ## picks-first/top-up rule of build_config() intact.
 func _restore_last_config() -> void:
-	board_cursor = clampi(int(last_config.get("board_index", 0)), 0,
-			ContentDB.board_count() - 1)
+	board_cursor = clampi(int(last_config.get("board_index", 0)), 0, ContentDB.board_count() - 1)
 	selected_prizes.clear()
 	for id in last_config.get("prize_ids", []):
 		var prize: PrizeDef = ContentDB.prize_def(id)
@@ -333,8 +332,9 @@ func _build() -> void:
 func _refresh() -> void:
 	var def := board_def()
 	if def != null:
-		label_board_name.text = "%s  (%d/%d)" % [def.theme_name,
-				board_cursor + 1, ContentDB.board_count()]
+		label_board_name.text = (
+			"%s  (%d/%d)" % [def.theme_name, board_cursor + 1, ContentDB.board_count()]
+		)
 	label_gimmick.text = board_rules_text()
 	label_marbles.text = "Canicas: %d / %d" % [picked_marbles.size(), MARBLE_SLOTS]
 	label_prizes.text = "Premios: %d activos" % selected_prizes.size()
@@ -346,8 +346,7 @@ func _refresh() -> void:
 		var button: Button = _prize_buttons.get(prize.id)
 		if button != null:
 			var active: bool = selected_prizes.has(prize)
-			button.text = "%s %s" % ["ACTIVO" if active else "INACTIVO",
-					prize.display_name]
+			button.text = "%s %s" % ["ACTIVO" if active else "INACTIVO", prize.display_name]
 			button.set_pressed_no_signal(active)
 	label_hint.text = "" if can_start() else "Elegi al menos %d canica para jugar" % MIN_MARBLES
 	start_button.disabled = not can_start()

@@ -49,7 +49,8 @@ var _score := 0
 var _orb_cache := {}
 
 
-class PowerBar extends Control:
+class PowerBar:
+	extends Control
 	var power := 0.0
 
 	func set_power(value: float) -> void:
@@ -82,8 +83,7 @@ func _ready() -> void:
 func set_shots(left: int, total: int) -> void:
 	label_shots.text = "%d/%d" % [left, total]
 	var missing := maxi(total - left, 0)
-	label_shots_sub.text = "quedan %d tiros" % missing if missing != 1 \
-			else "queda 1 tiro"
+	label_shots_sub.text = "quedan %d tiros" % missing if missing != 1 else "queda 1 tiro"
 
 
 func set_score(value: int) -> void:
