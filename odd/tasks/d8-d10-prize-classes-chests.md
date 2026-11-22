@@ -73,7 +73,12 @@ game-loop mover").
 | T8 | S11 | Full-bag discard choice: reveal pauses the board and the player picks the prize to drop | 4636c69 |
 | T9 | S2, S4, S10 | UI: class on shop cards, consumable rail with keys (chest reveal belongs to T6) | 2895873 |
 | T10 | all | Tests green, board checker still green, docs (GDD + content plan) | 4636c69 |
-| T11 | all | Delivery PR | pending |
+| T11 | all | Delivery PR | PRs #7-#9 opened (chain, by area) |
+| T12 | S17 | Chest reveal becomes a paused wheel with icons that spin and stop | pending |
+| T13 | S18 | Full shelf: drop one owned prize of that class OR decline for cash | pending |
+| T14 | S19 | Run starts with an empty prize shelf (no sample trompo) | pending |
+| T15 | S20 | An opened chest disappears from the deck | pending |
+| T16 | S21 | Run-ending diagnostics (no behavior change until evidence) | pending |
 
 Route: sequential inline slices. The two halves are dependent, not independent —
 chest loot cannot draw a class that does not exist yet — so no parallel writers
@@ -131,6 +136,52 @@ area (classes/consumables, chests, discard) unless the user asks otherwise.
   paused, `pick(0)` drops the chosen prize and grants the chest one (shelf size
   unchanged, money unchanged), panel closes and the tree resumes; picking
   outside the list is rejected and changes nothing.
+
+## Wave 2 (post-playtest 2026-11-21): wheel, empty shelf, chest fix
+
+- S17: "Ruleta con casillas e íconos" (user, 2026-11-21) — the chest reveal is a
+  paused wheel whose slots/icons spin and stop on the winner. This supersedes
+  S16 for the chest: the pause is now intended, because the tension is the point.
+- S18: "Opcional: podés dejarlo y cobrar" (user, 2026-11-21) — when the drawn
+  prize's class has no room, the wheel offers dropping one owned prize of that
+  class OR declining and taking the cash fallback. No mandatory trade.
+- S19: "Dos slots vacíos, sin trompo" (user, 2026-11-21) — a run starts with an
+  empty prize shelf (2 slots, both empty). The free sample trompo at run start
+  is gone.
+- S20: chests must disappear from the deck once opened (user bug report, "los
+  cofres no desaparecen luego de haber sido tocados"). The reveal ends and the
+  node leaves the board.
+- S21: run boards stop routing their ending (user bug report: "en la run ahora
+  no se puede ganar ni perder, softlock al terminar las canicas"; happens "siempre,
+  sin tocar cofres"). Every simulated run ending passes in tests, so the defect
+  lives in state no test reproduces: a run board whose `_inventory_mode()` is
+  false never consumes ammo, never evaluates the objective and never reports.
+  Fix the cause once evidence names it; until then the board prints one
+  diagnostic line at start and one at round end in debug builds so the next
+  playtest names the wrong condition.
+
+## Implementation notes for wave 2 (T12-T16)
+
+- T12 (S17): `scripts/board/chest_choice.gd` becomes the wheel: a paused panel
+  with N slots (icons/orbs) that cycle the loot pool fast, decelerate and stop on
+  the winner, then resolve. Keep the testable API (`present`, `pick`, `is_open`,
+  `picked`) and add the spin as an internal step with a deterministic `settle()`
+  the tests call instead of waiting real time. The tree stays paused for the
+  whole reveal (S17), so the throw resumes only after the resolve.
+- T13 (S18): the resolve step offers `drop(owned)` for each owned prize of the
+  drawn class plus `decline` (cash fallback via `board_def.chest_cash_fallback`)
+  when the shelf is full. Every path unpauses; a rejected pick stays inert (panel
+  open), and the panel still unpauses in `_exit_tree`.
+- T14 (S19): drop `Game.SAMPLE_PRIZE` and its use in `start_run`; the shelf
+  starts empty. Update every test that assumed the trompo (badge, size
+  assertions) to the empty shelf, keeping the rule each test verifies intact.
+- T15 (S20): after the reveal completes, the chest node leaves the board
+  (`queue_free`) and its dict stops being checked; opening twice stays
+  impossible.
+- T16 (S21): diagnostic only — `print` one line at board start and one at round
+  end, guarded by `OS.is_debug_build()`, with phase, run_active,
+  `_inventory_mode()`, objective_state, shots_total/left and ammo. No behavior
+  change until evidence names the wrong condition.
 
 ## Log
 

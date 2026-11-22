@@ -143,7 +143,7 @@ func chest_draw(owned_ids: Array[String], collected_ids: Array[String], seed: in
 		rng.seed = seed
 	else:
 		rng.randomize()
-	var pool := _chest_pool(owned_ids, collected_ids)
+	var pool := chest_pool(owned_ids, collected_ids)
 	if pool.is_empty():
 		return {"def_id": "", "cash": 0}
 	# Step 1: the rarity, weighted so a rare stays a treat.
@@ -158,8 +158,10 @@ func chest_draw(owned_ids: Array[String], collected_ids: Array[String], seed: in
 
 
 ## Prizes a chest may still give: everything the run does not own and has
-## not collected yet (S14).
-func _chest_pool(owned_ids: Array[String], collected_ids: Array[String]) -> Array:
+## not collected yet (S14). Public because the board's wheel cycles the same
+## pool it draws from: two filters that could disagree would show loot that
+## can never drop.
+func chest_pool(owned_ids: Array[String], collected_ids: Array[String]) -> Array:
 	var pool: Array = []
 	for def in ContentDB.prizes():
 		if owned_ids.has(def.id) or collected_ids.has(def.id):

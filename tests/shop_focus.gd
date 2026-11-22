@@ -177,6 +177,8 @@ func _test_inventory_section() -> void:
 	var game := root.get_node("Game")
 	game.start_run()
 	game.money = 0
+	# The shelf starts empty (S19), so the run owns the prize it lists here.
+	game.prizes.append(root.get_node("ContentDB").prize_def("carpa"))
 	var shop := _open_shop()
 	await process_frame
 	await process_frame

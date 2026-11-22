@@ -50,12 +50,13 @@ func _run() -> void:
 	await _test_marble_keeps_rolling_through_a_chest()
 	await _test_fast_marble_opens_the_chest()
 	await _test_second_check_changes_nothing()
+	await _test_an_opened_chest_leaves_the_deck()
 	await _test_full_shelves_offer_the_discard_choice()
 	# A GDScript error aborts one test function without touching `failed`, so a
 	# suite would print OK with tests that never ran. The count is deterministic,
 	# so the exact full-pass total is the guard: one dead test always fails here.
 	# Adding a test means bumping this number with it.
-	_check(checks_run >= 194, "only %d checks ran: a test died before asserting" % checks_run)
+	_check(checks_run >= 210, "only %d checks ran: a test died before asserting" % checks_run)
 	print("CHESTS FAIL" if failed else "CHESTS OK")
 	quit(1 if failed else 0)
 
@@ -99,6 +100,15 @@ func _shelf_ids() -> Array[String]:
 
 func _shelf_line() -> String:
 	return "\n".join(_shelf_ids())
+
+
+## The entries a shelf gained since `before`, one per granted def.
+func _added_since(before: Array[String]) -> Array[String]:
+	var added: Array[String] = []
+	for entry in _shelf_ids():
+		if not before.has(entry):
+			added.append(entry)
+	return added
 
 
 ## Count collision nodes under one subtree: a chest must carry none (S12),
@@ -412,6 +422,16 @@ func _test_chest_opens_and_grants_one_thing() -> void:
 	var ammo_before: int = game.ammo.size()
 	var marbles_before: int = board.active_marbles.size()
 	board._check_chests(chest.pos)
+	# S17: the reveal is the wheel, so the grant lands when the spin ends.
+	var wheel = board.get_node_or_null("ChestChoice")
+	_check(wheel != null, "opening a chest should present the reveal wheel (S17)")
+	if wheel != null:
+		_check(wheel.is_spinning(), "the wheel should spin before it grants (S17)")
+		_check(
+			_added_since(before).is_empty(),
+			"nothing should be granted while the wheel spins, got %s" % str(_added_since(before))
+		)
+		wheel.settle()
 	await physics_frame
 	_check(chest.opened, "touching a chest should open it")
 	var added: Array[String] = []
@@ -492,6 +512,11 @@ func _test_marble_keeps_rolling_through_a_chest() -> void:
 		if chest.opened:
 			break
 	_check(chest.opened, "the flight loop should open the chest the marble rolls over (S12/S13)")
+	# S17 supersedes S16: the reveal is the wheel and the pause is the point, so
+	# the flight freezes under it and resumes untouched when the reveal ends.
+	var wheel = board.get_node_or_null("ChestChoice")
+	_check(wheel != null, "the flight loop's chest should present the wheel (S17)")
+	_check(paused, "the reveal should pause the board under the wheel (S17)")
 	_check(
 		board.active_marbles.has(marble) and is_instance_valid(marble),
 		"the chest must not consume the marble (S6)"
@@ -508,7 +533,14 @@ func _test_marble_keeps_rolling_through_a_chest() -> void:
 		game.ammo.size() == ammo_before,
 		"a chest must not touch the run ammo (%d -> %d)" % [ammo_before, game.ammo.size()]
 	)
-	_check(not paused, "the reveal must never pause the board (S16)")
+	if wheel != null:
+		wheel.settle()
+	await physics_frame
+	_check(not paused, "the board should resume once the reveal ends (S17)")
+	_check(
+		board.active_marbles.has(marble) and is_instance_valid(marble),
+		"the marble should still be rolling through the chest after the reveal (S6)"
+	)
 	board.state = board.ThrowState.AIM
 	board.active_marbles.erase(marble)
 	marble.queue_free()
@@ -550,6 +582,10 @@ func _test_fast_marble_opens_the_chest() -> void:
 		if chest.opened:
 			break
 	_check(chest.opened, "a marble flying over the chest should open it (S12)")
+	var wheel = board.get_node_or_null("ChestChoice")
+	if wheel != null:
+		wheel.settle()
+	await physics_frame
 	board.state = board.ThrowState.AIM
 	board.active_marbles.erase(marble)
 	marble.queue_free()
@@ -568,6 +604,9 @@ func _test_second_check_changes_nothing() -> void:
 		return
 	var chest: Dictionary = board.chests[0]
 	board._check_chests(chest.pos)
+	var wheel = board.get_node_or_null("ChestChoice")
+	if wheel != null:
+		wheel.settle()
 	await physics_frame
 	var shelf: String = _shelf_line()
 	var money: int = game.money
@@ -593,11 +632,63 @@ func _test_second_check_changes_nothing() -> void:
 	_close(board)
 
 
-## S11/S14/S15: the shelf of the drawn class is full, so the chest no longer
-## pays the BoardDef cash fallback: the reveal presents the discard choice,
-## pulses the board and changes nothing until the player picks. The cash
-## fallback stays for an empty pool only
-## (_test_empty_pool_on_a_board_pays_the_fallback).
+## S20: the revealed chest is spent twice over — the deck loses its node the
+## moment the reveal ends, and the dict left in `chests` stays opened, so the
+## flight loop over that spot can never open it again.
+func _test_an_opened_chest_leaves_the_deck() -> void:
+	game.start_run()
+	var board := _open_board()
+	await physics_frame
+	_check(board.chests.size() >= 1, "the board should carry a chest")
+	if board.chests.is_empty():
+		_close(board)
+		return
+	var chest: Dictionary = board.chests[0]
+	var node: Node3D = chest["node"]
+	_check(
+		node != null and is_instance_valid(node),
+		"a closed chest should be on the deck before it is touched (S20)"
+	)
+	board._check_chests(chest.pos)
+	var wheel = board.get_node_or_null("ChestChoice")
+	if wheel != null:
+		wheel.settle()
+	await physics_frame
+	await physics_frame
+	_check(chest.opened, "the chest should stay opened after the reveal")
+	_check(
+		chest.get("node") == null or not is_instance_valid(chest.get("node")),
+		"the chest should leave the deck when the reveal ends (S20)"
+	)
+	_check(
+		not is_instance_valid(node),
+		"the opened chest should be freed, not only hidden off the deck (S20)"
+	)
+	var shelf: String = _shelf_line()
+	var money: int = game.money
+	var flash: String = board.hud.last_flash
+	board._check_chests(chest.pos)
+	await physics_frame
+	_check(
+		_shelf_line() == shelf,
+		"a retired chest must not grant again (%s -> %s)" % [shelf, _shelf_line()]
+	)
+	_check(
+		game.money == money, "a retired chest must not pay again ($%d -> $%d)" % [money, game.money]
+	)
+	_check(
+		board.hud.last_flash == flash,
+		"a retired chest must not flash again ('%s' -> '%s')" % [flash, board.hud.last_flash]
+	)
+	_check(not paused, "a retired chest must leave the board running")
+	_close(board)
+
+
+## S11/S14/S15/S18: the shelf of the drawn class is full, so the chest no
+## longer pays the BoardDef cash fallback by itself: the wheel stops and offers
+## the discard choice (or declining for the cash), pauses the board and changes
+## nothing until the player decides. The cash fallback paid without a decision
+## stays for an empty pool only (_test_empty_pool_on_a_board_pays_the_fallback).
 func _test_full_shelves_offer_the_discard_choice() -> void:
 	game.start_run()
 	# Every shelf full: the permanents and the consumables at their caps, the
@@ -635,6 +726,10 @@ func _test_full_shelves_offer_the_discard_choice() -> void:
 	_check(chest.opened, "touching a chest should open it")
 	var panel: CanvasLayer = board.get_node_or_null("ChestChoice")
 	_check(panel != null, "a refused grant should present the discard choice (S11)")
+	# S17: the decision comes after the wheel stops, not before it starts.
+	if panel != null:
+		_check(panel.is_spinning(), "the wheel should spin before it offers the choice")
+		panel.settle()
 	_check(paused, "the discard choice should pause the board (S11)")
 	_check(
 		game.money == money_before,

@@ -29,8 +29,9 @@ const CHEST_COLOR := Color("ffcc33")
 ## into one unreadable box. A colliding placement is rolled again.
 const CHEST_CLEARANCE := 0.6
 const CHEST_SPAWN_TRIES := 8
-## Reveal (S16): a pop and a spin while the marble keeps rolling. The whole
-## animation stays far inside the 2-3 s the throw loop can afford.
+## Reveal (S17): the chest pops and spins under the wheel, which owns the fold
+## for the whole find. The whole animation stays far inside the 2-3 s the throw
+## loop can afford.
 const CHEST_POP := 0.18
 const CHEST_SPIN_TIME := 0.6
 const CHEST_SETTLE := 0.2
@@ -172,8 +173,8 @@ var holes: Array[Dictionary] = []  # {pos, score, occupied}
 ## D10 chests on the deck: {pos, opened, node}. Board-local like `holes`,
 ## which is the space the flight loop checks them in.
 var chests: Array[Dictionary] = []
-## S11: the full-shelf discard panel while a chest's drawn prize has no room,
-## null otherwise (headless tests read it off the board).
+## S11/S18: the wheel panel while a chest reveals, null otherwise (headless
+## tests read it off the board).
 var chest_choice: CanvasLayer = null
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}  # marble -> seconds under slow speed
@@ -265,6 +266,34 @@ func _ready() -> void:
 	# The board opens in AIM, so the Cronometrado clock starts with it (boards
 	# without the rule ignore this).
 	_reset_step_timer()
+	if OS.is_debug_build():
+		print(_diag_line("start"))
+
+
+## S21: diagnostics only, no behavior. The playtest report "en la run ahora no
+## se puede ganar ni perder" is state no test reproduces, so the board prints
+## one line at its start and one when the round ends (debug builds only) with
+## every condition that decides whether it reports: the run phase, the run
+## flag, the throw mode, the objective, the shot counters, the ammo and whether
+## the result was already sent. If a run board never routes its ending, the
+## missing or wrong line names the condition.
+func _diag_line(tag: String) -> String:
+	return (
+		(
+			("BOARD %s: phase=%s run_active=%s inventory_mode=%s objective=%s")
+			% [
+				tag,
+				str(Game.Phase.find_key(Game.phase)),
+				str(Game.run_active),
+				str(_inventory_mode()),
+				"set" if objective_state != null else "none",
+			]
+		)
+		+ (
+			(" shots=%d/%d ammo=%d result_sent=%s")
+			% [shots_left, shots_total, Game.ammo.size(), str(board_result_sent)]
+		)
+	)
 
 
 ## The board was won inside a run: the win screen plays as a translucent
@@ -1115,6 +1144,8 @@ func _score_context(hole: Dictionary) -> Dictionary:
 func _round_over() -> void:
 	state = ThrowState.ROUND_OVER
 	hud.set_timer(-1)
+	if OS.is_debug_build():
+		print(_diag_line("round end"))
 	if board_result_sent:
 		return
 	var possible: int = shots_total * board_def.row_scores[board_def.rows - 1]
@@ -2044,13 +2075,17 @@ func _add_chest(pos: Vector3) -> void:
 	chests.append({"pos": pos, "opened": false, "node": chest})
 
 
-## S12/S16: a marble rolling through a chest opens it, once. Called for every
+## S12/S17: a marble rolling through a chest opens it, once. Called for every
 ## marble from the flight loop; it never consumes the marble and never edits
 ## the score, so the throw carries on untouched.
 func _check_chests(local: Vector3) -> void:
 	# The band is "rolling on the deck": a body that fell through the board
 	# (below) or one still in the air (above) never opens a chest.
 	if local.y < -0.05 or local.y > CHEST_TRIGGER_HEIGHT:
+		return
+	# One reveal at a time: a second wheel would take the pause from the first
+	# and unpause the board under it when it closed (the panel owns the fold).
+	if chest_choice != null and is_instance_valid(chest_choice):
 		return
 	for chest in chests:
 		if chest.opened:
@@ -2060,9 +2095,12 @@ func _check_chests(local: Vector3) -> void:
 			_open_chest(chest)
 
 
-## S14/S15: one draw, one grant through the shop's seam, one short reveal. The
-## cash fallback stays for an empty pool and for a def that cannot be resolved;
-## a resolved def whose class shelf is full goes to the discard choice (S11).
+## S14/S15/S17: one draw, one grant through the shop's seam, one reveal. The
+## reveal is the wheel (S17): the board pauses under it and the grant or the
+## decision lands when it stops. The cash fallback stays for an empty pool and
+## for a def that cannot be resolved; a resolved def whose class shelf is full
+## goes to the wheel's decision (S18: drop one, or keep the shelf and take the
+## cash).
 func _open_chest(chest: Dictionary) -> void:
 	chest.opened = true
 	_reveal_chest(chest.node)
@@ -2070,41 +2108,70 @@ func _open_chest(chest: Dictionary) -> void:
 	var def: PrizeDef = null
 	if String(draw["def_id"]) != "":
 		def = ContentDB.find_prize_def(String(draw["def_id"]))
-	if def != null and Game.add_prize(def):
-		# S16: one cue naming the prize and the shelf its class went to.
-		hud.flash("Cofre: %s (%s)" % [def.display_name, def.class_name_text()])
-		hud.set_prizes(Game.prizes)
-		hud.set_consumables(Game.consumables)
-		return
 	if def != null:
-		# S11: add_prize only refuses for lack of room, so the reveal offers
-		# the player which owned prize of that class to drop instead of cash.
-		_open_chest_choice(def)
+		_open_chest_wheel(chest, def)
 		return
+	# Nothing to spin to: an empty pool pays its cash right here, no wheel.
 	var cash: int = int(draw["cash"])
 	if cash <= 0:
 		cash = board_def.chest_cash_fallback
 	Game.add_money(cash)
 	hud.flash("Cofre: +$%d" % cash)
+	_retire_chest(chest)
 
 
-## S11: the chest drew a def whose class shelf is full, so the reveal pauses
-## the board and offers exactly the owned prizes of that class. The chest is
-## already marked opened, so no path here can grant twice.
-func _open_chest_choice(def: PrizeDef) -> void:
+## S17: the reveal is the wheel. The board hands it the drawn prize, the loot
+## pool it came from, the owned prizes of its class when that class is full
+## (the drop list of S18) and the board's cash fallback for the decline. The
+## chest is already marked opened, so no path here can grant twice.
+func _open_chest_wheel(chest: Dictionary, def: PrizeDef) -> void:
+	var choices: Array[PrizeDef] = []
+	if not Game.can_add_prize(def):
+		choices = _owned_prizes_of_class(def.prize_class)
 	chest_choice = ChestChoiceScript.new()
 	chest_choice.name = "ChestChoice"
 	add_child(chest_choice)
-	chest_choice.picked.connect(_on_chest_choice_picked.bind(def))
-	chest_choice.present(def, _owned_prizes_of_class(def.prize_class))
+	chest_choice.revealed.connect(_on_chest_revealed.bind(chest, def))
+	chest_choice.picked.connect(_on_chest_choice_picked.bind(chest, def))
+	chest_choice.declined.connect(_on_chest_declined.bind(chest, def))
+	chest_choice.present(def, choices, _chest_pool_defs(), board_def.chest_cash_fallback)
 
 
-## S11: the player dropped `old_prize` to make room for the drawn `drawn_prize`.
-## The drop pays nothing (selling pays rescue value; a chest discard must never
-## be a money trick), the drawn prize takes the freed slot, both rails refresh
-## and one cue names the trade. The panel closes and unpauses itself after the
-## signal, so the board resumes with the new shelf already on screen.
-func _on_chest_choice_picked(old_prize: PrizeDef, drawn_prize: PrizeDef) -> void:
+## The loot pool a chest can still draw from, taken from Economy so the wheel
+## cycles exactly what can drop: two filters that could disagree would show a
+## prize the draw can never land on.
+func _chest_pool_defs() -> Array[PrizeDef]:
+	var candidates: Array[PrizeDef] = []
+	for def in Economy.chest_pool(_owned_prize_ids(), _collected_prize_ids()):
+		if def is PrizeDef:
+			candidates.append(def)
+	return candidates
+
+
+## S15/S17: the wheel stopped on a prize whose class has room, so the chest
+## grants it now, through the shop's seam, with one cue naming the prize and
+## its class. The rails refresh and the chest leaves the deck.
+func _on_chest_revealed(chest: Dictionary, drawn_prize: PrizeDef) -> void:
+	if Game.add_prize(drawn_prize):
+		hud.flash("Cofre: %s (%s)" % [drawn_prize.display_name, drawn_prize.class_name_text()])
+		hud.set_prizes(Game.prizes)
+		hud.set_consumables(Game.consumables)
+	else:
+		# A shelf filled up between the draw and the reveal: pay the fallback
+		# (S14: a chest never grants nothing).
+		var cash: int = board_def.chest_cash_fallback
+		Game.add_money(cash)
+		hud.flash("Cofre: +$%d" % cash)
+	_retire_chest(chest)
+
+
+## S11/S18: the player dropped `old_prize` to make room for the drawn
+## `drawn_prize`. The drop pays nothing (selling pays rescue value; a chest
+## discard must never be a money trick), the drawn prize takes the freed slot,
+## both rails refresh and one cue names the trade. The panel closes and
+## unpauses itself after the signal, so the board resumes with the new shelf
+## already on screen.
+func _on_chest_choice_picked(old_prize: PrizeDef, chest: Dictionary, drawn_prize: PrizeDef) -> void:
 	Game.discard_prize(old_prize)
 	Game.add_prize(drawn_prize)
 	hud.set_prizes(Game.prizes)
@@ -2112,6 +2179,26 @@ func _on_chest_choice_picked(old_prize: PrizeDef, drawn_prize: PrizeDef) -> void
 	var dropped: String = old_prize.display_name if old_prize != null else "?"
 	var arrived: String = drawn_prize.display_name if drawn_prize != null else "?"
 	hud.flash("Cofre: cambiaste %s por %s" % [dropped, arrived])
+	_retire_chest(chest)
+
+
+## S18: the player kept the shelf and took the cash instead. The payment is the
+## amount the wheel showed, so the number on screen is the number paid.
+func _on_chest_declined(cash: int, chest: Dictionary, drawn_prize: PrizeDef) -> void:
+	Game.add_money(cash)
+	var kept: String = drawn_prize.display_name if drawn_prize != null else "?"
+	hud.flash("Cofre: dejaste %s y cobraste $%d" % [kept, cash])
+	_retire_chest(chest)
+
+
+## S20: an opened chest leaves the deck when its reveal ends. The dict stays in
+## `chests` with `opened = true` and no node, so the flight loop over that spot
+## can never open it a second time.
+func _retire_chest(chest: Dictionary) -> void:
+	var node: Node = chest.get("node")
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+	chest["node"] = null
 
 
 ## Owned prizes of one class, in shelf order: the discard choice offers exactly
@@ -2130,14 +2217,17 @@ func _owned_prizes_of_class(prize_class: PrizeDef.PrizeClass) -> Array[PrizeDef]
 	return owned
 
 
-## S16: the reveal never pauses the flight. The chest pops and spins in real
-## time while the marble keeps rolling; the duration constants keep it inside
-## the throw loop's budget.
+## S17: the chest itself pops and spins while the wheel runs, so the find reads
+## on the deck too. It processes through the pause (the wheel owns the fold), and
+## the node is retired when the reveal ends (S20).
 func _reveal_chest(node: Node3D) -> void:
 	if node == null or not is_instance_valid(node):
 		return
 	var start: Vector3 = node.scale
 	var tw := node.create_tween()
+	# The tree is paused under the wheel: without this the chest would stand
+	# still while its own reveal plays.
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.set_parallel(true)
 	tw.tween_property(node, "scale", start * CHEST_POP_SCALE, CHEST_POP)
 	tw.tween_property(node, "rotation:y", node.rotation.y + TAU, CHEST_SPIN_TIME).set_trans(

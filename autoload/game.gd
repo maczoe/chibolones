@@ -29,7 +29,6 @@ const ENDLESS_BONUS := 1
 ## content-plan §2): five commons, no specials. Debug mode will pass its own
 ## picked loadout (S8).
 const STARTING_MARBLES := ["common", "common", "common", "common", "common"]
-const SAMPLE_PRIZE := "trompo"
 
 signal phase_changed(phase: Phase)
 signal money_changed(money: int)
@@ -319,9 +318,8 @@ func start_run() -> void:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
 			inventory.append(marble)
-	var prize: PrizeDef = ContentDB.prize_def(SAMPLE_PRIZE)
-	if prize != null:
-		prizes.append(prize)
+	# S19: the prize shelf starts empty. Every prize the run holds comes from the
+	# shop or a chest, so the two slots are free loot space from board 1.
 	extra_throws = 0
 	endless_mode = false
 	run_won = false

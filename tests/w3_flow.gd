@@ -105,7 +105,7 @@ func _test_full_cycle() -> void:
 				"the bought consumable %s should sit on the consumable shelf" % bought_def.id
 			)
 			_check(
-				game.prizes.size() == 1,
+				game.prizes.is_empty(),
 				"a consumable buy must not take a prize slot, shelf is %d" % game.prizes.size()
 			)
 		else:
@@ -114,8 +114,11 @@ func _test_full_cycle() -> void:
 				"the bought permanent %s should sit on the prize shelf" % bought_def.id
 			)
 			_check(
-				game.prizes.size() == 2,
-				"trompo + the bought prize = 2, got %d" % game.prizes.size()
+				game.prizes.size() == 1,
+				(
+					"the bought prize should be the only one on the empty shelf, got %d"
+					% game.prizes.size()
+				)
 			)
 
 	# (3) The next board carries the purchases.
@@ -153,14 +156,11 @@ func _test_full_cycle() -> void:
 			% [game.ammo.size(), extras, board2.shots_total]
 		)
 	)
-	# The owned prizes are announced on the HUD badges.
+	# The owned prizes are announced on the HUD badges: the shelf starts empty
+	# (S19), so the only owned prizes are the ones bought in the shop.
 	var badge_text := ""
 	for badge in board2.hud.find_children("*", "Label", true, false):
 		badge_text += (badge as Label).text + " "
-	_check(
-		badge_text.contains("Trompo"),
-		"board 2's HUD should badge the starting trompo, badges are '%s'" % badge_text
-	)
 	if bought_prize_id != "":
 		var bought_name: String = content.find_prize_def(bought_prize_id).display_name
 		_check(
