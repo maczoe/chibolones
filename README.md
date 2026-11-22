@@ -16,6 +16,23 @@ Open the project folder in Godot 4.7 and press Play, or:
 godot --path . 
 ```
 
+## Tests
+
+The suites are plain `SceneTree` scripts that install their own autoloads, so
+they run without the editor:
+
+```
+godot --headless --path . --script res://tests/chests.gd
+```
+
+A fresh clone needs one import pass first: the class cache lives in `.godot/`,
+which is generated and not tracked, so `--script` otherwise reports missing
+types such as `BoardDef`. Opening the editor once does it, or:
+
+```
+godot --headless --path . --import
+```
+
 ## Gameplay
 
 1. **Aim** — Left/Right arrows (or A/D) pick the horizontal launch position;
