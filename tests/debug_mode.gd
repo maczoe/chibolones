@@ -212,7 +212,7 @@ func _test_board_picker_shows_name_and_gimmick() -> void:
 	var setup := _open_screen()
 	await physics_frame
 	var count: int = content.board_count()
-	_check(count == 24, "content should have 24 boards, has %d" % count)
+	_check(count == 25, "content should have 25 boards, has %d" % count)
 	for i in count:
 		setup.select_board(i)
 		var def: BoardDef = content.board_def(i)

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="BoardDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/board_def.gd" id="1_board"]
+[ext_resource type="Texture2D" path="res://data/art/emblem_25_escalera.svg" id="2_emblem"]
+
+[resource]
+script = ExtResource("1_board")
+theme_name = "La Escalera"
+objective_kind = 3
+objective_goals = Array[int]([30, 60, 90, 120])
+length = 8.0
+board_color = Color(0.169, 0.290, 0.478, 1)
+frame_color = Color(0.086, 0.071, 0.145, 1)
+notch_glow_color = Color(0.949, 0.757, 0.306, 1)
+notch_label_color = Color(1.000, 0.976, 0.933, 1)
+bulb_color = Color(0.949, 0.757, 0.306, 1)
+bulb_pattern_speed = 8.0
+light_color = Color(1.000, 0.878, 0.702, 1)
+ambient_energy = 0.58
+backdrop_color_a = Color(0.169, 0.290, 0.478, 1)
+backdrop_color_b = Color(0.949, 0.757, 0.306, 1)
+backdrop_color_c = Color(0.596, 0.365, 0.325, 1)
+backdrop_speed = 0.4
+backdrop_scale = 12.0
+backdrop_style = &"rays"
+floor_checker_a = Color(0.930, 0.880, 0.760, 1)
+floor_checker_b = Color(0.169, 0.290, 0.478, 1)
+floor_checker_size = 14.0
+emblem = ExtResource("2_emblem")
+deck_art_width = 1.6
+deck_art_side_width = 0.5
