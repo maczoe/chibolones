@@ -86,3 +86,16 @@ validated by user playtest via the debug picker.
   next. Verified at delivery: full 17-script suite GREEN, checker BOARDS OK
   (24/24 winnable; Guac-a-mole [50,50,50] in 3, Blackjack [7,7,7] in 3),
   gdcheck OK on board_theme.gd/board.gd/board_modifier_def.gd.
+- L9 (2026-11-21): "creo que el concepto que tenía en mente es diferente,
+  mi idea era que el tablero se ganara con 30, 60, 90 o 120, una lista de
+  objetivos que ganan, y no uno después de otro, aunque esa dinámica esta
+  bien para otro tipo de tableros, pero para este esta un poco difícil,
+  podrías cambiar la escalera para que acepte como ganado cualquiera de los
+  4 objetivos" — La Escalera pivot: new ANY objective kind (one of the
+  listed totals wins on its own; objective_goals as alternatives). The
+  sequential LIST kind stays in the engine for future boards. Winnability
+  re-checked: [30] in 1 shot.
+- L10 (2026-11-21): "todo correcto lancemos pr" — playtest approved;
+  delivery PR #4 opened from feat/board-la-escalera. With La Escalera all
+  6 objective kinds are premiered (THRESHOLD, EXACT, RANGE, LIST, MATH,
+  ANY).

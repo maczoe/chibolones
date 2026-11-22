@@ -116,6 +116,17 @@ func _test_objective_evaluation() -> void:
 	_check(not skipped.evaluate(50), "list hitting =50 late should still count once")
 	_check(skipped.evaluate(80), "list =50 then =80 should win")
 
+	# ANY: one of the listed totals wins on its own — the goals are
+	# alternatives (La Escalera), not a sequence.
+	var any_goals := _state(_def(BoardDef.ObjectiveKind.ANY, 0, [30, 60, 90, 120]))
+	_check(any_goals.evaluate(30), "any =30 alone should win")
+	_check(any_goals.evaluate(120), "any =120 alone should win")
+	_check(not any_goals.evaluate(40), "any 40 outside the set should not win")
+	_check(not any_goals.evaluate(45), "any 45 between goals should not win")
+	var bad_any := _state(_def(BoardDef.ObjectiveKind.ANY, 60, []))
+	_check(bad_any.evaluate(60), "empty any-set should fall back to threshold")
+	_check(not bad_any.evaluate(50), "any fallback threshold 60 should reject 50")
+
 	# MATH: rule holds once the minimum (target) is reached.
 	var even := _state(_def(BoardDef.ObjectiveKind.MATH, 100, [], &"even"))
 	_check(not even.evaluate(98), "even 98 below minimum 100 should not win")
@@ -246,6 +257,23 @@ func _test_board_wiring() -> void:
 	root.get_node("EventBus").embed.emit(0, 20)
 	await physics_frame
 	_check(board.board_result_sent, "list =20 then =40 should win")
+	board.queue_free()
+	await physics_frame
+
+	# ANY: HUD lists every winning total; hitting any one of them wins.
+	board = await _open_kind_board(BoardDef.ObjectiveKind.ANY, 0, [30, 60])
+	_check(_text(board.hud, "label_target") == "0 / =30/60",
+			"any HUD should read '0 / =30/60', got '%s'" % _text(board.hud, "label_target"))
+	_check(_text(board.hud, "label_board_effects").contains("30"),
+			"any board should announce its winning totals, got '%s'"
+			% _text(board.hud, "label_board_effects"))
+	root.get_node("EventBus").embed.emit(0, 25)
+	await physics_frame
+	_check(not board.board_result_sent, "any 25 outside the set should not win")
+	root.get_node("EventBus").embed.emit(0, 35)
+	await physics_frame
+	_check(board.score_engine.total == 60, "any embeds should accumulate, got %d" % board.score_engine.total)
+	_check(board.board_result_sent, "any total 60 hitting the set should win")
 	board.queue_free()
 	await physics_frame
 
