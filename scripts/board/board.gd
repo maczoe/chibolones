@@ -815,6 +815,11 @@ func _update_flight(delta: float) -> void:
 		# A fast marble hops over the notches, a slow one embeds itself when
 		# its center crosses the capture circle. Skip-speed prizes (Muñeco)
 		# lower the threshold.
+		#
+		# D10/S12: the chest check comes first, above the speed gate: a chest is a
+		# find on the deck, not a capture, so a marble flying over it still opens
+		# it. _check_chests keeps its own "rolling on the surface" band.
+		_check_chests(local)
 		if speed >= effective_skip_speed():
 			continue
 		# Stuck detector first: an oscillating marble (magnet, wind, or a
@@ -841,9 +846,6 @@ func _update_flight(delta: float) -> void:
 			if d <= reach:
 				_embed(marble, hole, speed)
 				break
-		# D10/S12: the chests rest on the deck the marble rolls over, so the
-		# check belongs to the same pass and never to a collision body.
-		_check_chests(local)
 		if is_instance_valid(marble) and not marble.freeze:
 			if speed < rules.settle_speed:
 				settle_times[marble] = float(settle_times.get(marble, 0.0)) + delta
@@ -2042,7 +2044,9 @@ func _add_chest(pos: Vector3) -> void:
 ## marble from the flight loop; it never consumes the marble and never edits
 ## the score, so the throw carries on untouched.
 func _check_chests(local: Vector3) -> void:
-	if local.y > CHEST_TRIGGER_HEIGHT:
+	# The band is "rolling on the deck": a body that fell through the board
+	# (below) or one still in the air (above) never opens a chest.
+	if local.y < -0.05 or local.y > CHEST_TRIGGER_HEIGHT:
 		return
 	for chest in chests:
 		if chest.opened:

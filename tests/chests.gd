@@ -48,13 +48,14 @@ func _run() -> void:
 	await _test_hidden_chance()
 	await _test_chest_opens_and_grants_one_thing()
 	await _test_marble_keeps_rolling_through_a_chest()
+	await _test_fast_marble_opens_the_chest()
 	await _test_second_check_changes_nothing()
 	await _test_full_shelves_pay_cash()
 	# A GDScript error aborts one test function without touching `failed`, so a
-	# suite would print OK with tests that never ran. This floor is the count a
-	# full pass produces, minus headroom: fewer checks means a test died before
-	# its assertions.
-	_check(checks_run >= 170, "only %d checks ran: a test died before asserting" % checks_run)
+	# suite would print OK with tests that never ran. The count is deterministic,
+	# so the exact full-pass total is the guard: one dead test always fails here.
+	# Adding a test means bumping this number with it.
+	_check(checks_run >= 190, "only %d checks ran: a test died before asserting" % checks_run)
 	print("CHESTS FAIL" if failed else "CHESTS OK")
 	quit(1 if failed else 0)
 
@@ -508,6 +509,47 @@ func _test_marble_keeps_rolling_through_a_chest() -> void:
 		"a chest must not touch the run ammo (%d -> %d)" % [ammo_before, game.ammo.size()]
 	)
 	_check(not paused, "the reveal must never pause the board (S16)")
+	board.state = board.ThrowState.AIM
+	board.active_marbles.erase(marble)
+	marble.queue_free()
+	board.board_def.capture_pull = pull_before
+	_close(board)
+
+
+## S12: a chest is a find, not a capture rule — a marble flying over it opens
+## it too, so loot is never gated by a speed threshold the player cannot see.
+## And the trigger band has a floor: a body that fell through never opens one.
+func _test_fast_marble_opens_the_chest() -> void:
+	game.start_run()
+	var board := _open_board()
+	await physics_frame
+	_check(board.chests.size() >= 1, "the board should carry a chest")
+	if board.chests.is_empty():
+		_close(board)
+		return
+	var chest: Dictionary = board.chests[0]
+	var pull_before: float = board.board_def.capture_pull
+	board.board_def.capture_pull = 0.0
+	# Below the deck: the chest must stay shut.
+	board._check_chests(Vector3(chest.pos.x, -0.5, chest.pos.z))
+	_check(not chest.opened, "a marble below the deck must not open a chest (S12)")
+	var marble := _ghost_marble(board, chest.pos + Vector3(0.0, 0.05, 0.0))
+	board.active_marbles.append(marble)
+	marble.linear_velocity = Vector3(0.0, 0.0, 6.0)
+	_check(
+		Vector3(0.0, 0.0, 6.0).length() >= board.effective_skip_speed(),
+		(
+			"the marble should fly above the capture threshold (%s vs %s)"
+			% [Vector3(0.0, 0.0, 6.0).length(), board.effective_skip_speed()]
+		)
+	)
+	board.launch_timer = 0.0
+	board.state = board.ThrowState.FLIGHT
+	for i in 4:
+		await physics_frame
+		if chest.opened:
+			break
+	_check(chest.opened, "a marble flying over the chest should open it (S12)")
 	board.state = board.ThrowState.AIM
 	board.active_marbles.erase(marble)
 	marble.queue_free()
