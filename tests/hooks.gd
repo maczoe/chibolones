@@ -1,6 +1,6 @@
 extends SceneTree
 ## M2 hook contract test: the scoring pipeline (ScoreBreakdown + the prize
-## and bonificador contributions), the 10 bonificadores as data, and the
+## and bonificador contributions), the 11 bonificadores as data, and the
 ## board runtime rules that fight over a throw (Borracho shuffle,
 ## Cronometrado timer, Espejo center, glass durability).
 ## Run: godot --headless --path . --script res://tests/hooks.gd
@@ -136,7 +136,7 @@ func _test_prize_contribution() -> void:
 	await physics_frame
 
 
-# --- (c) The 10 bonificadores as data (S2) ----------------------------------
+# --- (c) The 11 bonificadores as data (S2) ---------------------------------
 
 
 func _test_modifier_defs() -> void:
@@ -151,6 +151,7 @@ func _test_modifier_defs() -> void:
 		&"iman": {"magnet_strength": 1.5},
 		&"trapecio": {"grid_swing_speed": 1.0},
 		&"cronometrado": {"decision_timer_sec": 4.0},
+		&"guacamole": {"mole_trap_count": 5},
 	}
 	var seen := {}
 	for id in expected:
@@ -174,7 +175,7 @@ func _test_modifier_defs() -> void:
 						"modifier '%s' %s should be %s, got %s"
 						% [id, field, want, got])
 	_check(content.modifiers().size() == expected.size(),
-			"ContentDB should index 10 modifiers, got %d" % content.modifiers().size())
+			"ContentDB should index %d modifiers, got %d" % [expected.size(), content.modifiers().size()])
 
 
 # --- (d) Borracho value shuffle (S2) ---------------------------------------
