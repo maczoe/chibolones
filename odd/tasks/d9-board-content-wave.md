@@ -95,3 +95,5 @@ validated by user playtest via the debug picker.
   listed totals wins on its own; objective_goals as alternatives). The
   sequential LIST kind stays in the engine for future boards. Winnability
   re-checked: [30] in 1 shot.
+- L10 (2026-11-21): "todo correcto lancemos pr" — playtest approved;
+  delivery PR opened from feat/board-la-escalera.
