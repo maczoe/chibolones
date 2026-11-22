@@ -84,7 +84,8 @@ func _resting_marble(board: Node3D) -> RigidBody3D:
 	marble.freeze = true
 	board.board.add_child(marble)
 	marble.global_position = board.board.to_global(
-			Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4))
+		Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4)
+	)
 	return marble
 
 
@@ -116,30 +117,40 @@ func _discard(board: Node3D) -> void:
 
 # --- (a) Winning keeps the board and hosts the overlay on it -----------------
 
+
 func _test_win_hosts_overlay_on_board() -> void:
 	var board := await _win_the_board()
-	_check(game.phase == game.Phase.WIN,
-			"a won board should enter the win phase, phase is %s" % game.phase)
-	_check(is_instance_valid(board) and board.is_inside_tree(),
-			"the board should stay in the tree behind the win overlay")
+	_check(
+		game.phase == game.Phase.WIN,
+		"a won board should enter the win phase, phase is %s" % game.phase
+	)
+	_check(
+		is_instance_valid(board) and board.is_inside_tree(),
+		"the board should stay in the tree behind the win overlay"
+	)
 	var overlay := _find_win_screen(board)
-	_check(overlay != null,
-			"the board should host the win screen as an overlay")
+	_check(overlay != null, "the board should host the win screen as an overlay")
 	if overlay != null:
-		_check(overlay.get_parent() is CanvasLayer,
-				"the overlay should sit in its own CanvasLayer over the HUD")
+		_check(
+			overlay.get_parent() is CanvasLayer,
+			"the overlay should sit in its own CanvasLayer over the HUD"
+		)
 		# TITLE_DELAY is 2.5 s: after it the resumen shows over the game.
 		await create_timer(2.7).timeout
-		_check(overlay.stats_box.visible,
-				"the resumen should appear over the live board after the title beat")
-		_check(root.gui_get_focus_owner() == overlay.continue_button,
-				"the resumen should hand focus to CONTINUAR")
-	_check(current_scene == board,
-			"the scene must not switch while the overlay plays")
+		_check(
+			overlay.stats_box.visible,
+			"the resumen should appear over the live board after the title beat"
+		)
+		_check(
+			root.gui_get_focus_owner() == overlay.continue_button,
+			"the resumen should hand focus to CONTINUAR"
+		)
+	_check(current_scene == board, "the scene must not switch while the overlay plays")
 	await _discard(board)
 
 
 # --- (b) No controls behind the overlay: R must not reload the board ---------
+
 
 func _test_restart_blocked_during_win() -> void:
 	var board := await _win_the_board()
@@ -148,33 +159,41 @@ func _test_restart_blocked_during_win() -> void:
 	restart.pressed = true
 	board._unhandled_input(restart)
 	await process_frame
-	_check(current_scene == board and board.is_inside_tree(),
-			"restart must not reload the board during the win overlay")
+	_check(
+		current_scene == board and board.is_inside_tree(),
+		"restart must not reload the board during the win overlay"
+	)
 	await _discard(board)
 
 
 # --- (b2) The restart key keeps working outside the win overlay --------------
+
 
 func _test_restart_still_works_in_play() -> void:
 	# Shared-path pin: the win gate must only silence R while the win overlay
 	# plays. Normal play reloads the board, exactly as before the change.
 	var board := _start_run()
 	await physics_frame
-	_check(game.phase == game.Phase.BOARD,
-			"the run should start in the board phase, got %s" % game.phase)
+	_check(
+		game.phase == game.Phase.BOARD,
+		"the run should start in the board phase, got %s" % game.phase
+	)
 	var restart := InputEventAction.new()
 	restart.action = "restart"
 	restart.pressed = true
 	board._unhandled_input(restart)
 	await process_frame
 	await process_frame
-	_check(current_scene != board or not is_instance_valid(board),
-			"restart during normal play should still reload the board")
+	_check(
+		current_scene != board or not is_instance_valid(board),
+		"restart during normal play should still reload the board"
+	)
 	current_scene = null
 	game.run_active = false
 
 
 # --- (d) Losing keeps the board and hosts the result overlay on it -----------
+
 
 func _lose_the_board() -> Node3D:
 	var board := _start_run()
@@ -189,38 +208,47 @@ func _lose_the_board() -> Node3D:
 
 func _test_loss_hosts_result_overlay() -> void:
 	var board := await _lose_the_board()
-	_check(game.phase == game.Phase.RESULT,
-			"a lost board should enter the result phase, phase is %s" % game.phase)
-	_check(is_instance_valid(board) and board.is_inside_tree(),
-			"the board should stay in the tree behind the result overlay")
+	_check(
+		game.phase == game.Phase.RESULT,
+		"a lost board should enter the result phase, phase is %s" % game.phase
+	)
+	_check(
+		is_instance_valid(board) and board.is_inside_tree(),
+		"the board should stay in the tree behind the result overlay"
+	)
 	var overlay := _find_result_screen(board)
-	_check(overlay != null,
-			"the board should host the result screen as an overlay")
+	_check(overlay != null, "the board should host the result screen as an overlay")
 	var restart := InputEventAction.new()
 	restart.action = "restart"
 	restart.pressed = true
 	board._unhandled_input(restart)
 	await process_frame
-	_check(current_scene == board and board.is_inside_tree(),
-			"restart must not reload the board during the result overlay")
+	_check(
+		current_scene == board and board.is_inside_tree(),
+		"restart must not reload the board during the result overlay"
+	)
 	if overlay != null:
-		_check(overlay.get_parent() is CanvasLayer,
-				"the result overlay should sit in its own CanvasLayer")
-		_check(not overlay.summary_visible(),
-				"the resumen should wait behind the title beat, like the win flow")
+		_check(
+			overlay.get_parent() is CanvasLayer,
+			"the result overlay should sit in its own CanvasLayer"
+		)
+		_check(
+			not overlay.summary_visible(),
+			"the resumen should wait behind the title beat, like the win flow"
+		)
 		# TITLE_DELAY is 2.5 s: after it the resumen and its buttons show.
 		await create_timer(2.7).timeout
-		_check(overlay.summary_visible(),
-				"the result resumen should appear after the title beat")
-		_check(root.gui_get_focus_owner() != null
-					and root.gui_get_focus_owner() is Button,
-				"the result resumen should hand focus to its first button")
-	_check(current_scene == board,
-			"the scene must not switch while the result overlay plays")
+		_check(overlay.summary_visible(), "the result resumen should appear after the title beat")
+		_check(
+			root.gui_get_focus_owner() != null and root.gui_get_focus_owner() is Button,
+			"the result resumen should hand focus to its first button"
+		)
+	_check(current_scene == board, "the scene must not switch while the result overlay plays")
 	await _discard(board)
 
 
 # --- (e) The run-won summary also plays over the live board ------------------
+
 
 func _test_run_won_summary_hosts_result_overlay() -> void:
 	# Board 20 (def 19) won through the real seam, like tests/run_loop.gd:
@@ -240,17 +268,18 @@ func _test_run_won_summary_hosts_result_overlay() -> void:
 		await process_frame
 		await process_frame
 	var overlay := _find_result_screen(board)
-	_check(overlay != null,
-			"the run-won summary should host on the live board too")
-	_check(current_scene == board,
-			"the scene must not switch while the run-won summary plays")
+	_check(overlay != null, "the run-won summary should host on the live board too")
+	_check(current_scene == board, "the scene must not switch while the run-won summary plays")
 	if win_overlay != null:
-		_check(not win_overlay.visible or not is_instance_valid(win_overlay),
-				"the win overlay should close when the summary takes over")
+		_check(
+			not win_overlay.visible or not is_instance_valid(win_overlay),
+			"the win overlay should close when the summary takes over"
+		)
 	await _discard(board)
 
 
 # --- (f) Both screens show the game behind them -------------------------------
+
 
 func _test_win_screen_is_translucent() -> void:
 	var win: Control = (load("res://scenes/run/win.tscn") as PackedScene).instantiate()
@@ -262,9 +291,13 @@ func _test_win_screen_is_translucent() -> void:
 			background = child
 	_check(background != null, "the win screen should keep a dim background")
 	if background != null:
-		_check(background.color.a < 0.7,
+		_check(
+			background.color.a < 0.7,
+			(
 				"the win background must let the live board read through, "
-				+ "alpha is %s" % background.color.a)
+				+ "alpha is %s" % background.color.a
+			)
+		)
 	win.queue_free()
 	await process_frame
 
@@ -279,8 +312,12 @@ func _test_result_screen_is_translucent() -> void:
 			background = child
 	_check(background != null, "the result screen should keep a dim background")
 	if background != null:
-		_check(background.color.a < 0.7,
+		_check(
+			background.color.a < 0.7,
+			(
 				"the result background must let the live board read through, "
-				+ "alpha is %s" % background.color.a)
+				+ "alpha is %s" % background.color.a
+			)
+		)
 	result.queue_free()
 	await process_frame

@@ -7,7 +7,7 @@ extends SceneTree
 ## Run: godot --headless --path . --script res://tests/smoke.gd
 
 var board: Node3D
-var embeds: Array = []           # [notch_index, value] pairs seen on the bus
+var embeds: Array = []  # [notch_index, value] pairs seen on the bus
 var ended_outcomes: Array = []
 
 
@@ -111,7 +111,12 @@ func _run() -> void:
 		if board.state == board.ThrowState.FLIGHT:
 			return _fail("throw never resolved (attempt %d)" % attempts)
 	if board.shots_left != 0:
-		return _fail("round did not spend all shots (attempts=%d, shots_left=%d)" % [attempts, board.shots_left])
+		return _fail(
+			(
+				"round did not spend all shots (attempts=%d, shots_left=%d)"
+				% [attempts, board.shots_left]
+			)
+		)
 	if board.state != board.ThrowState.ROUND_OVER:
 		return _fail("expected ROUND_OVER at the end, got %s" % board.state)
 	# Score consistency: engine total == sum of embed events on the bus,
@@ -128,8 +133,12 @@ func _run() -> void:
 			occupied += 1
 	if occupied != embeds.size():
 		return _fail("occupied notches %d != embed events %d" % [occupied, embeds.size()])
-	print("SMOKE OK: score=%d, embeds=%d, outcomes=%s, attempts=%d" % [
-			engine_total, embeds.size(), str(ended_outcomes), attempts])
+	print(
+		(
+			"SMOKE OK: score=%d, embeds=%d, outcomes=%s, attempts=%d"
+			% [engine_total, embeds.size(), str(ended_outcomes), attempts]
+		)
+	)
 	quit(0)
 
 

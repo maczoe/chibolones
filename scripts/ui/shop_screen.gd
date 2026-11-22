@@ -125,13 +125,14 @@ func _plain(label: Label) -> Label:
 
 
 func _subtitle_text() -> String:
-	return "TABLERO %d · BLOQUE %d DE %d" % [Game.current_board_in_run,
-			Game.block, Game.BLOCKS]
+	return "TABLERO %d · BLOQUE %d DE %d" % [Game.current_board_in_run, Game.block, Game.BLOCKS]
 
 
 func _caps_text() -> String:
-	return "Bolso %d/%d · Premios %d/%d" % [Game.inventory.size(), Game.marble_cap(),
-			Game.prizes.size(), Game.prize_cap()]
+	return (
+		"Bolso %d/%d · Premios %d/%d"
+		% [Game.inventory.size(), Game.marble_cap(), Game.prizes.size(), Game.prize_cap()]
+	)
 
 
 # --- Counter: the four stock cards -----------------------------------------
@@ -153,11 +154,13 @@ func _refresh_stock() -> void:
 	_buy_buttons.clear()
 	var stock: Dictionary = Economy.shop_stock(Game.block)
 	for entry in stock["marbles"]:
-		_stock_box.add_child(_stall_card("CHIBOLON",
-				ContentDB.marble_def(entry["def_id"]), int(entry["price"])))
+		_stock_box.add_child(
+			_stall_card("CHIBOLON", ContentDB.marble_def(entry["def_id"]), int(entry["price"]))
+		)
 	for entry in stock["prizes"]:
-		_stock_box.add_child(_stall_card("PREMIO",
-				ContentDB.prize_def(entry["def_id"]), int(entry["price"])))
+		_stock_box.add_child(
+			_stall_card("PREMIO", ContentDB.prize_def(entry["def_id"]), int(entry["price"]))
+		)
 
 
 func _stall_card(kind: String, def: Resource, price: int) -> PanelContainer:
@@ -315,14 +318,16 @@ func _build_services(shelf: PanelContainer) -> void:
 	column.add_child(_shelf_title("SERVICIOS"))
 	var pack_price := Economy.extra_marble_pack_price(Game.block)
 	var pack_out: Array = []
-	column.add_child(_service_row("Canica extra", "+1 comun para la run",
-			pack_price, _on_pack_pressed, pack_out))
+	column.add_child(
+		_service_row("Canica extra", "+1 comun para la run", pack_price, _on_pack_pressed, pack_out)
+	)
 	if not pack_out.is_empty():
 		_pack_button = pack_out[0]
 	var reroll_out: Array = []
 	var reroll_price := Economy.reroll_price()
-	column.add_child(_service_row("Reroll", "stock nuevo", reroll_price,
-			_on_reroll_pressed, reroll_out))
+	column.add_child(
+		_service_row("Reroll", "stock nuevo", reroll_price, _on_reroll_pressed, reroll_out)
+	)
 	if not reroll_out.is_empty():
 		_reroll_button = reroll_out[0]
 
@@ -346,8 +351,9 @@ func _build_services(shelf: PanelContainer) -> void:
 	column.add_child(hint)
 
 
-func _service_row(title_text: String, desc: String, price: int,
-		handler: Callable, button_out: Array) -> PanelContainer:
+func _service_row(
+	title_text: String, desc: String, price: int, handler: Callable, button_out: Array
+) -> PanelContainer:
 	var row := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("241552")
@@ -431,15 +437,18 @@ func _refresh_inventory() -> void:
 		var name_text := def.display_name
 		if copies > 1:
 			name_text = "%s x%d" % [name_text, copies]
-		_inventory_list.add_child(_inventory_row(def, name_text,
-				def.effect_description(), def.price))
+		_inventory_list.add_child(
+			_inventory_row(def, name_text, def.effect_description(), def.price)
+		)
 	for def in Game.prizes:
-		_inventory_list.add_child(_inventory_row(def, def.display_name,
-				def.effect_description(), def.price))
+		_inventory_list.add_child(
+			_inventory_row(def, def.display_name, def.effect_description(), def.price)
+		)
 
 
-func _inventory_row(def: Resource, name_text: String, desc: String,
-		base_price: int) -> PanelContainer:
+func _inventory_row(
+	def: Resource, name_text: String, desc: String, base_price: int
+) -> PanelContainer:
 	var row := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("241552")
@@ -597,19 +606,26 @@ func _refresh_bottom() -> void:
 		var kind: String = entry["kind"]
 		var price: int = entry["price"]
 		var bought: bool = button.text == "COMPRADO"
-		var blocked: bool = bought or Game.money < price \
-				or (kind == "CHIBOLON" and Game.inventory.size() >= Game.marble_cap()) \
-				or (kind != "CHIBOLON" and Game.prizes.size() >= Game.prize_cap())
+		var blocked: bool = (
+			bought
+			or Game.money < price
+			or (kind == "CHIBOLON" and Game.inventory.size() >= Game.marble_cap())
+			or (kind != "CHIBOLON" and Game.prizes.size() >= Game.prize_cap())
+		)
 		button.disabled = blocked
 		button.focus_mode = Control.FOCUS_NONE if blocked else Control.FOCUS_ALL
-	var pack_blocked: bool = Game.money < Economy.extra_marble_pack_price(Game.block) \
-			or Game.inventory.size() >= Game.marble_cap()
+	var pack_blocked: bool = (
+		Game.money < Economy.extra_marble_pack_price(Game.block)
+		or Game.inventory.size() >= Game.marble_cap()
+	)
 	if _pack_button != null:
 		_pack_button.disabled = pack_blocked
 		_pack_button.focus_mode = Control.FOCUS_NONE if pack_blocked else Control.FOCUS_ALL
 	if _reroll_button != null:
 		_reroll_button.disabled = Game.money < Economy.reroll_price()
-		_reroll_button.focus_mode = Control.FOCUS_NONE if _reroll_button.disabled else Control.FOCUS_ALL
+		_reroll_button.focus_mode = (
+			Control.FOCUS_NONE if _reroll_button.disabled else Control.FOCUS_ALL
+		)
 
 
 func _on_money_changed(value: int) -> void:
@@ -656,6 +672,7 @@ func flash(text: String) -> void:
 	_msg_tween = create_tween()
 	_msg_tween.tween_interval(2.0)
 	_msg_tween.tween_property(_label_msg, "modulate:a", 0.0, 1.2)
+
 
 # --- Placeholder sprites ---------------------------------------------------
 

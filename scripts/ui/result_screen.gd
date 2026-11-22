@@ -47,8 +47,9 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 14)
 	panel.add_child(column)
 
-	var title := _candy_label("Run completa!" if Game.run_won else "Fin de la run",
-			64, Color("ffe066"))
+	var title := _candy_label(
+		"Run completa!" if Game.run_won else "Fin de la run", 64, Color("ffe066")
+	)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
@@ -99,14 +100,19 @@ func _summary_lines() -> Array[String]:
 	elif Game.endless_mode:
 		# Endless loses show the 20 run boards plus the extra ones.
 		var extra: int = maxi(0, Game.boards_cleared - Game.BOARDS_PER_RUN)
-		lines.append("Tableros superados: %d (%d de la run + %d en infinito)"
-				% [Game.boards_cleared, Game.BOARDS_PER_RUN, extra])
+		lines.append(
+			(
+				"Tableros superados: %d (%d de la run + %d en infinito)"
+				% [Game.boards_cleared, Game.BOARDS_PER_RUN, extra]
+			)
+		)
 	else:
 		lines.append("Tableros superados: %d" % Game.boards_cleared)
 	lines.append("Dinero: $%d" % Game.money)
 	if not Game.run_won:
-		lines.append("Te vencio el tablero %d (bloque %d)"
-				% [Game.current_board_in_run, Game.block])
+		lines.append(
+			"Te vencio el tablero %d (bloque %d)" % [Game.current_board_in_run, Game.block]
+		)
 	return lines
 
 

@@ -67,23 +67,32 @@ func _connect_bus() -> void:
 
 func _test_agata_wind_steady() -> void:
 	var agata: MarbleDef = content.marble_def("agata")
-	_check(agata != null and agata.effects.has(&"wind_steady"),
-			"agata should carry the wind_steady effect")
+	_check(
+		agata != null and agata.effects.has(&"wind_steady"),
+		"agata should carry the wind_steady effect"
+	)
 	game.start_run()
 	var board := _open_board_with(&"ventoso")
 	await physics_frame
-	_check(is_equal_approx(board.wind_steady_scale(agata), 0.0),
-			"agata must feel no wind, got %s" % str(board.wind_steady_scale(agata)))
+	_check(
+		is_equal_approx(board.wind_steady_scale(agata), 0.0),
+		"agata must feel no wind, got %s" % str(board.wind_steady_scale(agata))
+	)
 	var common: MarbleDef = content.marble_def("common")
-	_check(is_equal_approx(board.wind_steady_scale(common), 1.0),
-			"the common must feel the full wind")
+	_check(
+		is_equal_approx(board.wind_steady_scale(common), 1.0), "the common must feel the full wind"
+	)
 	# Physics drift: same launch, the agata drifts less sideways than the
 	# common on a windy board.
 	var common_drift := await _drift_with_def(common)
 	var agata_drift := await _drift_with_def(agata)
-	_check(agata_drift < common_drift,
+	_check(
+		agata_drift < common_drift,
+		(
 			"agata should drift less than the common in wind (%s vs %s)"
-			% [str(agata_drift), str(common_drift)])
+			% [str(agata_drift), str(common_drift)]
+		)
+	)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame
@@ -122,8 +131,10 @@ func _drift_with_def(def: MarbleDef) -> float:
 
 func _test_remolino_center_pull() -> void:
 	var remolino: MarbleDef = content.marble_def("remolino")
-	_check(remolino != null and remolino.effects.has(&"center_pull"),
-			"remolino should carry the center_pull effect")
+	_check(
+		remolino != null and remolino.effects.has(&"center_pull"),
+		"remolino should carry the center_pull effect"
+	)
 	game.start_run()
 	var board := _open_board()
 	await physics_frame
@@ -134,8 +145,9 @@ func _test_remolino_center_pull() -> void:
 	_check(pull.x < 0.0, "a marble right of center should be pulled left, got %s" % str(pull))
 	var centered := _flying_marble(board, Vector3(0.0, 0.0, 0.0))
 	var none: Vector3 = board.marble_force(centered, Vector3(0.0, 0.0, 0.0))
-	_check(is_equal_approx(none.x, 0.0),
-			"a centered marble should feel no pull, got %s" % str(none))
+	_check(
+		is_equal_approx(none.x, 0.0), "a centered marble should feel no pull, got %s" % str(none)
+	)
 	# A common feels nothing.
 	var common_def: MarbleDef = content.marble_def("common")
 	board.launched_def = common_def
@@ -165,8 +177,10 @@ func _flying_marble(board: Node3D, local: Vector3) -> RigidBody3D:
 
 func _test_teledirigida_target() -> void:
 	var teledi: MarbleDef = content.marble_def("teledirigida")
-	_check(teledi != null and teledi.effects.has(&"homing"),
-			"teledirigida should carry the homing effect")
+	_check(
+		teledi != null and teledi.effects.has(&"homing"),
+		"teledirigida should carry the homing effect"
+	)
 	game.start_run()
 	game.inventory.clear()
 	game.inventory.append(teledi)
@@ -176,27 +190,36 @@ func _test_teledirigida_target() -> void:
 	var aim_x: float = board.holes[2].pos.x
 	board.aim_x = aim_x
 	board._launch(0.0, 20.0)
-	_check(board.homing_target != null and not board.homing_target.is_empty(),
-			"the launch should pick a homing target")
+	_check(
+		board.homing_target != null and not board.homing_target.is_empty(),
+		"the launch should pick a homing target"
+	)
 	if board.homing_target != null and not board.homing_target.is_empty():
 		var best_dist := INF
 		for hole in board.holes:
 			if hole.occupied or hole.covered or hole.phase_hidden:
 				continue
 			best_dist = minf(best_dist, absf(hole.pos.x - aim_x))
-		_check(is_equal_approx(absf(board.homing_target.pos.x - aim_x), best_dist),
-				"the target should be the free hole nearest to the aim")
-		_check(board.hud.last_flash.contains("Teledirigida"),
-				"the HUD should announce the homing target, got '%s'"
-				% board.hud.last_flash)
+		_check(
+			is_equal_approx(absf(board.homing_target.pos.x - aim_x), best_dist),
+			"the target should be the free hole nearest to the aim"
+		)
+		_check(
+			board.hud.last_flash.contains("Teledirigida"),
+			"the HUD should announce the homing target, got '%s'" % board.hud.last_flash
+		)
 		# The steering force points at the target.
 		var marble: RigidBody3D = board.active_marbles[0]
 		var local: Vector3 = board.board.to_local(marble.global_position)
 		var steer: Vector3 = board.marble_force(marble, local)
 		var to_target: Vector3 = board.homing_target.pos - local
-		_check(steer.normalized().dot(to_target.normalized()) > 0.9,
+		_check(
+			steer.normalized().dot(to_target.normalized()) > 0.9,
+			(
 				"the homing force should point at the target, got %s vs %s"
-				% [str(steer), str(to_target)])
+				% [str(steer), str(to_target)]
+			)
+		)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame
@@ -206,8 +229,10 @@ func _test_teledirigida_target() -> void:
 	await physics_frame
 	plain.launched_def = content.marble_def("common")
 	plain._launch(0.0, 20.0)
-	_check(plain.homing_target == null or plain.homing_target.is_empty(),
-			"a common launch must not pick a homing target")
+	_check(
+		plain.homing_target == null or plain.homing_target.is_empty(),
+		"a common launch must not pick a homing target"
+	)
 	_clear_marbles(plain)
 	plain.queue_free()
 	await physics_frame
@@ -236,12 +261,12 @@ func _test_rebote_side_refund() -> void:
 			await physics_frame
 			if not outcomes.is_empty():
 				break
-	_check(outcomes.has(&"refunded"),
-			"a rebote side exit should refund, got %s" % str(outcomes))
+	_check(outcomes.has(&"refunded"), "a rebote side exit should refund, got %s" % str(outcomes))
 	_check(refunds == 1, "the rebote refund should emit once, got %d" % refunds)
-	_check(game.ammo.size() == ammo_before,
-			"the refunded rebote must not spend the marble (%d -> %d)"
-			% [ammo_before, game.ammo.size()])
+	_check(
+		game.ammo.size() == ammo_before,
+		"the refunded rebote must not spend the marble (%d -> %d)" % [ammo_before, game.ammo.size()]
+	)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame
@@ -261,10 +286,11 @@ func _test_rebote_side_refund() -> void:
 			await physics_frame
 			if not outcomes.is_empty():
 				break
-	_check(outcomes.has(&"off_board"),
-			"a common side exit should still lose the marble, got %s" % str(outcomes))
-	_check(game.ammo.size() == plain_ammo - 1,
-			"the common side exit should spend the marble")
+	_check(
+		outcomes.has(&"off_board"),
+		"a common side exit should still lose the marble, got %s" % str(outcomes)
+	)
+	_check(game.ammo.size() == plain_ammo - 1, "the common side exit should spend the marble")
 	_clear_marbles(plain)
 	plain.queue_free()
 	await physics_frame
@@ -302,16 +328,20 @@ func _test_espejo_copy() -> void:
 	board.wall_hits = 0
 	var hole20 := _free_hole_with_score(board, 20)
 	board._embed(_loose_marble(board), hole20)
-	_check(board.last_throw_score == 20,
-			"the board should remember the embed score, got %d" % board.last_throw_score)
+	_check(
+		board.last_throw_score == 20,
+		"the board should remember the embed score, got %d" % board.last_throw_score
+	)
 	# Throw two: the espejo embeds a 5 notch and scores the remembered 20.
 	embeds.clear()
 	var espejo: MarbleDef = content.marble_def("espejo")
 	board.launched_def = espejo
 	var hole5 := _free_hole_with_score(board, 5)
 	board._embed(_loose_marble(board), hole5)
-	_check(embeds.size() == 1 and int(embeds[0][1]) == 20,
-			"espejo should copy the previous 20, got %s" % str(embeds))
+	_check(
+		embeds.size() == 1 and int(embeds[0][1]) == 20,
+		"espejo should copy the previous 20, got %s" % str(embeds)
+	)
 	# After a zero-score throw the espejo scores its own notch.
 	board.throw_score = 0
 	board.last_throw_score = 0
@@ -319,9 +349,13 @@ func _test_espejo_copy() -> void:
 	board.launched_def = espejo
 	var hole7 := _free_hole_with_score(board, 7)
 	board._embed(_loose_marble(board), hole7)
-	_check(embeds.size() == 1 and int(embeds[0][1]) == int(hole7.score),
+	_check(
+		embeds.size() == 1 and int(embeds[0][1]) == int(hole7.score),
+		(
 			"an espejo after a 0 throw should score its own notch (%d), got %s"
-			% [int(hole7.score), str(embeds)])
+			% [int(hole7.score), str(embeds)]
+		)
+	)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame

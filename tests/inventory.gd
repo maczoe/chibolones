@@ -8,8 +8,8 @@ extends SceneTree
 var game
 var content
 var failed := false
-var removed: Array = []      # [def_id, reason] pairs from marble_removed
-var ended: Array = []        # throw_ended outcomes
+var removed: Array = []  # [def_id, reason] pairs from marble_removed
+var ended: Array = []  # throw_ended outcomes
 
 
 func _initialize() -> void:
@@ -98,11 +98,11 @@ func _connect_bus() -> void:
 
 func _test_run_starts_with_five_commons() -> void:
 	game.start_run()
-	_check(game.inventory.size() == 5,
-			"a run should own 5 marbles, owns %d" % game.inventory.size())
+	_check(
+		game.inventory.size() == 5, "a run should own 5 marbles, owns %d" % game.inventory.size()
+	)
 	for def in game.inventory:
-		_check(def.id == "common",
-				"a run should start with commons only, got '%s'" % def.id)
+		_check(def.id == "common", "a run should start with commons only, got '%s'" % def.id)
 
 
 # --- (b) The board ammo is the throw budget (S5, S9) -----------------------
@@ -112,20 +112,29 @@ func _test_board_ammo_is_the_throw_budget() -> void:
 	game.start_run()
 	var board := _open_board()
 	await physics_frame
-	_check(game.ammo.size() == game.inventory.size(),
+	_check(
+		game.ammo.size() == game.inventory.size(),
+		(
 			"the board ammo should be the whole inventory (%d), got %d"
-			% [game.inventory.size(), game.ammo.size()])
-	_check(board.shots_left == game.ammo.size(),
-			"throws should equal the ammo size (%d), got %d"
-			% [game.ammo.size(), board.shots_left])
-	_check(board.shots_total == game.ammo.size(),
-			"the HUD total should be the ammo size (%d), got %d"
-			% [game.ammo.size(), board.shots_total])
-	_check(board.hud.label_shots.text == "5/5",
-			"the HUD should read the ammo, got '%s'" % board.hud.label_shots.text)
-	_check(board.rules.shots_per_board == 5,
-			"the rules resource keeps shots_per_board, got %d"
-			% board.rules.shots_per_board)
+			% [game.inventory.size(), game.ammo.size()]
+		)
+	)
+	_check(
+		board.shots_left == game.ammo.size(),
+		"throws should equal the ammo size (%d), got %d" % [game.ammo.size(), board.shots_left]
+	)
+	_check(
+		board.shots_total == game.ammo.size(),
+		"the HUD total should be the ammo size (%d), got %d" % [game.ammo.size(), board.shots_total]
+	)
+	_check(
+		board.hud.label_shots.text == "5/5",
+		"the HUD should read the ammo, got '%s'" % board.hud.label_shots.text
+	)
+	_check(
+		board.rules.shots_per_board == 5,
+		"the rules resource keeps shots_per_board, got %d" % board.rules.shots_per_board
+	)
 	board.queue_free()
 	await physics_frame
 
@@ -134,10 +143,14 @@ func _test_board_ammo_is_the_throw_budget() -> void:
 	game.inventory.append(content.marble_def("glass"))
 	var bigger := _open_board()
 	await physics_frame
-	_check(bigger.shots_total == 7,
-			"a 7-marble inventory should give 7 throws, got %d" % bigger.shots_total)
-	_check(bigger.hud.label_shots.text == "7/7",
-			"the HUD should read '7 / 7', got '%s'" % bigger.hud.label_shots.text)
+	_check(
+		bigger.shots_total == 7,
+		"a 7-marble inventory should give 7 throws, got %d" % bigger.shots_total
+	)
+	_check(
+		bigger.hud.label_shots.text == "7/7",
+		"the HUD should read '7 / 7', got '%s'" % bigger.hud.label_shots.text
+	)
 	bigger.queue_free()
 	await physics_frame
 
@@ -152,20 +165,27 @@ func _test_consume_on_embed() -> void:
 	removed.clear()
 	ended.clear()
 	_check(_throw_into_hole(board), "the board should have a free notch to embed into")
-	_check(ended.size() == 1 and ended[0] == &"embedded",
-			"the throw should resolve embedded, got %s" % str(ended))
-	_check(game.ammo.size() == 4,
-			"an embedded marble should leave the ammo (5 -> %d)" % game.ammo.size())
-	_check(game.inventory.size() == 5,
-			"the run inventory keeps the thrown marble, has %d" % game.inventory.size())
-	_check(board.shots_left == 4,
-			"the board should have 4 throws left, got %d" % board.shots_left)
-	_check(removed.size() == 1 and removed[0][0] == "common"
-			and removed[0][1] == &"thrown",
-			"the consume should emit marble_removed ('common', 'thrown'), got %s"
-			% str(removed))
-	_check(board.hud.label_shots.text == "4/5",
-			"the HUD should count down, got '%s'" % board.hud.label_shots.text)
+	_check(
+		ended.size() == 1 and ended[0] == &"embedded",
+		"the throw should resolve embedded, got %s" % str(ended)
+	)
+	_check(
+		game.ammo.size() == 4,
+		"an embedded marble should leave the ammo (5 -> %d)" % game.ammo.size()
+	)
+	_check(
+		game.inventory.size() == 5,
+		"the run inventory keeps the thrown marble, has %d" % game.inventory.size()
+	)
+	_check(board.shots_left == 4, "the board should have 4 throws left, got %d" % board.shots_left)
+	_check(
+		removed.size() == 1 and removed[0][0] == "common" and removed[0][1] == &"thrown",
+		"the consume should emit marble_removed ('common', 'thrown'), got %s" % str(removed)
+	)
+	_check(
+		board.hud.label_shots.text == "4/5",
+		"the HUD should count down, got '%s'" % board.hud.label_shots.text
+	)
 	board.queue_free()
 	await physics_frame
 
@@ -177,14 +197,18 @@ func _test_consume_on_settled() -> void:
 	removed.clear()
 	ended.clear()
 	_settle_throw(board)
-	_check(ended.size() == 1 and ended[0] == &"settled",
-			"the throw should resolve settled, got %s" % str(ended))
-	_check(game.ammo.size() == 4,
-			"a settled marble should leave the ammo, got %d" % game.ammo.size())
-	_check(board.shots_left == 4,
-			"a settled throw spends one throw, got %d" % board.shots_left)
-	_check(removed.size() == 1 and removed[0][1] == &"thrown",
-			"a settled throw should emit marble_removed 'thrown', got %s" % str(removed))
+	_check(
+		ended.size() == 1 and ended[0] == &"settled",
+		"the throw should resolve settled, got %s" % str(ended)
+	)
+	_check(
+		game.ammo.size() == 4, "a settled marble should leave the ammo, got %d" % game.ammo.size()
+	)
+	_check(board.shots_left == 4, "a settled throw spends one throw, got %d" % board.shots_left)
+	_check(
+		removed.size() == 1 and removed[0][1] == &"thrown",
+		"a settled throw should emit marble_removed 'thrown', got %s" % str(removed)
+	)
 	board.queue_free()
 	await physics_frame
 
@@ -205,16 +229,22 @@ func _test_refund_keeps_the_marble() -> void:
 		return
 	marble.position = Vector3(0.0, 0.09, -board.board_def.length / 2.0 - 0.5)
 	board._update_flight(1.0 / 60.0)
-	_check(ended.size() == 1 and ended[0] == &"refunded",
-			"the throw should resolve refunded, got %s" % str(ended))
-	_check(game.ammo.size() == 5,
-			"a refunded marble stays in the ammo, ammo is %d" % game.ammo.size())
-	_check(board.shots_left == 5,
-			"a refund should not spend a throw, throws left %d" % board.shots_left)
-	_check(removed.is_empty(),
-			"a refund should not consume a marble, got %s" % str(removed))
-	_check(board.hud.label_shots.text == "5/5",
-			"the HUD should keep the count, got '%s'" % board.hud.label_shots.text)
+	_check(
+		ended.size() == 1 and ended[0] == &"refunded",
+		"the throw should resolve refunded, got %s" % str(ended)
+	)
+	_check(
+		game.ammo.size() == 5, "a refunded marble stays in the ammo, ammo is %d" % game.ammo.size()
+	)
+	_check(
+		board.shots_left == 5,
+		"a refund should not spend a throw, throws left %d" % board.shots_left
+	)
+	_check(removed.is_empty(), "a refund should not consume a marble, got %s" % str(removed))
+	_check(
+		board.hud.label_shots.text == "5/5",
+		"the HUD should keep the count, got '%s'" % board.hud.label_shots.text
+	)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame
@@ -229,17 +259,21 @@ func _test_ammo_restored_next_board() -> void:
 	await physics_frame
 	_check(_throw_into_hole(board), "the board should have a free notch")
 	_check(_throw_into_hole(board), "the board should have a second free notch")
-	_check(game.ammo.size() == 3,
-			"two throws should leave 3 in the ammo, got %d" % game.ammo.size())
+	_check(
+		game.ammo.size() == 3, "two throws should leave 3 in the ammo, got %d" % game.ammo.size()
+	)
 	board.queue_free()
 	await physics_frame
 	var next_board := _open_board()
 	await physics_frame
-	_check(game.ammo.size() == 5,
-			"the next board should restore the 5 owned marbles, got %d"
-			% game.ammo.size())
-	_check(next_board.shots_left == 5,
-			"the next board should get 5 throws again, got %d" % next_board.shots_left)
+	_check(
+		game.ammo.size() == 5,
+		"the next board should restore the 5 owned marbles, got %d" % game.ammo.size()
+	)
+	_check(
+		next_board.shots_left == 5,
+		"the next board should get 5 throws again, got %d" % next_board.shots_left
+	)
 	next_board.queue_free()
 	await physics_frame
 
@@ -259,29 +293,33 @@ func _test_break_is_permanent() -> void:
 	board.selected_ammo_index = 0
 	removed.clear()
 	board._launch(0.0, 20.0)
-	_check(game.inventory.size() == 4,
-			"a broken marble leaves the run inventory (5 -> %d)"
-			% game.inventory.size())
-	_check(game.ammo.size() == 4,
-			"a broken marble leaves the ammo (5 -> %d)" % game.ammo.size())
-	_check(removed.size() == 1 and removed[0][0] == "glass"
-			and removed[0][1] == &"broke",
-			"the break should emit marble_removed ('glass', 'broke'), got %s"
-			% str(removed))
+	_check(
+		game.inventory.size() == 4,
+		"a broken marble leaves the run inventory (5 -> %d)" % game.inventory.size()
+	)
+	_check(game.ammo.size() == 4, "a broken marble leaves the ammo (5 -> %d)" % game.ammo.size())
+	_check(
+		removed.size() == 1 and removed[0][0] == "glass" and removed[0][1] == &"broke",
+		"the break should emit marble_removed ('glass', 'broke'), got %s" % str(removed)
+	)
 	_clear_marbles(board)
 	board.queue_free()
 	await physics_frame
 
 	var next_board := _open_board()
 	await physics_frame
-	_check(game.ammo.size() == 4,
-			"a broken marble is not restored next board, ammo is %d"
-			% game.ammo.size())
-	_check(not _has_marble(game.ammo, "glass"),
-			"the broken marble should be gone for good, ammo is %s"
-			% str(_ids(game.ammo)))
-	_check(next_board.shots_left == 4,
-			"the next board throws the 4 marbles left, got %d" % next_board.shots_left)
+	_check(
+		game.ammo.size() == 4,
+		"a broken marble is not restored next board, ammo is %d" % game.ammo.size()
+	)
+	_check(
+		not _has_marble(game.ammo, "glass"),
+		"the broken marble should be gone for good, ammo is %s" % str(_ids(game.ammo))
+	)
+	_check(
+		next_board.shots_left == 4,
+		"the next board throws the 4 marbles left, got %d" % next_board.shots_left
+	)
 	next_board.queue_free()
 	await physics_frame
 
@@ -295,21 +333,25 @@ func _test_empty_ammo_is_defeat() -> void:
 	await physics_frame
 	for i in 5:
 		_settle_throw(board)
-	_check(game.ammo.is_empty(),
-			"the ammo should be empty after 5 throws, has %d" % game.ammo.size())
-	_check(board.shots_left == 0,
-			"the board should have no throws left, got %d" % board.shots_left)
-	_check(board.state == board.ThrowState.ROUND_OVER,
-			"an empty ammo should end the round, state is %s" % board.state)
+	_check(
+		game.ammo.is_empty(), "the ammo should be empty after 5 throws, has %d" % game.ammo.size()
+	)
+	_check(board.shots_left == 0, "the board should have no throws left, got %d" % board.shots_left)
+	_check(
+		board.state == board.ThrowState.ROUND_OVER,
+		"an empty ammo should end the round, state is %s" % board.state
+	)
 	await physics_frame
 	await physics_frame
 	_check(board.board_result_sent, "the lost board should report its result")
-	_check(board.hud.label_final.text.contains(str(board.run_objective)),
-			"the defeat overlay should show the objective, got '%s'"
-			% board.hud.label_final.text)
-	_check(game.phase == game.Phase.RESULT,
-			"the defeat should end the run at the result screen, phase is %s"
-			% game.phase)
+	_check(
+		board.hud.label_final.text.contains(str(board.run_objective)),
+		"the defeat overlay should show the objective, got '%s'" % board.hud.label_final.text
+	)
+	_check(
+		game.phase == game.Phase.RESULT,
+		"the defeat should end the run at the result screen, phase is %s" % game.phase
+	)
 	_check(not game.run_active, "the defeat should close the run")
 	board.queue_free()
 	await physics_frame

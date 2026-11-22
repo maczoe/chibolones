@@ -19,7 +19,6 @@ extends Resource
 ## by the effect implementation. One def, one effect, its own params.
 @export var params: Dictionary = {}
 
-
 ## Events each effect reacts to, beyond the shared `embed` scoring pass
 ## (architecture.md hook contract: interested_in / on_event /
 ## contribute_embed). New effects register here in T3.
@@ -56,28 +55,33 @@ func on_event(event: StringName, ctx: Dictionary) -> void:
 				var bonus: Dictionary = ctx.get("score_bonus", {})
 				bonus[StringName(display_name)] = int(params.get("flat", 0))
 			elif effect == &"score_mult_all":
-				ctx["score_mult_all"] = float(ctx.get("score_mult_all", 1.0)) \
-						* float(params.get("mult", 1.0))
+				ctx["score_mult_all"] = (
+					float(ctx.get("score_mult_all", 1.0)) * float(params.get("mult", 1.0))
+				)
 		&"refund":
 			if effect == &"refund_money":
-				ctx["money_delta"] = int(ctx.get("money_delta", 0)) \
-						+ int(params.get("amount", 0))
+				ctx["money_delta"] = int(ctx.get("money_delta", 0)) + int(params.get("amount", 0))
 		&"marble_spawn":
 			if effect == &"bounce_scale":
-				ctx["bounce_scale"] = float(ctx.get("bounce_scale", 1.0)) \
-						* float(params.get("bounce", 1.0))
+				ctx["bounce_scale"] = (
+					float(ctx.get("bounce_scale", 1.0)) * float(params.get("bounce", 1.0))
+				)
 			elif effect == &"fire_speed_mult":
 				var def = ctx.get("def")
 				if def != null and def.id == "fire":
-					ctx["speed_mult"] = float(ctx.get("speed_mult", 1.0)) \
-							* float(params.get("mult", 1.0))
+					ctx["speed_mult"] = (
+						float(ctx.get("speed_mult", 1.0)) * float(params.get("mult", 1.0))
+					)
 
 
 ## W3b: what this prize does, one readable line for the shop and the HUD.
 func effect_description() -> String:
 	match effect:
 		&"wall_mult":
-			return "Puntua x%s por cada pared que golpea el tiro" % format_mult(float(params.get("mult", 1.0)))
+			return (
+				"Puntua x%s por cada pared que golpea el tiro"
+				% format_mult(float(params.get("mult", 1.0)))
+			)
 		&"board_end_flat":
 			return "+%d puntos al terminar cada tablero" % int(params.get("flat", 0))
 		&"refund_money":
@@ -87,11 +91,17 @@ func effect_description() -> String:
 		&"bounce_scale":
 			return "Las canicas rebotan x%s" % format_mult(float(params.get("bounce", 1.0)))
 		&"fire_speed_mult":
-			return "Las canicas de fuego salen x%s de velocidad" % format_mult(float(params.get("mult", 1.0)))
+			return (
+				"Las canicas de fuego salen x%s de velocidad"
+				% format_mult(float(params.get("mult", 1.0)))
+			)
 		&"extra_throw":
 			return "+%d tiro por tablero" % int(params.get("per_board", 1))
 		&"skip_speed_scale":
-			return "Las canicas lentas se quedan antes (umbral de empotrado x%s)" % format_mult(float(params.get("scale", 1.0)))
+			return (
+				"Las canicas lentas se quedan antes (umbral de empotrado x%s)"
+				% format_mult(float(params.get("scale", 1.0)))
+			)
 		&"first_throw_replay":
 			return "Si tu primer tiro del tablero hace 0, se repite"
 		&"bag_slots":

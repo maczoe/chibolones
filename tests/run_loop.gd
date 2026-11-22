@@ -80,22 +80,32 @@ func _check(condition: bool, label: String) -> void:
 
 func _test_economy() -> void:
 	# base = 3 + block*2, per_marble = 1 + block.
-	_check(economy.reward_for_block_win(1, 3, 0) == 11,
-			"reward block 1 with 3 marbles should be 11, got %d"
-			% economy.reward_for_block_win(1, 3, 0))
-	_check(economy.reward_for_block_win(5, 0, 2) == 15,
+	_check(
+		economy.reward_for_block_win(1, 3, 0) == 11,
+		"reward block 1 with 3 marbles should be 11, got %d" % economy.reward_for_block_win(1, 3, 0)
+	)
+	_check(
+		economy.reward_for_block_win(5, 0, 2) == 15,
+		(
 			"reward block 5 with 0 marbles and bonus 2 should be 15, got %d"
-			% economy.reward_for_block_win(5, 0, 2))
-	_check(is_equal_approx(economy.price_scale(3), 1.7),
-			"price_scale(3) should be 1.7, got %s" % economy.price_scale(3))
-	_check(economy.extra_marble_pack_price(1) == 4,
-			"extra marble pack at block 1 should cost 4")
+			% economy.reward_for_block_win(5, 0, 2)
+		)
+	)
+	_check(
+		is_equal_approx(economy.price_scale(3), 1.7),
+		"price_scale(3) should be 1.7, got %s" % economy.price_scale(3)
+	)
+	_check(economy.extra_marble_pack_price(1) == 4, "extra marble pack at block 1 should cost 4")
 	_check(economy.reroll_price() == 2, "reroll should cost 2")
 	var stock: Dictionary = economy.shop_stock(1)
-	_check(stock["marbles"].size() == 2,
-			"shop stock should offer 2 marbles, got %d" % stock["marbles"].size())
-	_check(stock["prizes"].size() == 2,
-			"shop stock should offer 2 prizes, got %d" % stock["prizes"].size())
+	_check(
+		stock["marbles"].size() == 2,
+		"shop stock should offer 2 marbles, got %d" % stock["marbles"].size()
+	)
+	_check(
+		stock["prizes"].size() == 2,
+		"shop stock should offer 2 prizes, got %d" % stock["prizes"].size()
+	)
 	for entry in stock["marbles"] + stock["prizes"]:
 		_check(int(entry["price"]) > 0, "stock price must be positive: %s" % str(entry))
 	_check(int(stock["extra_pack_price"]) == 4, "stock pack price should be 4 at block 1")
@@ -111,39 +121,55 @@ func _test_item_pricing() -> void:
 	# Every marble def carries a price and a valid rarity.
 	for def in content.marbles():
 		_check(def.price > 0, "marble %s must own a positive base price" % def.id)
-		_check(["common", "uncommon", "rare"].has(def.rarity),
-				"marble %s must have a valid rarity, got '%s'" % [def.id, def.rarity])
+		_check(
+			["common", "uncommon", "rare"].has(def.rarity),
+			"marble %s must have a valid rarity, got '%s'" % [def.id, def.rarity]
+		)
 	# Every prize def carries a price and a valid rarity.
 	for def in content.prizes():
 		_check(def.price > 0, "prize %s must own a positive base price" % def.id)
-		_check(["common", "uncommon", "rare"].has(def.rarity),
-				"prize %s must have a valid rarity, got '%s'" % [def.id, def.rarity])
+		_check(
+			["common", "uncommon", "rare"].has(def.rarity),
+			"prize %s must have a valid rarity, got '%s'" % [def.id, def.rarity]
+		)
 	# Economy prices from the def, scaled by block, floored at 1.
 	var common: Resource = content.marble_def("common")
-	_check(economy.marble_price(common.price, 1) == common.price,
-			"block 1 must not scale the def price, got %d"
-			% economy.marble_price(common.price, 1))
-	_check(economy.marble_price(common.price, 3) == roundi(common.price * 1.7),
-			"block 3 must scale the def price by 1.7")
-	_check(economy.marble_price(common.price, 3) == int(common.price * 1.7 + 0.5),
-			"def-price scaling must round to nearest")
-	_check(economy.marble_price(0, 1) == 0,
-			"a zero def price must stay 0 (missing price is a data bug, not $1)")
+	_check(
+		economy.marble_price(common.price, 1) == common.price,
+		"block 1 must not scale the def price, got %d" % economy.marble_price(common.price, 1)
+	)
+	_check(
+		economy.marble_price(common.price, 3) == roundi(common.price * 1.7),
+		"block 3 must scale the def price by 1.7"
+	)
+	_check(
+		economy.marble_price(common.price, 3) == int(common.price * 1.7 + 0.5),
+		"def-price scaling must round to nearest"
+	)
+	_check(
+		economy.marble_price(0, 1) == 0,
+		"a zero def price must stay 0 (missing price is a data bug, not $1)"
+	)
 	# Known ids price through their defs; unknown ids price 0.
-	_check(economy.base_price_for("common") == common.price,
-			"base_price_for must read the def's own price")
-	_check(economy.base_price_for("no-existe") == 0,
-			"base_price_for of an unknown id should be 0")
+	_check(
+		economy.base_price_for("common") == common.price,
+		"base_price_for must read the def's own price"
+	)
+	_check(economy.base_price_for("no-existe") == 0, "base_price_for of an unknown id should be 0")
 	# Glass pin: score x2 and break 20% (content-plan §4.1).
 	var glass: Resource = content.marble_def("glass")
-	_check(is_equal_approx(glass.break_chance, 0.20),
-			"glass break chance must be 0.20, got %s" % glass.break_chance)
+	_check(
+		is_equal_approx(glass.break_chance, 0.20),
+		"glass break chance must be 0.20, got %s" % glass.break_chance
+	)
 	_check(is_equal_approx(glass.score_mult, 2.0), "glass score mult must stay x2")
 	# Rarity bands (S3): commons $2-3, uncommons $4-5, rares $7.
 	for def in content.marbles() + content.prizes():
 		var band: Array = {"common": [2, 3], "uncommon": [4, 5], "rare": [7, 7]}[def.rarity]
-		_check(def.price >= band[0] and def.price <= band[1],
-				"%s ($%d) must fit its rarity band %s" % [def.id, def.price, band])
+		_check(
+			def.price >= band[0] and def.price <= band[1],
+			"%s ($%d) must fit its rarity band %s" % [def.id, def.price, band]
+		)
 	# Stock entries price straight from their defs at block 1.
 	var stock: Dictionary = economy.shop_stock(1)
 	for entry in stock["marbles"] + stock["prizes"]:
@@ -169,18 +195,18 @@ func _test_purchases() -> void:
 	carpa.effect = &"bag_slots"
 	carpa.params = {"slots": 1}
 	game.prizes.append(carpa)
-	_check(game.marble_cap() == 11, "carpa should add one marble slot, got %d"
-			% game.marble_cap())
+	_check(game.marble_cap() == 11, "carpa should add one marble slot, got %d" % game.marble_cap())
 	_check(game.prize_cap() == 2, "carpa must not change the prize cap")
 	# Happy path: affordable, under cap, charges the block-scaled price.
 	var fire: Resource = content.marble_def("fire")
 	game.money = 10
 	var inv_before: int = game.inventory.size()
 	_check(game.buy_marble(fire), "an affordable under-cap buy should succeed")
-	_check(game.money == 10 - economy.marble_price(fire.price, game.block),
-			"the buy should charge the scaled def price")
-	_check(game.inventory.size() == inv_before + 1,
-			"the bought marble should join the bag")
+	_check(
+		game.money == 10 - economy.marble_price(fire.price, game.block),
+		"the buy should charge the scaled def price"
+	)
+	_check(game.inventory.size() == inv_before + 1, "the bought marble should join the bag")
 	_check(game.inventory.back().id == "fire", "the bought def should be the one asked")
 	# Unaffordable: rejected, bag untouched.
 	game.money = 0
@@ -213,9 +239,10 @@ func _test_purchases() -> void:
 	game.money = 10
 	var pack_price: int = economy.extra_marble_pack_price(game.block)
 	_check(game.buy_extra_pack(), "the extra pack should be buyable")
-	_check(game.money == 10 - pack_price,
-			"the pack should cost extra_marble_pack_price (%d), money is %d"
-			% [pack_price, game.money])
+	_check(
+		game.money == 10 - pack_price,
+		"the pack should cost extra_marble_pack_price (%d), money is %d" % [pack_price, game.money]
+	)
 	_check(game.inventory.size() == 6, "the pack should add one common marble")
 	_check(game.inventory.back().id == "common", "the pack marble should be a common")
 	game.money = 10
@@ -243,35 +270,44 @@ func _test_stock_draw() -> void:
 		for entry in stock["marbles"] + stock["prizes"]:
 			ids.append(entry["def_id"])
 			_check(int(entry["price"]) > 0, "a drawn entry must have a real price")
-			_check(economy.base_price_for(entry["def_id"]) > 0,
-					"a drawn entry must reference a real def: %s" % entry["def_id"])
-		_check(ids.size() == ids.duplicate().size(),
-				"one stock must not repeat a def: %s" % str(ids))
+			_check(
+				economy.base_price_for(entry["def_id"]) > 0,
+				"a drawn entry must reference a real def: %s" % entry["def_id"]
+			)
+		_check(
+			ids.size() == ids.duplicate().size(), "one stock must not repeat a def: %s" % str(ids)
+		)
 		combos[str(ids)] = true
-	_check(combos.size() > 1, "different seeds should draw different stock, got %s"
-			% str(combos.keys()))
+	_check(
+		combos.size() > 1,
+		"different seeds should draw different stock, got %s" % str(combos.keys())
+	)
 	# Distribution: over many draws, commons outnumber rares.
 	for i in 300:
 		var stock: Dictionary = economy.shop_stock(1, -1)
 		for entry in stock["marbles"]:
 			var def = content.find_marble_def(entry["def_id"])
 			match def.rarity:
-				"common": common_picks += 1
-				"rare": rare_picks += 1
+				"common":
+					common_picks += 1
+				"rare":
+					rare_picks += 1
 		for entry in stock["prizes"]:
 			var def = content.find_prize_def(entry["def_id"])
 			match def.rarity:
-				"common": common_picks += 1
-				"rare": rare_picks += 1
-	_check(common_picks > rare_picks * 2,
-			"weighted draw should favor commons over rares, got %d vs %d"
-			% [common_picks, rare_picks])
+				"common":
+					common_picks += 1
+				"rare":
+					rare_picks += 1
+	_check(
+		common_picks > rare_picks * 2,
+		"weighted draw should favor commons over rares, got %d vs %d" % [common_picks, rare_picks]
+	)
 	# Reroll: charges the flat price; the shop re-rolls from a new seed.
 	game.start_run()
 	game.money = 10
 	_check(game.reroll_shop(), "an affordable reroll should succeed")
-	_check(game.money == 10 - economy.reroll_price(),
-			"the reroll should charge the flat price")
+	_check(game.money == 10 - economy.reroll_price(), "the reroll should charge the flat price")
 	game.money = 0
 	_check(not game.reroll_shop(), "an unaffordable reroll must fail")
 	_check(game.money == 0, "a failed reroll must not charge")
@@ -284,28 +320,34 @@ func _test_stock_draw() -> void:
 ## marble in the bag cannot be sold; prizes sell freely.
 func _test_rescue_sales() -> void:
 	# Price math: block scale applies, then half, then ceil.
-	_check(economy.rescue_price(2, 1) == 1,
-			"rescue of $2 at block 1 should be 1, got %d" % economy.rescue_price(2, 1))
-	_check(economy.rescue_price(3, 1) == 2,
-			"rescue of $3 at block 1 should be ceil(1.5) = 2, got %d" % economy.rescue_price(3, 1))
-	_check(economy.rescue_price(7, 5) == 9,
-			"rescue of $7 at block 5 should be ceil(8.4) = 9, got %d" % economy.rescue_price(7, 5))
+	_check(
+		economy.rescue_price(2, 1) == 1,
+		"rescue of $2 at block 1 should be 1, got %d" % economy.rescue_price(2, 1)
+	)
+	_check(
+		economy.rescue_price(3, 1) == 2,
+		"rescue of $3 at block 1 should be ceil(1.5) = 2, got %d" % economy.rescue_price(3, 1)
+	)
+	_check(
+		economy.rescue_price(7, 5) == 9,
+		"rescue of $7 at block 5 should be ceil(8.4) = 9, got %d" % economy.rescue_price(7, 5)
+	)
 	# The last marble guard.
 	game.start_run()
 	while game.inventory.size() > 1:
 		game.inventory.remove_at(game.inventory.size() - 1)
 	game.money = 0
-	_check(not game.sell_marble(game.inventory[0]),
-			"the last marble in the bag cannot be sold")
+	_check(not game.sell_marble(game.inventory[0]), "the last marble in the bag cannot be sold")
 	_check(game.money == 0, "a blocked sale must not pay")
 	_check(game.inventory.size() == 1, "a blocked sale must keep the marble")
 	# Selling one copy of a def: pays the rescue, removes exactly one copy.
 	game.inventory.append(content.marble_def("fire"))
 	var money_before: int = game.money
-	_check(game.sell_marble(content.marble_def("fire")),
-			"selling a non-last marble should succeed")
-	_check(game.money == money_before + economy.rescue_price(3, 1),
-			"the sale should pay the rescue value")
+	_check(game.sell_marble(content.marble_def("fire")), "selling a non-last marble should succeed")
+	_check(
+		game.money == money_before + economy.rescue_price(3, 1),
+		"the sale should pay the rescue value"
+	)
 	var fire_copies := 0
 	for def in game.inventory:
 		if def.id == "fire":
@@ -316,10 +358,11 @@ func _test_rescue_sales() -> void:
 	# Prizes sell freely, at their own rescue.
 	game.start_run()
 	game.money = 0
-	_check(game.sell_prize(content.prize_def("trompo")),
-			"a prize sells freely (no last-guard)")
-	_check(game.money == economy.rescue_price(4, 1),
-			"the prize sale should pay its rescue, money is %d" % game.money)
+	_check(game.sell_prize(content.prize_def("trompo")), "a prize sells freely (no last-guard)")
+	_check(
+		game.money == economy.rescue_price(4, 1),
+		"the prize sale should pay its rescue, money is %d" % game.money
+	)
 	_check(game.prizes.is_empty(), "the sold prize should leave the shelf")
 	_check(not game.sell_prize(null), "selling a null prize must fail")
 
@@ -333,13 +376,15 @@ func _test_board_order() -> void:
 	var block1_orders := {}
 	for trial in 6:
 		game.start_run()
-		_check(game.board_def_index(1) == 0,
-				"board 1 must always render the basic board, got %d"
-				% game.board_def_index(1))
+		_check(
+			game.board_def_index(1) == 0,
+			"board 1 must always render the basic board, got %d" % game.board_def_index(1)
+		)
 		for n in [4, 8, 12, 16, 20]:
-			_check(game.board_def_index(n) == n - 1,
-					"boss board %d must keep its def, got %d"
-					% [n, game.board_def_index(n)])
+			_check(
+				game.board_def_index(n) == n - 1,
+				"boss board %d must keep its def, got %d" % [n, game.board_def_index(n)]
+			)
 		# Every block's normal boards are a permutation of that block's
 		# non-boss defs (no repeats, nothing foreign).
 		for block in range(1, game.BLOCKS + 1):
@@ -353,13 +398,19 @@ func _test_board_order() -> void:
 			for n in range(first, first + game.BOARDS_PER_BLOCK):
 				if not game.is_boss(n):
 					expected.append(n - 1)
-			_check(idxs == expected,
+			_check(
+				idxs == expected,
+				(
 					"block %d normal boards should be a permutation of %s, got %s"
-					% [block, str(expected), str(idxs)])
+					% [block, str(expected), str(idxs)]
+				)
+			)
 		var order := str([game.board_def_index(2), game.board_def_index(3)])
 		block1_orders[order] = true
-	_check(block1_orders.size() > 1,
-			"the block-1 order should vary across runs, got %s" % str(block1_orders.keys()))
+	_check(
+		block1_orders.size() > 1,
+		"the block-1 order should vary across runs, got %s" % str(block1_orders.keys())
+	)
 	# Endless boards roll random boss-tier defs (3, 7, 11, 15, 19).
 	game.start_run()
 	game.current_board_in_run = 20
@@ -368,13 +419,18 @@ func _test_board_order() -> void:
 	game.start_endless()
 	game.current_board_in_run = 21
 	var endless: int = game.board_def_index(21)
-	_check([3, 7, 11, 15, 19].has(endless),
-			"an endless board should render a boss-tier def, got %d" % endless)
+	_check(
+		[3, 7, 11, 15, 19].has(endless),
+		"an endless board should render a boss-tier def, got %d" % endless
+	)
 	# Debug keeps its picked board, no randomness.
-	game.start_debug_run({"board_index": 2, "prizes": [], "marbles": [
-			content.marble_def("common")]})
-	_check(game.board_def_index(1) == 2,
-			"debug mode must render the picked board, got %d" % game.board_def_index(1))
+	game.start_debug_run(
+		{"board_index": 2, "prizes": [], "marbles": [content.marble_def("common")]}
+	)
+	_check(
+		game.board_def_index(1) == 2,
+		"debug mode must render the picked board, got %d" % game.board_def_index(1)
+	)
 	# Leave a clean state: the sections after this one run plain math.
 	game.start_run()
 
@@ -391,12 +447,18 @@ func _test_progression() -> void:
 		_check(game.is_boss(n), "board %d should be a boss board" % n)
 	_check(not game.is_boss(5), "board 5 should not be a boss board")
 	# Boss boards use the boss base (100) scaled by the block factor.
-	_check(game.objective_for_board(4, 60) == 100,
-			"boss board 4 objective should be 100, got %d" % game.objective_for_board(4, 60))
-	_check(game.objective_for_board(8, 60) == 115,
-			"boss board 8 objective should be 115, got %d" % game.objective_for_board(8, 60))
-	_check(game.objective_for_board(5, 60) == 69,
-			"board 5 objective should be 69, got %d" % game.objective_for_board(5, 60))
+	_check(
+		game.objective_for_board(4, 60) == 100,
+		"boss board 4 objective should be 100, got %d" % game.objective_for_board(4, 60)
+	)
+	_check(
+		game.objective_for_board(8, 60) == 115,
+		"boss board 8 objective should be 115, got %d" % game.objective_for_board(8, 60)
+	)
+	_check(
+		game.objective_for_board(5, 60) == 69,
+		"board 5 objective should be 69, got %d" % game.objective_for_board(5, 60)
+	)
 
 
 # --- (c) Phase machine -----------------------------------------------------
@@ -411,36 +473,49 @@ func _test_phase_flow() -> void:
 	_check(game.block == 1, "start_run should start on block 1")
 
 	game.board_won(3, 0)
-	_check(game.money == 5 + economy.reward_for_block_win(1, 3, 0),
+	_check(
+		game.money == 5 + economy.reward_for_block_win(1, 3, 0),
+		(
 			"winning board 1 with 3 marbles should pay %d, money is %d"
-			% [economy.reward_for_block_win(1, 3, 0), game.money])
-	_check(game.phase == game.Phase.WIN,
-			"a won board should enter the win interstitial, phase is %s" % game.phase)
-	_check(game.last_win_stats.get("marbles_left", -1) == 3,
-			"the win interstitial should show the marbles left")
+			% [economy.reward_for_block_win(1, 3, 0), game.money]
+		)
+	)
+	_check(
+		game.phase == game.Phase.WIN,
+		"a won board should enter the win interstitial, phase is %s" % game.phase
+	)
+	_check(
+		game.last_win_stats.get("marbles_left", -1) == 3,
+		"the win interstitial should show the marbles left"
+	)
 	_check(game.boards_cleared == 1, "boards_cleared should be 1 after the first win")
 
 	game.win_screen_continue()
-	_check(game.phase == game.Phase.SHOP,
-			"CONTINUAR on the win screen should lead to the shop, phase is %s"
-			% game.phase)
+	_check(
+		game.phase == game.Phase.SHOP,
+		"CONTINUAR on the win screen should lead to the shop, phase is %s" % game.phase
+	)
 
 	game.shop_continue()
-	_check(game.current_board_in_run == 2,
-			"shop_continue should advance to board 2, got %d" % game.current_board_in_run)
+	_check(
+		game.current_board_in_run == 2,
+		"shop_continue should advance to board 2, got %d" % game.current_board_in_run
+	)
 	_check(game.phase == game.Phase.BOARD, "shop_continue should enter BOARD")
 
 	game.current_board_in_run = 20
 	game.board_won(0, 0)
-	_check(game.phase == game.Phase.WIN,
-			"winning board 20 should enter the win interstitial, phase is %s"
-			% game.phase)
+	_check(
+		game.phase == game.Phase.WIN,
+		"winning board 20 should enter the win interstitial, phase is %s" % game.phase
+	)
 	_check(game.run_won, "winning board 20 should set run_won")
 
 	game.win_screen_continue()
-	_check(game.phase == game.Phase.RESULT,
-			"CONTINUAR after the run win should reach the summary, phase is %s"
-			% game.phase)
+	_check(
+		game.phase == game.Phase.RESULT,
+		"CONTINUAR after the run win should reach the summary, phase is %s" % game.phase
+	)
 
 	game.start_endless()
 	_check(game.endless_mode, "start_endless should enable endless mode")
@@ -464,14 +539,18 @@ func _test_phase_flow() -> void:
 ## a missing .import file made the first win silent (fixed 2026-11-08).
 func _test_win_screen_assets() -> void:
 	var stream: AudioStream = load("res://data/audio/fanfare.wav")
-	_check(stream != null and stream.get_length() > 0.5,
-			"the fanfare placeholder should load as an audio stream")
+	_check(
+		stream != null and stream.get_length() > 0.5,
+		"the fanfare placeholder should load as an audio stream"
+	)
 	var win: Node = (load("res://scenes/run/win.tscn") as PackedScene).instantiate()
 	root.add_child(win)
 	await physics_frame
 	var players := win.find_children("*", "AudioStreamPlayer", true, false)
-	_check(players.size() == 1 and players[0].stream != null,
-			"the win screen should carry a fanfare player with a stream")
+	_check(
+		players.size() == 1 and players[0].stream != null,
+		"the win screen should carry a fanfare player with a stream"
+	)
 	win.queue_free()
 	await physics_frame
 
@@ -481,14 +560,21 @@ func _test_board_wiring() -> void:
 	var board = _open_board()
 	await physics_frame
 	var expected_objective: int = game.objective_for_board(game.current_board_in_run, 60)
-	_check(board.run_objective == expected_objective,
-			"board objective should be %d, got %d" % [expected_objective, board.run_objective])
-	_check(board.hud.label_target.text == "Objetivo: %d" % expected_objective,
+	_check(
+		board.run_objective == expected_objective,
+		"board objective should be %d, got %d" % [expected_objective, board.run_objective]
+	)
+	_check(
+		board.hud.label_target.text == "Objetivo: %d" % expected_objective,
+		(
 			"HUD objective line should read 'Objetivo: %d', got '%s'"
-			% [expected_objective, board.hud.label_target.text])
-	_check(board.hud.label_money.text == "$%d" % game.money,
-			"HUD money line should read '$: %d', got '%s'"
-			% [game.money, board.hud.label_money.text])
+			% [expected_objective, board.hud.label_target.text]
+		)
+	)
+	_check(
+		board.hud.label_money.text == "$%d" % game.money,
+		"HUD money line should read '$: %d', got '%s'" % [game.money, board.hud.label_money.text]
+	)
 
 	# The win path is deferred by one frame in the board; Game guards it by
 	# phase so a duplicate call never pays twice.
@@ -497,8 +583,10 @@ func _test_board_wiring() -> void:
 	var after_first: int = game.money
 	_check(after_first > money_before, "a board win should pay the reward")
 	game.board_won(2, 0)
-	_check(game.money == after_first,
-			"a repeated board_won should pay nothing, money is %d" % game.money)
+	_check(
+		game.money == after_first,
+		"a repeated board_won should pay nothing, money is %d" % game.money
+	)
 	board.queue_free()
 	await physics_frame
 	await _test_board_win()
@@ -516,25 +604,38 @@ func _test_board_win() -> void:
 	# Score exactly the objective through the real scoring seam (EventBus
 	# embed -> ScoreEngine), with a marble resting mid-board in flight.
 	root.get_node("EventBus").embed.emit(0, board.run_objective)
-	_check(board.score_engine.total >= board.run_objective,
-			"embed event should reach the board score engine")
+	_check(
+		board.score_engine.total >= board.run_objective,
+		"embed event should reach the board score engine"
+	)
 	board.state = board.ThrowState.FLIGHT
 	board.launch_timer = 0.0
 	board.active_marbles.append(_resting_marble(board))
 	await physics_frame
 	await physics_frame
 	_check(board.board_result_sent, "reaching the objective should report the board result")
-	_check(board.state == board.ThrowState.ROUND_OVER,
-			"a won board should end in ROUND_OVER, got %s" % board.state)
-	_check(game.phase == game.Phase.WIN,
-			"a won board should move the run to the win interstitial, phase is %s"
-			% game.phase)
-	_check(game.last_win_stats.get("score", -1) == board.score_engine.total
-					and game.last_win_stats.get("marbles_left", -1) == 5,
-			"the interstitial stats should carry the board score and marbles left")
-	_check(game.money == game.START_MONEY + economy.reward_for_block_win(1, 5, 0),
+	_check(
+		board.state == board.ThrowState.ROUND_OVER,
+		"a won board should end in ROUND_OVER, got %s" % board.state
+	)
+	_check(
+		game.phase == game.Phase.WIN,
+		"a won board should move the run to the win interstitial, phase is %s" % game.phase
+	)
+	_check(
+		(
+			game.last_win_stats.get("score", -1) == board.score_engine.total
+			and game.last_win_stats.get("marbles_left", -1) == 5
+		),
+		"the interstitial stats should carry the board score and marbles left"
+	)
+	_check(
+		game.money == game.START_MONEY + economy.reward_for_block_win(1, 5, 0),
+		(
 			"the run should be paid %d for the won board, money is %d"
-			% [economy.reward_for_block_win(1, 5, 0), game.money])
+			% [economy.reward_for_block_win(1, 5, 0), game.money]
+		)
+	)
 	_check(game.boards_cleared == 1, "the won board should count as cleared")
 	board.queue_free()
 	await physics_frame
@@ -550,13 +651,18 @@ func _test_board_loss() -> void:
 	board.launch_timer = board.rules.flight_timeout
 	await physics_frame
 	await physics_frame
-	_check(board.state == board.ThrowState.ROUND_OVER,
-			"a lost board should end in ROUND_OVER, got %s" % board.state)
-	_check(board.hud.label_final.text.contains(str(board.run_objective)),
-			"the defeat overlay should show the objective, got '%s'"
-			% board.hud.label_final.text)
-	_check(game.phase == game.Phase.RESULT,
-			"a lost board should move the run to the result screen, phase is %s" % game.phase)
+	_check(
+		board.state == board.ThrowState.ROUND_OVER,
+		"a lost board should end in ROUND_OVER, got %s" % board.state
+	)
+	_check(
+		board.hud.label_final.text.contains(str(board.run_objective)),
+		"the defeat overlay should show the objective, got '%s'" % board.hud.label_final.text
+	)
+	_check(
+		game.phase == game.Phase.RESULT,
+		"a lost board should move the run to the result screen, phase is %s" % game.phase
+	)
 	_check(not game.run_active, "a lost board should end the run")
 	_check(not game.run_won, "a lost board should not mark the run as won")
 	board.queue_free()
@@ -580,5 +686,6 @@ func _resting_marble(board: Node3D) -> RigidBody3D:
 	marble.freeze = true
 	board.board.add_child(marble)
 	marble.global_position = board.board.to_global(
-			Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4))
+		Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4)
+	)
 	return marble

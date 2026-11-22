@@ -43,7 +43,11 @@ func _popup(notch_index: int, value: int) -> void:
 	board.add_child(label)
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(label, "position:y", label.position.y + POPUP_RISE, POPUP_LIFE) \
-			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	(
+		tween
+		. tween_property(label, "position:y", label.position.y + POPUP_RISE, POPUP_LIFE)
+		. set_ease(Tween.EASE_OUT)
+		. set_trans(Tween.TRANS_CUBIC)
+	)
 	tween.tween_property(label, "modulate:a", 0.0, POPUP_LIFE).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(label.queue_free)

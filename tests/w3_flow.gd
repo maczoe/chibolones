@@ -60,14 +60,20 @@ func _test_full_cycle() -> void:
 	board.active_marbles.append(_resting_marble(board))
 	await physics_frame
 	await physics_frame
-	_check(game.phase == game.Phase.WIN, "winning board 1 should reach WIN, phase is %s" % game.phase)
+	_check(
+		game.phase == game.Phase.WIN, "winning board 1 should reach WIN, phase is %s" % game.phase
+	)
 	var reward: int = economy.reward_for_block_win(1, 5, 0)
-	_check(game.money == game.START_MONEY + reward,
-			"the win should pay $%d, money is %d" % [reward, game.money])
+	_check(
+		game.money == game.START_MONEY + reward,
+		"the win should pay $%d, money is %d" % [reward, game.money]
+	)
 
 	# (2) The shop opens; buy from a deterministic draw with enough money.
 	game.win_screen_continue()
-	_check(game.phase == game.Phase.SHOP, "CONTINUAR should open the shop, phase is %s" % game.phase)
+	_check(
+		game.phase == game.Phase.SHOP, "CONTINUAR should open the shop, phase is %s" % game.phase
+	)
 	game.money = 30
 	var stock: Dictionary = economy.shop_stock(1, 7)
 	var bought_marble_id := ""
@@ -85,8 +91,9 @@ func _test_full_cycle() -> void:
 			break
 	_check(bought_prize_id != "", "an affordable prize should be buyable from the stock")
 	_check(game.buy_extra_pack(), "the extra pack should be buyable with $30")
-	_check(game.inventory.size() == 7, "5 commons + marble + pack = 7, got %d"
-			% game.inventory.size())
+	_check(
+		game.inventory.size() == 7, "5 commons + marble + pack = 7, got %d" % game.inventory.size()
+	)
 	_check(game.prizes.size() == 2, "trompo + the bought prize = 2, got %d" % game.prizes.size())
 
 	# (3) The next board carries the purchases.
@@ -99,28 +106,45 @@ func _test_full_cycle() -> void:
 	for def in game.ammo:
 		if def.id == bought_marble_id:
 			has_bought = true
-	_check(has_bought, "board 2's ammo should carry the bought marble '%s', ammo is %s"
-			% [bought_marble_id, _ids(game.ammo)])
-	_check(game.ammo.size() == game.inventory.size(),
+	_check(
+		has_bought,
+		(
+			"board 2's ammo should carry the bought marble '%s', ammo is %s"
+			% [bought_marble_id, _ids(game.ammo)]
+		)
+	)
+	_check(
+		game.ammo.size() == game.inventory.size(),
+		(
 			"board 2 should restore the whole grown bag (%d), ammo is %d"
-			% [game.inventory.size(), game.ammo.size()])
+			% [game.inventory.size(), game.ammo.size()]
+		)
+	)
 	var extras := 0
 	for prize in game.prizes:
 		if prize != null and prize.effect == &"extra_throw":
 			extras += int(prize.params.get("per_board", 1))
-	_check(board2.shots_total == game.ammo.size() + extras,
+	_check(
+		board2.shots_total == game.ammo.size() + extras,
+		(
 			"board 2's budget should be ammo + owned extras (%d + %d), got %d"
-			% [game.ammo.size(), extras, board2.shots_total])
+			% [game.ammo.size(), extras, board2.shots_total]
+		)
+	)
 	# The owned prizes are announced on the HUD badges.
 	var badge_text := ""
 	for badge in board2.hud.find_children("*", "Label", true, false):
 		badge_text += (badge as Label).text + " "
-	_check(badge_text.contains("Trompo"),
-			"board 2's HUD should badge the starting trompo, badges are '%s'" % badge_text)
+	_check(
+		badge_text.contains("Trompo"),
+		"board 2's HUD should badge the starting trompo, badges are '%s'" % badge_text
+	)
 	if bought_prize_id != "":
 		var bought_name: String = content.find_prize_def(bought_prize_id).display_name
-		_check(badge_text.contains(bought_name),
-				"board 2's HUD should badge the bought prize, badges are '%s'" % badge_text)
+		_check(
+			badge_text.contains(bought_name),
+			"board 2's HUD should badge the bought prize, badges are '%s'" % badge_text
+		)
 	board.queue_free()
 	await physics_frame
 	board2.queue_free()
@@ -149,5 +173,6 @@ func _resting_marble(board: Node3D) -> RigidBody3D:
 	marble.freeze = true
 	board.board.add_child(marble)
 	marble.global_position = board.board.to_global(
-			Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4))
+		Vector3(0.0, 0.09, board.board_def.launch_z() + 0.4)
+	)
 	return marble

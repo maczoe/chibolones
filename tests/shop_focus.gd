@@ -81,21 +81,26 @@ func _test_buy_flow() -> void:
 	await process_frame
 	await process_frame
 	var buys := _find_buy_buttons(shop)
-	_check(buys.size() >= 4,
-			"the shop should offer buy buttons for the stock, got %d" % buys.size())
+	_check(
+		buys.size() >= 4, "the shop should offer buy buttons for the stock, got %d" % buys.size()
+	)
 	var inventory_before: int = game.inventory.size()
 	var prizes_before: int = game.prizes.size()
 	var money_before: int = game.money
 	buys[0].pressed.emit()
-	_check(game.inventory.size() + game.prizes.size() == inventory_before + prizes_before + 1,
-			"a buy should add exactly one item to the run")
+	_check(
+		game.inventory.size() + game.prizes.size() == inventory_before + prizes_before + 1,
+		"a buy should add exactly one item to the run"
+	)
 	_check(game.money < money_before, "a buy should charge money")
 	_check(buys[0].disabled, "a bought card's buy button should disable")
 	# W3b (spec S4): focus must survive the purchase.
 	await process_frame
 	var owner_node := root.gui_get_focus_owner()
-	_check(owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
-			"focus should return to an enabled control after buying, owner is %s" % owner_node)
+	_check(
+		owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
+		"focus should return to an enabled control after buying, owner is %s" % owner_node
+	)
 	# Unaffordable: no money, every buy button disabled.
 	game.money = 0
 	var shop_broke := _open_shop()
@@ -124,9 +129,10 @@ func _test_buy_flow() -> void:
 	var shop_full := _open_shop()
 	await process_frame
 	await process_frame
-	_check(_find_buy_buttons(shop_full).any(
-					func(b: Button): return b.disabled),
-			"a full bag should disable at least one buy")
+	_check(
+		_find_buy_buttons(shop_full).any(func(b: Button): return b.disabled),
+		"a full bag should disable at least one buy"
+	)
 	shop_full.queue_free()
 	shop.queue_free()
 	await process_frame
@@ -138,10 +144,10 @@ func _test_effect_descriptions() -> void:
 	# Def level: every effect id has a readable description.
 	for def in content.marbles() + content.prizes():
 		var text: String = def.effect_description()
-		_check(text != "", "%s (%s) should describe its effect, got ''"
-				% [def.id, def.display_name])
-		_check(text != def.display_name,
-				"%s description must not repeat the name" % def.id)
+		_check(
+			text != "", "%s (%s) should describe its effect, got ''" % [def.id, def.display_name]
+		)
+		_check(text != def.display_name, "%s description must not repeat the name" % def.id)
 	# The cards carry the description text: with a random draw we ask for
 	# any known effect line, which every drawn def produces.
 	var possible: Array = []
@@ -174,19 +180,18 @@ func _test_inventory_section() -> void:
 	var shop := _open_shop()
 	await process_frame
 	await process_frame
-	var sellers := _find_buttons(shop).filter(
-				func(b: Button): return b.text == "VENDER")
-	_check(sellers.size() >= 2,
-			"the inventory should offer VENDER for marbles and prizes, got %d"
-			% sellers.size())
+	var sellers := _find_buttons(shop).filter(func(b: Button): return b.text == "VENDER")
+	_check(
+		sellers.size() >= 2,
+		"the inventory should offer VENDER for marbles and prizes, got %d" % sellers.size()
+	)
 	if sellers.is_empty():
 		shop.queue_free()
 		await process_frame
 		return
 	var money_before: int = game.money
 	sellers[0].pressed.emit()
-	_check(game.money > money_before,
-			"selling from the shop should pay the rescue value")
+	_check(game.money > money_before, "selling from the shop should pay the rescue value")
 	shop.queue_free()
 	await process_frame
 
@@ -209,8 +214,10 @@ func _test_continue_focus() -> void:
 	var owner_node := root.gui_get_focus_owner()
 	# W3d S3: the shop opens focused on the first enabled buy button (the
 	# keyboard-first flow), no longer on CONTINUAR.
-	_check(owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
-			"the shop should open with an enabled button focused, owner is %s" % owner_node)
+	_check(
+		owner_node != null and owner_node is Button and not (owner_node as Button).disabled,
+		"the shop should open with an enabled button focused, owner is %s" % owner_node
+	)
 	shop.queue_free()
 	await process_frame
 
@@ -220,10 +227,14 @@ func _test_buttons_keyboard_reachable() -> void:
 	await process_frame
 	for button in _find_buttons(shop):
 		if button.disabled:
-			_check(button.focus_mode == Control.FOCUS_NONE,
-					"a disabled shop row should not grab focus while cycling")
+			_check(
+				button.focus_mode == Control.FOCUS_NONE,
+				"a disabled shop row should not grab focus while cycling"
+			)
 		else:
-			_check(button.focus_mode == Control.FOCUS_ALL,
-					"an enabled shop button should be keyboard reachable")
+			_check(
+				button.focus_mode == Control.FOCUS_ALL,
+				"an enabled shop button should be keyboard reachable"
+			)
 	shop.queue_free()
 	await process_frame

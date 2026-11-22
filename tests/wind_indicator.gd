@@ -69,35 +69,43 @@ func _arrow_param(board: Node3D, param: StringName) -> float:
 
 # --- (a) A wind board opens its first turn with the arrows on ----------------
 
+
 func _test_wind_board_shows_arrows_at_start() -> void:
 	var board := _open_board("ventoso")
 	await physics_frame
-	_check(board.backdrop_arrows_mat != null,
-			"the board should expose the backdrop arrow material")
+	_check(board.backdrop_arrows_mat != null, "the board should expose the backdrop arrow material")
 	if board.backdrop_arrows_mat != null:
-		_check(_arrow_param(board, "wind_arrow") > 0.5,
-				"turn start should show the arrows, intensity is %s"
-				% _arrow_param(board, "wind_arrow"))
+		_check(
+			_arrow_param(board, "wind_arrow") > 0.5,
+			"turn start should show the arrows, intensity is %s" % _arrow_param(board, "wind_arrow")
+		)
 		# The upcoming throw flips the stored side: at board start the stored
 		# side is +1, so the first throw drifts toward -1.
-		_check(_arrow_param(board, "wind_dir")
-						== board.board_theme.upcoming_wind_direction(),
-				"the arrows should point where the next throw will drift")
+		_check(
+			_arrow_param(board, "wind_dir") == board.board_theme.upcoming_wind_direction(),
+			"the arrows should point where the next throw will drift"
+		)
 	_close(board)
 
 
 # --- (b) Boards without wind never show arrows -------------------------------
 
+
 func _test_plain_board_stays_quiet() -> void:
 	var board := _open_board()
 	await physics_frame
-	_check(_arrow_param(board, "wind_arrow") == 0.0,
+	_check(
+		_arrow_param(board, "wind_arrow") == 0.0,
+		(
 			"a board without wind should keep the arrows off, got %s"
-			% _arrow_param(board, "wind_arrow"))
+			% _arrow_param(board, "wind_arrow")
+		)
+	)
 	_close(board)
 
 
 # --- (c) Launching fades the arrows; the next turn flips their direction -----
+
 
 func _test_arrows_fade_at_launch_and_flip_next_turn() -> void:
 	var board := _open_board("ventoso")
@@ -108,36 +116,51 @@ func _test_arrows_fade_at_launch_and_flip_next_turn() -> void:
 	for i in 8:
 		await process_frame
 		await physics_frame
-	_check(_arrow_param(board, "wind_arrow") < 1.0,
-			"launching should fade the arrows out, intensity is %s"
-			% _arrow_param(board, "wind_arrow"))
+	_check(
+		_arrow_param(board, "wind_arrow") < 1.0,
+		"launching should fade the arrows out, intensity is %s" % _arrow_param(board, "wind_arrow")
+	)
 	# Resolve the volley: free the flying marble so the board returns to AIM.
 	for marble in board.active_marbles.duplicate():
 		board._discard_marble(marble)
 	await physics_frame
 	await physics_frame
-	_check(board.state == board.ThrowState.AIM,
-			"the board should be back to AIM, state is %s" % board.state)
-	_check(_arrow_param(board, "wind_arrow") > 0.5,
+	_check(
+		board.state == board.ThrowState.AIM,
+		"the board should be back to AIM, state is %s" % board.state
+	)
+	_check(
+		_arrow_param(board, "wind_arrow") > 0.5,
+		(
 			"the next turn should show the arrows again, intensity is %s"
-			% _arrow_param(board, "wind_arrow"))
-	_check(_arrow_param(board, "wind_dir") == -dir_before,
+			% _arrow_param(board, "wind_arrow")
+		)
+	)
+	_check(
+		_arrow_param(board, "wind_dir") == -dir_before,
+		(
 			"the next turn should flip the arrow direction, %s -> %s"
-			% [dir_before, _arrow_param(board, "wind_dir")])
+			% [dir_before, _arrow_param(board, "wind_dir")]
+		)
+	)
 	_close(board)
 
 
 # --- (d) The upcoming direction is the flip of the stored side ----------------
 
+
 func _test_upcoming_direction_flips_with_the_throw() -> void:
 	var board := _open_board("ventoso")
 	await physics_frame
 	var stored: float = board.board_theme.wind_direction
-	_check(board.board_theme.upcoming_wind_direction() == -stored,
-			"the upcoming throw should drift opposite to the stored side")
+	_check(
+		board.board_theme.upcoming_wind_direction() == -stored,
+		"the upcoming throw should drift opposite to the stored side"
+	)
 	board.board_theme.on_throw_started()
-	_check(board.board_theme.wind_direction == -stored,
-			"the launch should flip the stored side")
-	_check(board.board_theme.upcoming_wind_direction() == stored,
-			"the following throw should drift back")
+	_check(board.board_theme.wind_direction == -stored, "the launch should flip the stored side")
+	_check(
+		board.board_theme.upcoming_wind_direction() == stored,
+		"the following throw should drift back"
+	)
 	_close(board)

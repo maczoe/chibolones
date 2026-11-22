@@ -25,7 +25,6 @@ extends Resource
 ## the shot budget is untouched.
 @export var trap_holes: Array[bool] = []
 
-
 @export_group("Board geometry")
 @export var width: float = 3.9
 @export var length: float = 6.4
@@ -75,7 +74,6 @@ enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH, ANY }
 @export var objective_goals: Array[int] = []
 ## MATH: rule the final score must satisfy once the minimum is reached.
 @export var objective_rule: StringName = &"even"
-
 
 @export_group("Board rules")
 ## Bonificadores of this board, by id (content-plan §4.3): each id is

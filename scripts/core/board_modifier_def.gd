@@ -53,6 +53,7 @@ extends Resource
 func on_event(_event: StringName, _ctx: Dictionary) -> void:
 	pass
 
+
 @export_group("Decision rules")
 ## Seconds the player has per throw step before the board decides for them
 ## (0 = off).
