@@ -48,7 +48,7 @@ the new boards).
 | T3 | S2 | notch_label_color accessibility + endless boss-def fix (parent inline) | d8e10af, d42938d (PR #2 merged) |
 | T4 | S3, S4 | Guac-a-mole board + guacamole modifier + mole tuning (parent inline) | 7039968, a231248 |
 | T5 | S5 | Blackjack board + emblem + tests (parent inline) | ebf67fc |
-| T6 | S6 | Ledger + delivery PR for Guac-a-mole + Blackjack (parent inline) | this PR |
+| T6 | S6 | Ledger + delivery PR for Guac-a-mole + Blackjack (parent inline) | d170f5f (PR #3) |
 
 Route rationale: each board is one small unit of data + tests on a shared,
 already-merged engine seam; no Writer trigger fires for data composition.
@@ -81,5 +81,8 @@ validated by user playtest via the debug picker.
 - L8 (2026-11-21): "podrías ayudarme a continuar con la prueba de las nuevas
   mecánicas y con el ledger pendiente" — user chose "solo ledger + PR hoy":
   this document records the wave retroactively and Guac-a-mole + Blackjack
-  ship as the follow-up PR. 4 of 5 objective kinds premiered (THRESHOLD,
-  MATH, RANGE, EXACT); LIST (La Escalera =30 -> =60 -> =90) is next.
+  ship as the follow-up PR (PR #3). 4 of 5 objective kinds premiered
+  (THRESHOLD, MATH, RANGE, EXACT); LIST (La Escalera =30 -> =60 -> =90) is
+  next. Verified at delivery: full 17-script suite GREEN, checker BOARDS OK
+  (24/24 winnable; Guac-a-mole [50,50,50] in 3, Blackjack [7,7,7] in 3),
+  gdcheck OK on board_theme.gd/board.gd/board_modifier_def.gd.
