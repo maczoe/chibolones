@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PrizeDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/prize_def.gd" id="1_prize"]
+
+[resource]
+script = ExtResource("1_prize")
+id = "foto"
+display_name = "Foto del Recuerdo"
+rarity = "rare"
+price = 0
+prize_class = 2
+flavor = "Salís vos, el tablero y una canica que ya no tenes."
+effect = &""
+params = {}

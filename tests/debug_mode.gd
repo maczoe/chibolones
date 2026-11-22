@@ -360,13 +360,35 @@ func _test_launch_single_board() -> void:
 			% [config_marbles.size(), game.inventory.size()]
 		)
 	)
+	# D8: the picked loadout keeps every def, but each one lands on the shelf its
+	# class declares instead of all piling on the prize shelf.
 	_check(
-		game.prizes.size() == picked_prizes,
+		game.prizes.size() + game.consumables.size() + game.cosmetics.size() == picked_prizes,
 		(
-			"the debug prizes should be the picked ones (%d), has %d"
-			% [picked_prizes, game.prizes.size()]
+			"the debug loadout should keep all %d picked prizes, has %d + %d + %d"
+			% [
+				picked_prizes,
+				game.prizes.size(),
+				game.consumables.size(),
+				game.cosmetics.size(),
+			]
 		)
 	)
+	for def in game.prizes:
+		_check(
+			def.prize_class == PrizeDef.PrizeClass.PERMANENT,
+			"the prize shelf should hold only permanents, found %s" % def.id
+		)
+	for def in game.consumables:
+		_check(
+			def.prize_class == PrizeDef.PrizeClass.CONSUMABLE,
+			"the consumable shelf should hold only consumables, found %s" % def.id
+		)
+	for def in game.cosmetics:
+		_check(
+			def.prize_class == PrizeDef.PrizeClass.COSMETIC,
+			"the collection should hold only cosmetics, found %s" % def.id
+		)
 
 	var board: Node3D = _open_board()
 	await physics_frame

@@ -31,8 +31,10 @@ Impact analysis:
 - D1-D3 economy numbers in `content-plan.md` §2 need a rebalance pass
   once objectives stop paying flat score bonuses.
 
-Open: what a chest drawn permanent usable prize does mid-run (active
-this run vs. unlock-only for future runs).
+Open: what a chest drawn permanent usable prize does mid-run (closed
+as D8 wave 1: it is active in the current run and unlocked for every
+later run; when the prize shelf is full the reveal lets the player pick
+which owned prize to drop).
 
 ## D9 — Objective types beyond the score threshold
 
@@ -67,6 +69,9 @@ notch rows) with a hidden spawn percentage and random chest rarity.
   reveal.
 - Open: chest neutrality toward score on exact/list boards; the reveal
   must stay short (2-3 s target) to protect the 5-20 s throw loop.
+  (Closed as D8 wave 1: a chest is a trigger volume on the deck, not a
+  wall, so the marble rolls through it, the reveal never pauses the
+  flight, and only the discard choice pauses the board.)
 
 ## D11 — Library / collection section in the main menu
 

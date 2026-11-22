@@ -25,6 +25,7 @@ var label_board_title: Label
 var label_board_effects: Label
 var cue_panel: PanelContainer
 var prize_box: VBoxContainer
+var consumable_box: VBoxContainer
 var label_msg: Label
 var power_bar: PowerBar
 var end_overlay: ColorRect
@@ -243,6 +244,48 @@ func set_prizes(list: Array[PrizeDef]) -> void:
 		desc.custom_minimum_size = Vector2(360, 0)
 		column.add_child(desc)
 		prize_box.add_child(card)
+
+
+## D8/S10: consumables carried this run, under the prize rail, each with the
+## key that spends it. Replaces the whole list on every change.
+func set_consumables(list: Array[PrizeDef]) -> void:
+	for badge in consumable_box.get_children():
+		consumable_box.remove_child(badge)
+		badge.queue_free()
+	for i in list.size():
+		var prize: PrizeDef = list[i]
+		if prize == null:
+			continue
+		var card := PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color("2a1d3d")
+		style.border_color = Color("ffcf5c")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(10)
+		style.content_margin_left = 10.0
+		style.content_margin_right = 10.0
+		style.content_margin_top = 6.0
+		style.content_margin_bottom = 6.0
+		card.add_theme_stylebox_override("panel", style)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 9)
+		card.add_child(row)
+		var key_label := _hud_label(18, Color("ffcf5c"))
+		key_label.text = str(i + 1)
+		key_label.custom_minimum_size = Vector2(18, 0)
+		row.add_child(key_label)
+		var column := VBoxContainer.new()
+		column.add_theme_constant_override("separation", 2)
+		row.add_child(column)
+		var name_label := _hud_label(15, Color.WHITE)
+		name_label.text = "%s (1 uso)" % prize.display_name
+		column.add_child(name_label)
+		var desc := _hud_label(13, Color("cdb8ff"))
+		desc.text = prize.effect_description()
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.custom_minimum_size = Vector2(340, 0)
+		column.add_child(desc)
+		consumable_box.add_child(card)
 
 
 ## Last message flashed, readable by tests and the HUD cue assertions.
@@ -505,6 +548,17 @@ func _build_prize_rail() -> void:
 	prize_box.offset_bottom = 400
 	prize_box.add_theme_constant_override("separation", 8)
 	add_child(prize_box)
+	# D8/S10 consumables under the prize rail: one card per carried prize with
+	# the key that spends it.
+	consumable_box = VBoxContainer.new()
+	consumable_box.anchor_left = 1.0
+	consumable_box.anchor_right = 1.0
+	consumable_box.offset_left = -440
+	consumable_box.offset_right = -16
+	consumable_box.offset_top = 410
+	consumable_box.offset_bottom = 700
+	consumable_box.add_theme_constant_override("separation", 6)
+	add_child(consumable_box)
 
 
 func _build_cue() -> void:

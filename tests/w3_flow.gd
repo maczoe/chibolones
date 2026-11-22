@@ -94,7 +94,29 @@ func _test_full_cycle() -> void:
 	_check(
 		game.inventory.size() == 7, "5 commons + marble + pack = 7, got %d" % game.inventory.size()
 	)
-	_check(game.prizes.size() == 2, "trompo + the bought prize = 2, got %d" % game.prizes.size())
+	# D8: the bought prize lands on the shelf its class declares — the permanent
+	# prize rail or the consumable shelf — and never on both. Checking the class
+	# keeps a misrouted def from passing a plain total.
+	var bought_def: PrizeDef = content.find_prize_def(bought_prize_id)
+	if bought_def != null:
+		if bought_def.prize_class == PrizeDef.PrizeClass.CONSUMABLE:
+			_check(
+				game.consumables.has(bought_def),
+				"the bought consumable %s should sit on the consumable shelf" % bought_def.id
+			)
+			_check(
+				game.prizes.size() == 1,
+				"a consumable buy must not take a prize slot, shelf is %d" % game.prizes.size()
+			)
+		else:
+			_check(
+				game.prizes.has(bought_def),
+				"the bought permanent %s should sit on the prize shelf" % bought_def.id
+			)
+			_check(
+				game.prizes.size() == 2,
+				"trompo + the bought prize = 2, got %d" % game.prizes.size()
+			)
 
 	# (3) The next board carries the purchases.
 	game.shop_continue()
