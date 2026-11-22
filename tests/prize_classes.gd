@@ -136,8 +136,17 @@ func _test_shop_routing() -> void:
 	)
 	_check(game.money == money_before, "a rejected consumable buy must not charge money")
 	_check(game.consumables.size() == game.CONSUMABLE_CAP, "a rejected buy must not grow the shelf")
-	# The prize shelf keeps its own cap for permanents.
+	# The prize shelf keeps its own cap for permanents (S19: a run starts with an
+	# empty shelf, so the test fills it before checking the rejection).
 	game.buy_prize(content.prize_def("carpa"))
+	game.buy_prize(content.prize_def("rayo"))
+	_check(
+		game.prizes.size() == game.prize_cap(),
+		(
+			"the two permanents should fill the shelf, got %d of %d"
+			% [game.prizes.size(), game.prize_cap()]
+		)
+	)
 	var money_full: int = game.money
 	_check(
 		not game.buy_prize(content.prize_def("corona")),

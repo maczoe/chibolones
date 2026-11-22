@@ -29,7 +29,6 @@ const ENDLESS_BONUS := 1
 ## content-plan §2): five commons, no specials. Debug mode will pass its own
 ## picked loadout (S8).
 const STARTING_MARBLES := ["common", "common", "common", "common", "common"]
-const SAMPLE_PRIZE := "trompo"
 
 signal phase_changed(phase: Phase)
 signal money_changed(money: int)
@@ -123,6 +122,29 @@ func add_prize(def: PrizeDef) -> bool:
 			cosmetics.append(def)
 		_:
 			prizes.append(def)
+	return true
+
+
+## S11 (D10): drop one owned prize from the shelf its class declares, paying
+## NOTHING. Selling pays rescue value and that stays the shop's rule; a chest
+## discard must never become a money trick. Returns false and touches nothing
+## when the run does not own the def.
+func discard_prize(def: PrizeDef) -> bool:
+	if def == null:
+		return false
+	match def.prize_class:
+		PrizeDef.PrizeClass.CONSUMABLE:
+			if not consumables.has(def):
+				return false
+			consumables.erase(def)
+		PrizeDef.PrizeClass.COSMETIC:
+			if not cosmetics.has(def):
+				return false
+			cosmetics.erase(def)
+		_:
+			if not prizes.has(def):
+				return false
+			prizes.erase(def)
 	return true
 
 
@@ -296,9 +318,8 @@ func start_run() -> void:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
 			inventory.append(marble)
-	var prize: PrizeDef = ContentDB.prize_def(SAMPLE_PRIZE)
-	if prize != null:
-		prizes.append(prize)
+	# S19: the prize shelf starts empty. Every prize the run holds comes from the
+	# shop or a chest, so the two slots are free loot space from board 1.
 	extra_throws = 0
 	endless_mode = false
 	run_won = false
@@ -557,9 +578,10 @@ func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 
 
 ## Offer the current scene the chance to host a screen overlay in place
-## (win sequence, run summary). Returns false when there is no host, so the
-## caller keeps the old scene switch. Never touches run state: the phase and
-## routing stay the same.
+## (win sequence, run summary). Returns false when there is no host OR the host
+## did not take it, so the caller keeps the old scene switch: a refusing host
+## must never be mistaken for one that showed the screen, or the phase moves
+## while nothing is on it (reported softlock, 2026-11-21).
 func _host_overlay(host_method: StringName) -> bool:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
@@ -567,8 +589,7 @@ func _host_overlay(host_method: StringName) -> bool:
 	var scene := tree.current_scene
 	if not scene.has_method(host_method):
 		return false
-	scene.call(host_method)
-	return true
+	return bool(scene.call(host_method))
 
 
 ## CONTINUAR on the win interstitial: back to the run flow — the shop after

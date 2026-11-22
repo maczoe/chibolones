@@ -117,6 +117,8 @@ func _test_breakdown_math() -> void:
 
 func _test_prize_contribution() -> void:
 	game.start_run()
+	# The shelf starts empty (S19): the test owns the prize it scores with.
+	game.prizes.append(content.prize_def("trompo"))
 	var board := _open_board()
 	await physics_frame
 	# One wall hit this throw, one x2 board-side wall multiplier (a modifier
@@ -397,6 +399,8 @@ func _test_wall_mult_preserved() -> void:
 	# say about the score still scores the painted value untouched.
 	game.start_run()
 	game.run_active = false  # run prizes without the run's board modifiers
+	# The shelf starts empty (S19): the test owns the prize it scores with.
+	game.prizes.append(content.prize_def("trompo"))
 	var board := _open_board()
 	await physics_frame
 	board.launched_def = content.marble_def("common")

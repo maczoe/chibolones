@@ -232,16 +232,22 @@ func _test_purchases() -> void:
 	# Null def: rejected.
 	game.money = 10
 	_check(not game.buy_marble(null), "buying a null def must fail")
-	# Prize purchases with their own cap.
+	# Prize purchases with their own cap. The shelf starts empty (S19), so the
+	# test fills it one slot short of the cap first: the buy that lands is the
+	# filling one and the next is the one over the cap.
 	game.start_run()
 	var osito := PrizeDef.new()
 	osito.id = "osito"
 	osito.display_name = "Osito de Peluche"
 	osito.price = 3
+	game.prizes.assign([content.prize_def("carpa")])
 	game.money = 20
 	_check(game.buy_prize(osito), "an affordable under-cap prize buy should succeed")
 	_check(game.money == 20 - osito.price, "the prize buy should charge its price")
-	_check(game.prizes.size() == 2, "the bought prize should join the shelf")
+	_check(
+		game.prizes.size() == game.prize_cap(),
+		"the bought prize should fill the shelf (%d of %d)" % [game.prizes.size(), game.prize_cap()]
+	)
 	game.money = 20
 	_check(not game.buy_prize(osito), "a prize buy over the cap must fail")
 	_check(game.money == 20, "a cap-blocked prize buy must not charge")
@@ -366,9 +372,11 @@ func _test_rescue_sales() -> void:
 	_check(fire_copies == 0, "the sale should remove the fire copy")
 	_check(game.inventory.size() == 1, "the sale should remove exactly one marble")
 	_check(not game.sell_marble(null), "selling null must fail")
-	# Prizes sell freely, at their own rescue.
+	# Prizes sell freely, at their own rescue. The shelf starts empty (S19), so
+	# the test owns the prize it sells.
 	game.start_run()
 	game.money = 0
+	game.prizes.append(content.prize_def("trompo"))
 	_check(game.sell_prize(content.prize_def("trompo")), "a prize sells freely (no last-guard)")
 	_check(
 		game.money == economy.rescue_price(4, 1),
@@ -385,7 +393,10 @@ func _test_rescue_sales() -> void:
 ## the other boards shuffle within their block without repeats.
 func _test_board_order() -> void:
 	var block1_orders := {}
-	for trial in 6:
+	# Enough trials that "the order never varies" is not a coin flip: with 24
+	# possible block-1 orders, 20 identical draws cannot happen by chance, so a
+	# fixed order fails for real instead of flaking once in six runs.
+	for trial in 20:
 		game.start_run()
 		_check(
 			game.board_def_index(1) == 0,

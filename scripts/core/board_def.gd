@@ -75,6 +75,21 @@ enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH, ANY }
 ## MATH: rule the final score must satisfy once the minimum is reached.
 @export var objective_rule: StringName = &"even"
 
+@export_group("Chests (D10)")
+## Every board carries one fixed chest on the deck, so loot has a source on
+## every level instead of only the newest ones (S5/S13). The defaults are the
+## whole reason the 25 existing boards need no edit; a board opts out by
+## turning this off.
+@export var chest_fixed: bool = true
+## Chance the board also hides a second chest, rolled where the board cannot
+## be read in advance: loot is a find, not a shop list. 0 disables it.
+@export var chest_hidden_chance: float = 0.25
+## Cash a chest pays instead of a prize when it cannot hand one over: the
+## class shelf has no room or the loot pool has nothing new. Paying beats a
+## chest that gives nothing (T8 replaces the full-shelf case with the
+## player's discard choice).
+@export var chest_cash_fallback: int = 3
+
 @export_group("Board rules")
 ## Bonificadores of this board, by id (content-plan §4.3): each id is
 ## resolved through ContentDB into a BoardModifierDef. Empty = no rule.

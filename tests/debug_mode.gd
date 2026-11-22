@@ -498,7 +498,10 @@ func _test_normal_run_untouched() -> void:
 		_ids(game.inventory) == ["common", "common", "common", "common", "common"],
 		"a normal run should own 5 commons, owns %s" % str(_ids(game.inventory))
 	)
-	_check(game.prizes.size() == 1, "a normal run keeps its starting prize")
+	_check(
+		game.prizes.is_empty(),
+		"a normal run should start with an empty prize shelf, has %d" % game.prizes.size()
+	)
 	# W3b: the board order is random; board 5 rolls among the block-2 defs
 	# (4..6) and the debug override still wins inside a debug match.
 	_check(
