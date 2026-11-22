@@ -96,4 +96,6 @@ validated by user playtest via the debug picker.
   sequential LIST kind stays in the engine for future boards. Winnability
   re-checked: [30] in 1 shot.
 - L10 (2026-11-21): "todo correcto lancemos pr" — playtest approved;
-  delivery PR opened from feat/board-la-escalera.
+  delivery PR #4 opened from feat/board-la-escalera. With La Escalera all
+  6 objective kinds are premiered (THRESHOLD, EXACT, RANGE, LIST, MATH,
+  ANY).
