@@ -41,6 +41,7 @@ func _run() -> void:
 	await _test_money_consumable()
 	await _test_skip_threshold_consumable()
 	await _test_replay_rejected_without_throw()
+	await _test_debug_loadout_routes_by_class()
 	print("PRIZE CLASSES FAIL" if failed else "PRIZE CLASSES OK")
 	quit(1 if failed else 0)
 
@@ -235,3 +236,38 @@ func _test_replay_rejected_without_throw() -> void:
 	_check(game.consumables.size() == 1, "a rejected use must not consume the consumable")
 	board.queue_free()
 	await physics_frame
+
+
+## S1/S10: a debug loadout bypasses the shelf caps (that is the point of picking
+## one) but never the class routing.
+func _test_debug_loadout_routes_by_class() -> void:
+	var config := {
+		"board_index": 0,
+		"marbles": [content.marble_def("common")],
+		"prizes":
+		[
+			content.prize_def("carpa"),
+			content.prize_def("corona"),
+			content.prize_def("osito"),
+			content.prize_def("globo"),
+			content.prize_def("foto"),
+		],
+	}
+	_check(game.start_debug_run(config), "the debug loadout should start")
+	_check(
+		game.prizes.size() == 3,
+		"the loadout should keep three permanents past the shelf cap, got %d" % game.prizes.size()
+	)
+	_check(
+		game.consumables.has(content.prize_def("globo")),
+		"the picked consumable should sit on the consumable shelf"
+	)
+	_check(
+		not game.prizes.has(content.prize_def("globo")),
+		"the picked consumable must not take a prize shelf slot"
+	)
+	_check(
+		game.cosmetics.has(content.prize_def("foto")),
+		"the picked cosmetic should land in the collection"
+	)
+	game.start_run()

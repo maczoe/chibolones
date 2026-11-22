@@ -335,14 +335,24 @@ func start_debug_run(config: Dictionary) -> bool:
 	inventory.clear()
 	inventory.assign(marbles)
 	prizes.clear()
-	for def in config.get("prizes", []):
-		if def is PrizeDef and not prizes.has(def):
-			prizes.append(def)
 	consumables.clear()
-	for def in config.get("consumables", []):
-		if def is PrizeDef and not consumables.has(def):
-			consumables.append(def)
 	cosmetics.clear()
+	# A debug loadout bypasses the shelf caps (picking the loadout is the point)
+	# but never the class routing: a consumable must not sit on the prize shelf,
+	# which is exactly the bug the shop path cannot have.
+	for def in config.get("prizes", []) + config.get("consumables", []):
+		if not (def is PrizeDef):
+			continue
+		match def.prize_class:
+			PrizeDef.PrizeClass.CONSUMABLE:
+				if not consumables.has(def):
+					consumables.append(def)
+			PrizeDef.PrizeClass.COSMETIC:
+				if not cosmetics.has(def):
+					cosmetics.append(def)
+			_:
+				if not prizes.has(def):
+					prizes.append(def)
 	extra_throws = 0
 	endless_mode = false
 	run_won = false
