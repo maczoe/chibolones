@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_board")
 theme_name = "La Escalera"
-objective_kind = 3
+objective_kind = 5
 objective_goals = Array[int]([30, 60, 90, 120])
 length = 8.0
 board_color = Color(0.169, 0.290, 0.478, 1)

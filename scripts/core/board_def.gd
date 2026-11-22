@@ -58,11 +58,11 @@ extends Resource
 ## classic `score >= objective_target` (current behavior, scaled by the
 ## run's block factor); the other kinds read their own fields below and
 ## are absolute — scaling an exact target would break the designed matrix.
-enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH }
+enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH, ANY }
 
 @export var objective_kind: ObjectiveKind = ObjectiveKind.THRESHOLD
 ## THRESHOLD: score to reach. EXACT: the exact final score. RANGE: ignored
-## (see objective_range_min/max). LIST: ignored (see objective_goals).
+## (see objective_range_min/max). LIST/ANY: ignored (see objective_goals).
 ## MATH: minimum score before the rule can win.
 ## 0 = no numeric objective (POC behavior). The run scales this base by the
 ## block difficulty factor (Game.objective_for_board) on THRESHOLD only.
@@ -70,7 +70,8 @@ enum ObjectiveKind { THRESHOLD, EXACT, RANGE, LIST, MATH }
 ## RANGE: inclusive bounds; invalid bounds fall back to exact of the target.
 @export var objective_range_min: int = 0
 @export var objective_range_max: int = 0
-## LIST: cumulative totals to hit exactly, in order.
+## LIST: cumulative totals to hit exactly, in order. ANY: one of
+## these totals wins on its own (alternatives, La Escalera).
 @export var objective_goals: Array[int] = []
 ## MATH: rule the final score must satisfy once the minimum is reached.
 @export var objective_rule: StringName = &"even"

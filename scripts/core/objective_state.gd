@@ -42,7 +42,7 @@ static func for_def(def: BoardDef, target_override := -1) -> ObjectiveState:
 				state._range_max = def.objective_range_max
 			else:
 				state._kind = BoardDef.ObjectiveKind.EXACT
-		BoardDef.ObjectiveKind.LIST:
+		BoardDef.ObjectiveKind.LIST, BoardDef.ObjectiveKind.ANY:
 			if not def.objective_goals.is_empty():
 				state._kind = def.objective_kind
 				state._goals = def.objective_goals.duplicate()
@@ -79,6 +79,8 @@ func evaluate(total: int) -> bool:
 			if _next_goal < _goals.size() and total == _goals[_next_goal]:
 				_next_goal += 1
 			return _next_goal >= _goals.size()
+		BoardDef.ObjectiveKind.ANY:
+			return _goals.has(total)
 		BoardDef.ObjectiveKind.MATH:
 			return total >= _target and _matches_rule(total)
 	return total >= _target
@@ -97,6 +99,11 @@ func target_text() -> String:
 			if _next_goal < _goals.size():
 				return "=%d" % _goals[_next_goal]
 			return "LISTO"
+		BoardDef.ObjectiveKind.ANY:
+			var labels: Array[String] = []
+			for goal in _goals:
+				labels.append(str(goal))
+			return "=%s" % "/".join(labels)
 		BoardDef.ObjectiveKind.MATH:
 			return "%s >=%d" % [rule_label(), _target]
 	return str(_target)
@@ -115,6 +122,11 @@ func announce_text() -> String:
 			for goal in _goals:
 				goals.append("=%d" % goal)
 			return "Objetivo lista: suma %s en orden" % " y ".join(goals)
+		BoardDef.ObjectiveKind.ANY:
+			var any_goals: Array[String] = []
+			for goal in _goals:
+				any_goals.append(str(goal))
+			return "Objetivo cualquiera: termina con %s puntos" % " o ".join(any_goals)
 		BoardDef.ObjectiveKind.MATH:
 			return "Objetivo %s: puntaje %s de al menos %d" % [rule_label(), rule_label(), _target]
 	return ""
