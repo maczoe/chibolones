@@ -90,23 +90,24 @@ func evaluate(total: int) -> bool:
 ## "=100" (exact), "90-110" (range), "=80" (next list goal, live),
 ## "par >=100" (math) or the plain threshold number.
 func target_text() -> String:
+	var text := ""
 	match _kind:
 		BoardDef.ObjectiveKind.EXACT:
-			return "=%d" % _target
+			text = "=%d" % _target
 		BoardDef.ObjectiveKind.RANGE:
-			return "%d-%d" % [_range_min, _range_max]
+			text = "%d-%d" % [_range_min, _range_max]
 		BoardDef.ObjectiveKind.LIST:
-			if _next_goal < _goals.size():
-				return "=%d" % _goals[_next_goal]
-			return "LISTO"
+			text = ("=%d" % _goals[_next_goal]) if _next_goal < _goals.size() else "LISTO"
 		BoardDef.ObjectiveKind.ANY:
 			var labels: Array[String] = []
 			for goal in _goals:
 				labels.append(str(goal))
-			return "=%s" % "/".join(labels)
+			text = "=%s" % "/".join(labels)
 		BoardDef.ObjectiveKind.MATH:
-			return "%s >=%d" % [rule_label(), _target]
-	return str(_target)
+			text = "%s >=%d" % [rule_label(), _target]
+		_:
+			text = str(_target)
+	return text
 
 
 ## The objective as the board-start cue announces it (one line, Spanish
