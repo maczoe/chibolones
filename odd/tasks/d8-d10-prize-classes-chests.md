@@ -74,11 +74,11 @@ game-loop mover").
 | T9 | S2, S4, S10 | UI: class on shop cards, consumable rail with keys (chest reveal belongs to T6) | 2895873 |
 | T10 | all | Tests green, board checker still green, docs (GDD + content plan) | 4636c69 |
 | T11 | all | Delivery PR | PRs #7-#9 opened (chain, by area) |
-| T12 | S17 | Chest reveal becomes a paused wheel with icons that spin and stop | pending |
-| T13 | S18 | Full shelf: drop one owned prize of that class OR decline for cash | pending |
-| T14 | S19 | Run starts with an empty prize shelf (no sample trompo) | pending |
-| T15 | S20 | An opened chest disappears from the deck | pending |
-| T16 | S21 | Run-ending diagnostics (no behavior change until evidence) | pending |
+| T12 | S17 | Chest reveal becomes a paused wheel with icons that spin and stop | 77fda1e |
+| T13 | S18 | Full shelf: drop one owned prize of that class OR decline for cash | 77fda1e |
+| T14 | S19 | Run starts with an empty prize shelf (no sample trompo) | 77fda1e |
+| T15 | S20 | An opened chest disappears from the deck | 77fda1e |
+| T16 | S21 | Run-ending diagnostics (no behavior change until evidence) | 77fda1e, closed by 06b5c09 |
 
 Route: sequential inline slices. The two halves are dependent, not independent —
 chest loot cannot draw a class that does not exist yet — so no parallel writers
@@ -247,3 +247,22 @@ area (classes/consumables, chests, discard) unless the user asks otherwise.
   Dos cosas quedan para el playtest del usuario: el descarte es obligatorio (no
   hay opción de rechazar y quedarse con el efectivo) y los precios de los
   consumibles son una decisión de tuning mía ($2-$4).
+- L11 (2026-11-21): playtest after the merge reported four problems: chests never
+  leaving the deck, the reveal having no wheel, the run starting with the trompo,
+  and two softlocks (full-shelf trap and run boards never routing their ending).
+  Decisions taken then: wheel with slots and icons that pauses (S17), optional
+  decline for cash (S18), empty start shelf (S19).
+- L12 (2026-11-21): wave 2 delivered in 77fda1e (wheel, optional decline, empty
+  shelf, chest retirement, diagnostics). The wheel supersedes S16: the pause is
+  the tension the user wanted, so the old "never pause the reveal" rule is dead
+  on purpose, not by accident.
+- L13 (2026-11-21): the run-ending softlock found its cause with the playtest log
+  the user supplied (`phase=WIN result_sent=true` at round end), not with a test:
+  the overlay host refused while the scoring throw was resolving and
+  `_host_overlay` reported the call as handled anyway, so the phase moved with
+  nothing on screen; and the flight tail handed the turn back, which is why the
+  same board kept taking throws (60 -> 130 in the screenshots). Fixed in 06b5c09
+  (S22) with both rules written as failing tests first in tests/run_end.gd.
+- L14 (2026-11-21): user confirmed the fixes in playtest and asked to persist the
+  work in the repo: PR #10 merges the whole chain into main, which until now only
+  carried #7 because #8 and #9 had been merged into their parent branches.
