@@ -126,6 +126,29 @@ func add_prize(def: PrizeDef) -> bool:
 	return true
 
 
+## S11 (D10): drop one owned prize from the shelf its class declares, paying
+## NOTHING. Selling pays rescue value and that stays the shop's rule; a chest
+## discard must never become a money trick. Returns false and touches nothing
+## when the run does not own the def.
+func discard_prize(def: PrizeDef) -> bool:
+	if def == null:
+		return false
+	match def.prize_class:
+		PrizeDef.PrizeClass.CONSUMABLE:
+			if not consumables.has(def):
+				return false
+			consumables.erase(def)
+		PrizeDef.PrizeClass.COSMETIC:
+			if not cosmetics.has(def):
+				return false
+			cosmetics.erase(def)
+		_:
+			if not prizes.has(def):
+				return false
+			prizes.erase(def)
+	return true
+
+
 ## S10: spend one consumable by shelf index. The board applies the effect
 ## first and only then calls this, so a rejected use keeps the prize.
 func take_consumable(index: int) -> PrizeDef:

@@ -8,6 +8,7 @@ extends Node3D
 const MarbleFactory := preload("res://scripts/board/marble_factory.gd")
 const ScoreEngineScript := preload("res://scripts/scoring/score_engine.gd")
 const HudScript := preload("res://scripts/board/hud.gd")
+const ChestChoiceScript := preload("res://scripts/board/chest_choice.gd")
 const BoardThemeScript := preload("res://scripts/board/board_theme.gd")
 ## Seconds between two bonificador announcements at board start.
 const ANNOUNCE_DELAY := 1.2
@@ -171,6 +172,9 @@ var holes: Array[Dictionary] = []  # {pos, score, occupied}
 ## D10 chests on the deck: {pos, opened, node}. Board-local like `holes`,
 ## which is the space the flight loop checks them in.
 var chests: Array[Dictionary] = []
+## S11: the full-shelf discard panel while a chest's drawn prize has no room,
+## null otherwise (headless tests read it off the board).
+var chest_choice: CanvasLayer = null
 var active_marbles: Array[RigidBody3D] = []
 var settle_times := {}  # marble -> seconds under slow speed
 ## Stuck-detector checkpoints: marble -> {"pos": Vector3, "checks": int}.
@@ -2056,9 +2060,9 @@ func _check_chests(local: Vector3) -> void:
 			_open_chest(chest)
 
 
-## S14/S15: one draw, one grant through the shop's seam, one short reveal. A
-## class shelf with no room pays the board's cash fallback instead, so the
-## chest always gives something.
+## S14/S15: one draw, one grant through the shop's seam, one short reveal. The
+## cash fallback stays for an empty pool and for a def that cannot be resolved;
+## a resolved def whose class shelf is full goes to the discard choice (S11).
 func _open_chest(chest: Dictionary) -> void:
 	chest.opened = true
 	_reveal_chest(chest.node)
@@ -2072,11 +2076,58 @@ func _open_chest(chest: Dictionary) -> void:
 		hud.set_prizes(Game.prizes)
 		hud.set_consumables(Game.consumables)
 		return
+	if def != null:
+		# S11: add_prize only refuses for lack of room, so the reveal offers
+		# the player which owned prize of that class to drop instead of cash.
+		_open_chest_choice(def)
+		return
 	var cash: int = int(draw["cash"])
 	if cash <= 0:
 		cash = board_def.chest_cash_fallback
 	Game.add_money(cash)
 	hud.flash("Cofre: +$%d" % cash)
+
+
+## S11: the chest drew a def whose class shelf is full, so the reveal pauses
+## the board and offers exactly the owned prizes of that class. The chest is
+## already marked opened, so no path here can grant twice.
+func _open_chest_choice(def: PrizeDef) -> void:
+	chest_choice = ChestChoiceScript.new()
+	chest_choice.name = "ChestChoice"
+	add_child(chest_choice)
+	chest_choice.picked.connect(_on_chest_choice_picked.bind(def))
+	chest_choice.present(def, _owned_prizes_of_class(def.prize_class))
+
+
+## S11: the player dropped `old_prize` to make room for the drawn `drawn_prize`.
+## The drop pays nothing (selling pays rescue value; a chest discard must never
+## be a money trick), the drawn prize takes the freed slot, both rails refresh
+## and one cue names the trade. The panel closes and unpauses itself after the
+## signal, so the board resumes with the new shelf already on screen.
+func _on_chest_choice_picked(old_prize: PrizeDef, drawn_prize: PrizeDef) -> void:
+	Game.discard_prize(old_prize)
+	Game.add_prize(drawn_prize)
+	hud.set_prizes(Game.prizes)
+	hud.set_consumables(Game.consumables)
+	var dropped: String = old_prize.display_name if old_prize != null else "?"
+	var arrived: String = drawn_prize.display_name if drawn_prize != null else "?"
+	hud.flash("Cofre: cambiaste %s por %s" % [dropped, arrived])
+
+
+## Owned prizes of one class, in shelf order: the discard choice offers exactly
+## these, so the pick always frees a slot the drawn prize can take.
+func _owned_prizes_of_class(prize_class: PrizeDef.PrizeClass) -> Array[PrizeDef]:
+	var owned: Array[PrizeDef] = []
+	var shelf: Array[PrizeDef] = Game.prizes
+	match prize_class:
+		PrizeDef.PrizeClass.CONSUMABLE:
+			shelf = Game.consumables
+		PrizeDef.PrizeClass.COSMETIC:
+			shelf = Game.cosmetics
+	for prize in shelf:
+		if prize != null:
+			owned.append(prize)
+	return owned
 
 
 ## S16: the reveal never pauses the flight. The chest pops and spins in real
