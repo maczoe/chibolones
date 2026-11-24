@@ -10,6 +10,8 @@ const TEST_PATH := "user://test_unlocks.json"
 
 var save
 var content
+var economy
+var game
 var failed := false
 
 
@@ -32,6 +34,11 @@ func _run() -> void:
 	_test_run_won_milestones()
 	_test_unknown_ids_are_ignored()
 	_test_pool_survives_a_reload()
+	_test_starter_marbles_are_in_the_pool()
+	_test_shop_sells_only_the_pool()
+	_test_acquisition_collects_into_the_profile()
+	_test_clearing_a_milestone_board_unlocks()
+	_test_run_end_records_stats()
 	_clean()
 	if failed:
 		quit(1)
@@ -44,6 +51,8 @@ func _ensure_autoloads() -> void:
 	var autoloads := [
 		["EventBus", "res://autoload/event_bus.gd"],
 		["ContentDB", "res://autoload/content_db.gd"],
+		["Economy", "res://autoload/economy.gd"],
+		["Game", "res://autoload/game.gd"],
 		["SaveGame", SAVE_SCRIPT],
 	]
 	for entry in autoloads:
@@ -52,6 +61,8 @@ func _ensure_autoloads() -> void:
 			node.name = entry[0]
 			root.add_child(node)
 	content = root.get_node("ContentDB")
+	economy = root.get_node("Economy")
+	game = root.get_node("Game")
 	save = root.get_node("SaveGame")
 	save.path = TEST_PATH
 
@@ -121,15 +132,15 @@ func _test_starter_pool() -> void:
 func _test_locked_ids_stay_out() -> void:
 	_check(
 		not save.is_unlocked("marbles", "espejo"),
-		"the rare marble should start locked, unlocked ids are %s"
-		% str(save.unlocked_ids("marbles"))
+		(
+			"the rare marble should start locked, unlocked ids are %s"
+			% str(save.unlocked_ids("marbles"))
+		)
 	)
 	for def in save.available_marbles():
 		_check(def.id != "espejo", "a locked marble should not be available, got '%s'" % def.id)
 	for def in save.available_prizes():
-		_check(
-			def.id != "corona", "a locked prize should not be available, got '%s'" % def.id
-		)
+		_check(def.id != "corona", "a locked prize should not be available, got '%s'" % def.id)
 
 
 # --- (c) Clearing a milestone board unlocks its content (S6) --------------
@@ -139,14 +150,12 @@ func _test_board_milestones() -> void:
 	save.reset_profile()
 	var first: Array = save.unlock_for_board(4)
 	_check(
-		first == ["teledirigida"],
-		"board 4 should unlock teledirigida, unlocked %s" % str(first)
+		first == ["teledirigida"], "board 4 should unlock teledirigida, unlocked %s" % str(first)
 	)
 	_check(save.is_unlocked("marbles", "teledirigida"), "teledirigida should be unlocked")
 	_check(
 		save.unlock_for_board(4).is_empty(),
-		"clearing board 4 twice should unlock nothing new, got %s"
-		% str(save.unlock_for_board(4))
+		"clearing board 4 twice should unlock nothing new, got %s" % str(save.unlock_for_board(4))
 	)
 	_check(
 		save.unlock_for_board(3).is_empty(),
@@ -158,8 +167,7 @@ func _test_board_milestones() -> void:
 	)
 	_check(
 		save.available_prizes().size() == 7,
-		"one prize unlock should grow the pool to 7, pool is %d"
-		% save.available_prizes().size()
+		"one prize unlock should grow the pool to 7, pool is %d" % save.available_prizes().size()
 	)
 
 
@@ -214,13 +222,14 @@ func _test_pool_survives_a_reload() -> void:
 	reloaded.load_profile()
 	_check(
 		reloaded.is_unlocked("marbles", "teledirigida"),
-		"the unlocked marble should survive the reload, got %s"
-		% str(reloaded.unlocked_ids("marbles"))
+		(
+			"the unlocked marble should survive the reload, got %s"
+			% str(reloaded.unlocked_ids("marbles"))
+		)
 	)
 	_check(
 		reloaded.available_prizes().size() == 7,
-		"the reloaded pool should keep 7 prizes, pool is %d"
-		% reloaded.available_prizes().size()
+		"the reloaded pool should keep 7 prizes, pool is %d" % reloaded.available_prizes().size()
 	)
 	reloaded.free()
 
@@ -229,3 +238,130 @@ func _clean() -> void:
 	for path in [TEST_PATH, TEST_PATH + ".tmp", TEST_PATH + ".corrupt"]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+# --- (g) The run's starting loadout is inside the starter pool (S5) -------
+
+
+func _test_starter_marbles_are_in_the_pool() -> void:
+	save.reset_profile()
+	var table = content.unlock_table()
+	for id in game.STARTING_MARBLES:
+		_check(
+			table.starter_marbles.has(id),
+			(
+				"the starting loadout marble '%s' should be in the starter pool, pool is %s"
+				% [id, str(table.starter_marbles)]
+			)
+		)
+
+
+# --- (h) The shop sells the pool, not the catalog (S5, S2) -----------------
+
+
+func _test_shop_sells_only_the_pool() -> void:
+	save.reset_profile()
+	var marble_pool: Array[String] = []
+	for def in save.available_marbles():
+		marble_pool.append(def.id)
+	var prize_pool: Array[String] = []
+	for def in save.available_prizes():
+		prize_pool.append(def.id)
+	for seed in 40:
+		var stock: Dictionary = economy.shop_stock(1, seed)
+		for entry in stock["marbles"]:
+			_check(
+				marble_pool.has(String(entry["def_id"])),
+				(
+					"a locked marble should never be for sale, got '%s' (seed %d)"
+					% [String(entry["def_id"]), seed]
+				)
+			)
+		for entry in stock["prizes"]:
+			_check(
+				prize_pool.has(String(entry["def_id"])),
+				(
+					"a locked prize should never be for sale, got '%s' (seed %d)"
+					% [String(entry["def_id"]), seed]
+				)
+			)
+	# Buying a locked item is impossible: it is not in any stock to begin with.
+	_check(
+		marble_pool.size() == 6,
+		"the shop should draw from the 6 unlocked marbles, pool is %d" % marble_pool.size()
+	)
+
+
+# --- (i) What the run obtains joins the collection (S7, D3) ---------------
+
+
+func _test_acquisition_collects_into_the_profile() -> void:
+	save.reset_profile()
+	game.start_run()
+	game.money = 100
+	_check(game.buy_marble(content.marble_def("glass")), "the run should afford a glass marble")
+	_check(
+		save.is_collected("marbles", "glass"),
+		(
+			"a bought marble should join the collection, collected %s"
+			% str(save.collected_ids("marbles"))
+		)
+	)
+	_check(game.buy_prize(content.prize_def("osito")), "the run should afford the osito prize")
+	_check(
+		save.is_collected("prizes", "osito"),
+		(
+			"a bought prize should join the collection, collected %s"
+			% str(save.collected_ids("prizes"))
+		)
+	)
+	_check(game.add_prize(content.prize_def("globo")), "a chest grant should land on the shelf")
+	_check(
+		save.is_collected("prizes", "globo"),
+		(
+			"a granted prize should join the collection, collected %s"
+			% str(save.collected_ids("prizes"))
+		)
+	)
+
+
+# --- (j) Clearing a milestone board unlocks and saves (S6, S7) -----------
+
+
+func _test_clearing_a_milestone_board_unlocks() -> void:
+	save.reset_profile()
+	_clean()
+	game.start_run()
+	game.current_board_in_run = 4
+	game.board_won(3, 0)
+	_check(
+		save.is_unlocked("marbles", "teledirigida"),
+		(
+			"clearing board 4 should unlock teledirigida, unlocked %s"
+			% str(save.unlocked_ids("marbles"))
+		)
+	)
+	_check(
+		FileAccess.file_exists(TEST_PATH),
+		"a milestone unlock should be written to the profile file"
+	)
+
+
+# --- (k) The run end records its stats (S7) ------------------------------
+
+
+func _test_run_end_records_stats() -> void:
+	save.reset_profile()
+	game.start_run()
+	game.board_won(4, 0)
+	game.board_lost()
+	var stats: Dictionary = save.stats()
+	_check(
+		int(stats.get("runs_played", 0)) == 1,
+		"a finished run should count one, got %s" % str(stats)
+	)
+	_check(
+		int(stats.get("best_board", 0)) == 1,
+		"clearing board 1 then losing should leave best_board 1, got %s" % str(stats)
+	)
+	_check(FileAccess.file_exists(TEST_PATH), "the run end should be written to the profile file")

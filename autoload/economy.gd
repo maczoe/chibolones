@@ -81,11 +81,29 @@ func shop_stock(block: int, seed: int = -1) -> Dictionary:
 	else:
 		rng.randomize()
 	return {
-		"marbles": _draw_stock(ContentDB.marbles(), STOCK_MARBLES, block, rng),
-		"prizes": _draw_stock(_sellable_prizes(), STOCK_PRIZES, block, rng),
+		"marbles":
+		_draw_stock(_unlocked_only(ContentDB.marbles(), "marbles"), STOCK_MARBLES, block, rng),
+		"prizes":
+		_draw_stock(_unlocked_only(_sellable_prizes(), "prizes"), STOCK_PRIZES, block, rng),
 		"extra_pack_price": extra_marble_pack_price(block),
 		"reroll_price": reroll_price(),
 	}
+
+
+## S5/D3: the shop sells the profile's unlocked pool, never the whole catalog.
+## Without a profile (headless suites that do not install SaveGame) the catalog
+## is the pool, which is the pre-M4 behavior.
+func _unlocked_only(defs: Array, kind: String) -> Array:
+	if SaveGame == null:
+		return defs
+	var ids: Array = SaveGame.unlocked_ids(kind)
+	if ids.is_empty():
+		return defs
+	var out: Array = []
+	for def in defs:
+		if ids.has(def.id):
+			out.append(def)
+	return out
 
 
 ## D8: cosmetics never reach the shop — their source is chests and the
