@@ -16,9 +16,9 @@ func _initialize() -> void:
 	_run()
 
 
-## In --script mode Godot does not register project autoloads; install the
-## ones under test in dependency order (Game reads Economy, every def read
-## goes through ContentDB).
+## Godot registers the project autoloads even under `--script`, so this guard
+## only fills gaps (a suite may also run with a bare tree); the order is the
+## dependency order (Game reads Economy, every def read goes through ContentDB).
 func _ensure_autoloads() -> void:
 	var autoloads := [
 		["EventBus", "res://autoload/event_bus.gd"],

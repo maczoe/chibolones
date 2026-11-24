@@ -16,6 +16,9 @@ const PROFILE_VERSION := 1
 const DEFAULT_PATH := "user://profile.json"
 ## Kinds the profile tracks, one key each inside `collection` and `unlocks`.
 const KINDS := ["marbles", "prizes"]
+## Settings the profile validates as a number, so one bad write cannot mute the
+## game or zero the text speed.
+const NUMERIC_SETTINGS := ["master_volume", "sfx_volume", "text_speed"]
 
 ## Where this profile lives. Tests point it at a scratch file.
 var path: String = DEFAULT_PATH
@@ -25,23 +28,23 @@ var _loaded := false
 
 
 func _ready() -> void:
-	apply_settings()
+	# Godot registers the project autoloads under `--script` too, so a headless
+	# suite that wins or loses a board would write the player's profile. Every
+	# suite run therefore starts on a per-suite scratch path.
+	if _running_a_script():
+		path = "user://test_%s.json" % _script_name()
+	AudioSettings.apply(self)
 
 
-## S9: the persisted settings take effect when the game boots. Only the buses
-## the project actually has are touched, so a project without an SFX bus — or
-## a headless run — never breaks on a missing bus.
-func apply_settings() -> void:
-	var master := clampf(float(setting("master_volume", 1.0)), 0.0, 1.0)
-	_apply_bus(0, master)
-	var sfx := AudioServer.get_bus_index("SFX")
-	if sfx >= 0:
-		_apply_bus(sfx, clampf(float(setting("sfx_volume", 1.0)), 0.0, 1.0))
+func _running_a_script() -> bool:
+	return "--script" in OS.get_cmdline_args()
 
 
-func _apply_bus(index: int, level: float) -> void:
-	AudioServer.set_bus_mute(index, level <= 0.0)
-	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(level, 0.0001)))
+func _script_name() -> String:
+	for arg in OS.get_cmdline_args():
+		if arg.begins_with("res://") and arg.ends_with(".gd"):
+			return arg.get_file().get_basename()
+	return "suite"
 
 
 func load_profile() -> Dictionary:
@@ -63,10 +66,6 @@ func load_profile() -> Dictionary:
 	return _data
 
 
-func has_profile() -> bool:
-	return FileAccess.file_exists(path)
-
-
 func reset_profile() -> void:
 	_data = defaults()
 	_loaded = true
@@ -75,6 +74,7 @@ func reset_profile() -> void:
 
 func save_profile() -> bool:
 	_ensure_loaded()
+	_backup_foreign_profile()
 	var tmp := path + ".tmp"
 	var file := FileAccess.open(tmp, FileAccess.WRITE)
 	if file == null:
@@ -145,7 +145,7 @@ func unlock(kind: String, id: String) -> void:
 ## The starter pool is unlocked on every load, so a profile written before the
 ## table existed (or a table that grew) is never missing its starters.
 func ensure_starter_pool() -> void:
-	var table := unlock_table()
+	var table := _table()
 	if table == null:
 		return
 	for id in table.starter_marbles:
@@ -172,10 +172,10 @@ func available_prizes() -> Array[PrizeDef]:
 	return out
 
 
-## Unlock what clearing `board_index` (0-based, as the run counts boards)
+## Unlock what clearing `board_index` (1-based: the run's board number)
 ## grants. Returns the ids that were new, so the caller can announce them.
 func unlock_for_board(board_index: int) -> Array:
-	var table := unlock_table()
+	var table := _table()
 	if table == null:
 		return []
 	var granted := table.unlocked_by_board(board_index)
@@ -185,7 +185,7 @@ func unlock_for_board(board_index: int) -> Array:
 
 
 func unlock_for_run_won() -> Array:
-	var table := unlock_table()
+	var table := _table()
 	if table == null:
 		return []
 	var newly := _grant("marbles", table.run_won_marbles)
@@ -193,7 +193,7 @@ func unlock_for_run_won() -> Array:
 	return newly
 
 
-func unlock_table() -> UnlockTable:
+func _table() -> UnlockTable:
 	if ContentDB.has_method("unlock_table"):
 		return ContentDB.unlock_table()
 	return null
@@ -296,11 +296,18 @@ func _stats_from(source: Variant) -> Dictionary:
 		var value: Variant = 0
 		if typeof(source) == TYPE_DICTIONARY:
 			value = (source as Dictionary).get(key, 0)
-		if typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT:
-			out[key] = int(value)
+		if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and _finite(value):
+			out[key] = int(clampf(float(value), 0.0, 9000000000000000.0))
 		else:
 			out[key] = 0
 	return out
+
+
+func _finite(value: Variant) -> bool:
+	if typeof(value) == TYPE_INT:
+		return true
+	var number := float(value)
+	return not (is_nan(number) or is_inf(number))
 
 
 func _settings_from(source: Variant) -> Dictionary:
@@ -311,6 +318,13 @@ func _settings_from(source: Variant) -> Dictionary:
 		if typeof(key) != TYPE_STRING:
 			continue
 		var value: Variant = (source as Dictionary)[key]
+		if NUMERIC_SETTINGS.has(key):
+			# A level is a finite number: anything else keeps its default instead
+			# of muting the game through a bad write.
+			if (typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT) and _finite(value):
+				var ceiling := 4.0 if key == "text_speed" else 1.0
+				out[key] = clampf(float(value), 0.0, ceiling)
+			continue
 		if (
 			typeof(value) == TYPE_FLOAT
 			or typeof(value) == TYPE_INT
@@ -330,13 +344,34 @@ func _read_text(file_path: String) -> String:
 	return text
 
 
-## Keep the unreadable profile instead of overwriting it (S10).
+## Keep the unreadable profile instead of overwriting it (S10). A copy kept
+## aside earlier is never deleted: this one lands beside it as `.corrupt.N`,
+## because the failing disk that produced it may be the only other copy left.
 func _quarantine() -> void:
-	var broken := path + ".corrupt"
-	var broken_abs := ProjectSettings.globalize_path(broken)
-	if FileAccess.file_exists(broken):
-		DirAccess.remove_absolute(broken_abs)
-	DirAccess.rename_absolute(ProjectSettings.globalize_path(path), broken_abs)
+	var target := path + ".corrupt"
+	var index := 0
+	while FileAccess.file_exists(target):
+		index += 1
+		target = "%s.corrupt.%d" % [path, index]
+	DirAccess.rename_absolute(
+		ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(target)
+	)
+
+
+## S10: a profile written by a newer game version is copied aside before the
+## first save on top of it, so a restructured section is never silently lost.
+func _backup_foreign_profile() -> void:
+	if not FileAccess.file_exists(path):
+		return
+	var version := int(float(_data.get("version", PROFILE_VERSION)))
+	if version <= PROFILE_VERSION:
+		return
+	var backup := "%s.v%d" % [path, version]
+	if FileAccess.file_exists(backup):
+		return
+	DirAccess.copy_absolute(
+		ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup)
+	)
 
 
 func _ensure_loaded() -> void:
