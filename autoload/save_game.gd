@@ -87,6 +87,13 @@ func is_collected(kind: String, id: String) -> bool:
 	return collected_ids(kind).has(id)
 
 
+## S6: a discovered prize joins the collection and the pool at once, so the
+## library shows it and the next run's shops may sell it.
+func discover(kind: String, id: String) -> void:
+	unlock(kind, id)
+	collect(kind, id)
+
+
 func collect(kind: String, id: String) -> void:
 	_ensure_loaded()
 	var list: Array = (_data["collection"] as Dictionary).get(kind, [])

@@ -2119,11 +2119,21 @@ func _check_chests(local: Vector3) -> void:
 func _open_chest(chest: Dictionary) -> void:
 	chest.opened = true
 	_reveal_chest(chest.node)
-	var draw := Economy.chest_draw(_owned_prize_ids(), _collected_prize_ids(), -1)
+	var draw := Economy.chest_draw_discovery(
+		_owned_prize_ids(), _collected_prize_ids(), _unlocked_prize_ids(), Game.discovery_used, -1
+	)
 	var def: PrizeDef = null
 	if String(draw["def_id"]) != "":
 		def = ContentDB.find_prize_def(String(draw["def_id"]))
 	if def != null:
+		chest["discovered"] = bool(draw.get("discovered", false))
+		if bool(chest["discovered"]):
+			# S6: the run's single discovery is spent the moment it lands, and
+			# the prize joins the profile now so the library and the next run's
+			# shops see it even if this run is lost right after.
+			Game.discovery_used = true
+			SaveGame.discover("prizes", def.id)
+			SaveGame.save_profile()
 		_open_chest_wheel(chest, def)
 		return
 	# Nothing to spin to: an empty pool pays its cash right here, no wheel.
@@ -2157,7 +2167,9 @@ func _open_chest_wheel(chest: Dictionary, def: PrizeDef) -> void:
 ## prize the draw can never land on.
 func _chest_pool_defs() -> Array[PrizeDef]:
 	var candidates: Array[PrizeDef] = []
-	for def in Economy.chest_pool(_owned_prize_ids(), _collected_prize_ids()):
+	for def in Economy.chest_pool(
+		_owned_prize_ids(), _collected_prize_ids(), _unlocked_prize_ids()
+	):
 		if def is PrizeDef:
 			candidates.append(def)
 	return candidates
@@ -2168,7 +2180,10 @@ func _chest_pool_defs() -> Array[PrizeDef]:
 ## its class. The rails refresh and the chest leaves the deck.
 func _on_chest_revealed(chest: Dictionary, drawn_prize: PrizeDef) -> void:
 	if Game.add_prize(drawn_prize):
-		hud.flash("Cofre: %s (%s)" % [drawn_prize.display_name, drawn_prize.class_name_text()])
+		var prefix := "Cofre: "
+		if bool(chest.get("discovered", false)):
+			prefix = "¡Descubrimiento! "
+		hud.flash("%s%s (%s)" % [prefix, drawn_prize.display_name, drawn_prize.class_name_text()])
 		hud.set_prizes(Game.prizes)
 		hud.set_consumables(Game.consumables)
 	else:
@@ -2271,6 +2286,18 @@ func _collected_prize_ids() -> Array[String]:
 	for prize in Game.cosmetics:
 		if prize != null:
 			ids.append(prize.id)
+	return ids
+
+
+## Prizes the profile has unlocked (S6): a chest only spins what can drop, so
+## a locked prize reaches the player through the discovery roll, never by
+## accident through the wheel.
+func _unlocked_prize_ids() -> Array[String]:
+	var ids: Array[String] = []
+	if SaveGame == null:
+		return ids
+	for id in SaveGame.unlocked_ids("prizes"):
+		ids.append(str(id))
 	return ids
 
 

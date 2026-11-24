@@ -13,6 +13,10 @@ const STOCK_MARBLES := 2
 const STOCK_PRIZES := 2
 ## Draw weights per rarity (S5): commons dominate, rares are a treat.
 const RARITY_WEIGHTS := {"common": 60, "uncommon": 30, "rare": 10}
+## S6 discovery: a chest may reveal a prize the profile has not unlocked yet,
+## which is the second unlock source beside the milestone boards. One chest per
+## run gets the chance.
+const CHEST_DISCOVERY_CHANCE := 0.10
 
 
 ## Reward for clearing a board: base(block) + per_marble(block) * marbles_left
@@ -137,13 +141,18 @@ func _weighted_pick(pool: Array, rng: RandomNumberGenerator) -> Resource:
 ## over, and the board pays its own `chest_cash_fallback` for both that case
 ## and a refused grant — the cash number is board data, not an economy
 ## constant, so tuning it never has to happen twice.
-func chest_draw(owned_ids: Array[String], collected_ids: Array[String], seed: int) -> Dictionary:
+func chest_draw(
+	owned_ids: Array[String],
+	collected_ids: Array[String],
+	seed: int,
+	unlocked_ids: Array[String] = []
+) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	if seed >= 0:
 		rng.seed = seed
 	else:
 		rng.randomize()
-	var pool := chest_pool(owned_ids, collected_ids)
+	var pool := chest_pool(owned_ids, collected_ids, unlocked_ids)
 	if pool.is_empty():
 		return {"def_id": "", "cash": 0}
 	# Step 1: the rarity, weighted so a rare stays a treat.
@@ -161,10 +170,55 @@ func chest_draw(owned_ids: Array[String], collected_ids: Array[String], seed: in
 ## not collected yet (S14). Public because the board's wheel cycles the same
 ## pool it draws from: two filters that could disagree would show loot that
 ## can never drop.
-func chest_pool(owned_ids: Array[String], collected_ids: Array[String]) -> Array:
+func chest_pool(
+	owned_ids: Array[String], collected_ids: Array[String], unlocked_ids: Array[String] = []
+) -> Array:
 	var pool: Array = []
 	for def in ContentDB.prizes():
 		if owned_ids.has(def.id) or collected_ids.has(def.id):
+			continue
+		# An empty list means "do not filter" (headless tests and the pre-M4
+		# callers); the board always passes the profile's unlocked ids.
+		if not unlocked_ids.is_empty() and not unlocked_ids.has(def.id):
+			continue
+		pool.append(def)
+	return pool
+
+
+## S6 discovery: the chest draw with the unlocked filter and the once-per-run
+## reveal. Returns {"def_id": String, "cash": int, "discovered": bool}.
+## `reveal_used` is the run's single discovery already spent; a discovered def
+## is always one the profile has not unlocked, so the caller unlocks it.
+func chest_draw_discovery(
+	owned_ids: Array[String],
+	collected_ids: Array[String],
+	unlocked_ids: Array[String],
+	reveal_used: bool,
+	seed: int
+) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	if seed >= 0:
+		rng.seed = seed
+	else:
+		rng.randomize()
+	if not reveal_used and rng.randf() < CHEST_DISCOVERY_CHANCE:
+		var locked := chest_discovery_pool(owned_ids, collected_ids, unlocked_ids)
+		if not locked.is_empty():
+			var picked: Resource = locked[rng.randi_range(0, locked.size() - 1)]
+			return {"def_id": picked.id, "cash": 0, "discovered": true}
+	var draw := chest_draw(owned_ids, collected_ids, seed, unlocked_ids)
+	draw["discovered"] = false
+	return draw
+
+
+## Prizes a chest may discover (S6): locked in the profile, still unowned and
+## uncollected in this run.
+func chest_discovery_pool(
+	owned_ids: Array[String], collected_ids: Array[String], unlocked_ids: Array[String]
+) -> Array:
+	var pool: Array = []
+	for def in ContentDB.prizes():
+		if unlocked_ids.has(def.id) or owned_ids.has(def.id) or collected_ids.has(def.id):
 			continue
 		pool.append(def)
 	return pool

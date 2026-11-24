@@ -61,6 +61,9 @@ var consumables: Array[PrizeDef] = []
 ## D8 cosmetics collected this run: no effect, collection only (S8). The
 ## library that persists them is D11/W4; here they are just recorded.
 var cosmetics: Array[PrizeDef] = []
+## S6: the single chest discovery of this run is already spent, so one chest
+## per run may reveal a locked prize at most.
+var discovery_used := false
 
 ## True between start_run() and the end of that run (loss or back to menu).
 ## A board opened without a run (headless tests) keeps its POC behavior.
@@ -314,6 +317,7 @@ func start_run() -> void:
 	prizes.clear()
 	consumables.clear()
 	cosmetics.clear()
+	discovery_used = false
 	for marble_id in STARTING_MARBLES:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
