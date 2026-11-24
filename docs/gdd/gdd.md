@@ -34,7 +34,7 @@ is decided in `design-decisions-v2.md`, which overrides this doc and
 | Throw loop | 5-20 s | Aim → tilt → power → physics → embed / refund / out |
 | Board loop | 2-4 min | 5+ throws, objective check, board reward, bonus objective |
 | Run loop | 45-90 min | 20 boards, shop after each, permadeath on board loss |
-| Meta loop | across runs | Library/collection, unlocks (D3 resolved: the library unlocks the content pool; spec in `design-decisions-v2.md` D11, lands with M4) |
+| Meta loop | across runs | Library/collection, unlocks (D3 resolved: the library unlocks the content pool; delivered in M4 — `SaveGame` profile, `data/balance/unlocks.tres`, library screen) |
 
 ## 3. Run structure (S1)
 
