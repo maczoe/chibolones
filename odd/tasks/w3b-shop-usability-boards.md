@@ -60,7 +60,8 @@ T4 (S5): Random board order per run in Game (board 1 basic, bosses
 T5: Tests (sell/rescue, descriptions, focus, board order) + suite
     completa verde. Route: inline. Verificado: 16/16 verde (run_loop
     x5 corridas), gdcheck OK en los 10 archivos tocados.
-    La partida manual de control queda en manos del usuario.
+    La partida manual de control: DONE 2026-11-23 (el usuario aceptó la
+    tienda y el HUD en su partida visual).
 
 ## Log
 
@@ -80,3 +81,5 @@ L5: Pedido del usuario: planificar HUD y menu de la tienda (los botones
     referencias de juegos similares. Creado design/shop-hud-planning/
     con 01-hud-minimal, 02-hud-sidebar, 03-hud-topstrip, 04-shop-columns,
     05-shop-master-detail, 06-shop-stall.
+
+L6: Aceptación del usuario (verbatim): «el hud y shop están bien así por ahora». Cierra la partida manual de control de T5.

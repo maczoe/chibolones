@@ -16,10 +16,10 @@ S6 (user request): "necesito que me guies a tomar decisiones sobre el game desig
 
 ## Tasks
 
-T1 [S1-S6] Write GDD draft (docs/gdd/gdd.md) structuring loops, systems, content taxonomy, economy, scoring model, open decisions. In progress.
-T2 [S6] Write architecture plan (docs/architecture.md): data-driven content, event-driven scoring, tuning strategy, tests, milestones M0-M6. In progress.
+T1 [S1-S6] DONE 2026-11-23 (commit 6a80155 and later updates): GDD draft (docs/gdd/gdd.md) structuring loops, systems, content taxonomy, economy, scoring model, open decisions.
+T2 [S6] DONE 2026-11-23 (commit 6a80155): architecture plan (docs/architecture.md): data-driven content, event-driven scoring, tuning strategy, tests, milestones M0-M6.
 T3 [S6] DONE. D1 mixed (common permanent + magic single-use), D2 player picks per throw, D3 library unlocks content pool, D4 no interest. GDD updated to v0.2.
-T4 [S6] Baseline git commit of design docs. Pending.
+T4 [S6] DONE 2026-11-23: baseline commit of the design docs is 6a80155 ("docs: game design document v0.1 draft and architecture plan").
 
 ## Log
 
@@ -37,3 +37,5 @@ L6 (user): cenital-leaning default camera + Z/LB camera mode (arrows pan the vie
 L7: M0.5 seed juices implemented (synthesized thunk.wav - no licensed audio; EventBus embed -> sound + floating +score popup via scripts/board/juice.gd) and lighting pass (spot 2.3, ambient 0.7, subtle emission on cabinet skirt). User to playtest.
 L8 (user decisions): sample marbles = Comuna + Fuego + Vidrio; prize prototype = Trompo (x1.5 per wall hit, multiplies the throw's embed score); active prizes shown in HUD only (no 3D shelf for now). Fire carries its surreal effect (speed x1.25); glass visual-only this slice (break chance lands in M2).
 L9: M0.5 closed (user: 'todo se siente bastante bien y la base para agregar mas juice esta correcta'). Style guide + content refinement plan authored (docs/gdd/style-guide.md, docs/gdd/content-plan.md): 20 boards in 5 blocks with bosses, economy v1, 10 marbles, 10 prizes, 10 bonificadores, waves mapped to M1-M6. Next: M1 run skeleton.
+
+L10 (2026-11-23 audit): T1, T2 y T4 marcadas DONE con evidencia (6a80155 y actualizaciones posteriores); el estado "In progress"/"Pending" estaba vencido desde hace muchas waves.

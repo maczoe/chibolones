@@ -19,7 +19,8 @@ marble durability, player-picked bag, unlock library, no interest.
 The lists below are design data; each wave implements them as
 resources on the systems its milestone builds.
 
-## 2. Economy v1 (tuning numbers live in data/balance/economy.tres)
+## 2. Economy v1 (tuning lives in `autoload/economy.gd` as constants;
+M5 moves them to `data/balance/economy.tres`)
 
 - Start: 5 marbles + $5.
 - Board reward: `base(block) + per_marble(block) * marbles_left + bonus`.
@@ -149,3 +150,10 @@ resolves it): most boards carry one bonificador and the bosses run two.
   marble data.
 - Unlock pool split for first runs (M4): which 6 marbles / 6 prizes
   are available before any unlock.
+- Per-board bonus objectives (§3, "Bonus" column): designed only — no
+  code and no task document tracks them yet; the HUD already reserves
+  the slot hidden (`scripts/board/hud.gd:528-531`). Candidate for the
+  M5 variety pass.
+
+Audited 2026-11-23 against the shipped code: W1-W3 are delivered (M1,
+M2/M2.5, M3), W4 is next.

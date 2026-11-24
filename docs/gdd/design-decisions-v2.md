@@ -3,9 +3,14 @@
 Records the design pivot decided after playtesting felt the game loop
 lacked variety. These decisions amend and extend `content-plan.md`
 (v1, D1-D7) and `gdd.md`; where they conflict, this document wins.
-Status: **decided (D8-D15)**, not yet implemented. Each decision keeps
-its open sub-questions in its section; they are resolved during the
-implementing wave's design, not blockers for recording.
+Status (audited 2026-11-23): **decided (D8-D16)**. Implemented: D8 + D10
+(prize classes + board chests, W3 wave) and D9 + D12 (objective kinds,
+notch matrices, winnability checker, W2 wave). Pending: D11 (library,
+lands with W4/M4), D13 (alternative hole layouts), D14 (ramps and upper
+platforms), D15 (tickets + gachapon + hub) and D16 (per-board floor
+texture). Each decision keeps its open sub-questions in its section;
+they are resolved during the implementing wave's design, not blockers
+for recording.
 
 ## D8 — Prize classes (consumables and cosmetics join the economy)
 
@@ -160,5 +165,7 @@ primitives instead of per-board code or a custom editor:
    head first, blocker for the checker tool.
 2. D8 + D10 (prize classes + chests) — biggest game-loop mover; the
    library section (D11) must exist or land with it so loot has a home.
+   Landed without it (W3): cosmetics are recorded as collected only, so
+   D11 is still owed and lands with W4/M4.
 3. D13 + D14 (layouts + ramps) — dosed, highest tuning cost.
 4. D15 (tickets + gachapon + hub) — meta layer, lands last.

@@ -51,10 +51,12 @@ S6: Botones de opciones nuevos: INFORMACIÓN PARTIDA, REGRESAR AL MENU y
 T1 (S1-S6): Rewrite scripts/ui/shop_screen.gd to the fair-stall layout;
     option buttons with minimal handlers; focus navigation + touch;
     inventory scroll; update tests. Route: inline. Commit: b6f51f3
-    (suite 16/16 verde, gdcheck OK). Pendiente: partida visual del
-    usuario.
+    (suite 16/16 verde, gdcheck OK). DONE 2026-11-23: el usuario aceptó
+    la tienda en su partida visual ("están bien así por ahora").
 
 ## Log
 
 L1: S1 (verbatim). Artboard 06 elegido e iterado por el usuario (10
     comentarios de canvas resueltos).
+
+L2: Aceptación del usuario (verbatim): «el hud y shop están bien así por ahora». T1 cerrada sin ajustes pendientes.

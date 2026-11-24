@@ -109,7 +109,8 @@ T7 (S10): End-to-end verification: extend tests/run_loop.gd (economy,
     purchases, caps, single-use, effects), full suite green, manual run.
     Route: inline. Commit: 2981fac test(w3): end-to-end acceptance flow
     (verificacion automatica completa en tests/w3_flow.gd; la partida
-    manual punta a punta queda para el usuario)
+    manual punta a punta queda para el usuario). DONE 2026-11-23: la
+    partida manual del usuario aceptó la tienda tal como está.
 
 ## Log
 
@@ -163,3 +164,5 @@ L10: T7 implementado (2981fac): ciclo completo automatizado en
      siguiente); suite de 16 tests en verde; pendiente del usuario: una
      partida manual de gusto. 2458 lineas en 7 commits -> cerrar la
      feature con chained PRs.
+
+L11: Aceptación del usuario (verbatim): «el hud y shop están bien así por ahora». La partida manual pendiente de T7 queda cubierta; unidad cerrada.
