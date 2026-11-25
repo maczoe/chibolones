@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_stats_accumulate()
 	_test_corrupt_file_is_quarantined()
 	_test_unknown_fields_survive()
+	_test_settings_reach_the_audio_bus()
 	_clean()
 	if failed:
 		quit(1)
@@ -294,6 +295,31 @@ func _test_unknown_fields_survive() -> void:
 			text.contains("future_key"),
 			"an unknown field of a newer profile should survive the rewrite, got %s" % text
 		)
+
+
+# --- (g) The saved volume reaches the audio bus (S9) ----------------------
+
+
+func _test_settings_reach_the_audio_bus() -> void:
+	_clean()
+	var save := _new_save()
+	save.load_profile()
+	save.set_setting("master_volume", 0.5)
+	save.apply_settings()
+	_check(
+		absf(AudioServer.get_bus_volume_db(0) - linear_to_db(0.5)) < 0.1,
+		(
+			"the master bus should follow the setting, bus is %.2f dB"
+			% AudioServer.get_bus_volume_db(0)
+		)
+	)
+	save.set_setting("master_volume", 0.0)
+	save.apply_settings()
+	_check(AudioServer.is_bus_mute(0), "a zero volume should mute the master bus")
+	save.set_setting("master_volume", 1.0)
+	save.apply_settings()
+	_check(not AudioServer.is_bus_mute(0), "a full volume should unmute the master bus")
+	save.free()
 
 
 func _clean() -> void:

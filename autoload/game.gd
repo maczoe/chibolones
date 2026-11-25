@@ -37,6 +37,9 @@ signal board_won_sig(marbles_left: int, bonus: int)
 signal board_lost_sig
 signal run_won_sig
 signal run_lost_sig
+## S6: ids the profile unlocked this session (a milestone board or a run won),
+## so a screen can announce them without reading the save file.
+signal unlocked_sig(ids: Array)
 
 var phase: Phase = Phase.BOARD
 ## Content board the scene renders when there is no run (headless tests):
@@ -61,6 +64,9 @@ var consumables: Array[PrizeDef] = []
 ## D8 cosmetics collected this run: no effect, collection only (S8). The
 ## library that persists them is D11/W4; here they are just recorded.
 var cosmetics: Array[PrizeDef] = []
+## S6: the single chest discovery of this run is already spent, so one chest
+## per run may reveal a locked prize at most.
+var discovery_used := false
 
 ## True between start_run() and the end of that run (loss or back to menu).
 ## A board opened without a run (headless tests) keeps its POC behavior.
@@ -122,6 +128,7 @@ func add_prize(def: PrizeDef) -> bool:
 			cosmetics.append(def)
 		_:
 			prizes.append(def)
+	_collect("prizes", def.id)
 	return true
 
 
@@ -223,6 +230,7 @@ func buy_marble(def: MarbleDef) -> bool:
 		return false
 	money -= price
 	inventory.append(def)
+	_collect("marbles", def.id)
 	money_changed.emit(money)
 	return true
 
@@ -253,6 +261,7 @@ func buy_extra_pack() -> bool:
 		return false
 	money -= price
 	inventory.append(ContentDB.marble_def("common"))
+	_collect("marbles", "common")
 	money_changed.emit(money)
 	return true
 
@@ -314,6 +323,7 @@ func start_run() -> void:
 	prizes.clear()
 	consumables.clear()
 	cosmetics.clear()
+	discovery_used = false
 	for marble_id in STARTING_MARBLES:
 		var marble: MarbleDef = ContentDB.marble_def(marble_id)
 		if marble != null:
@@ -565,9 +575,13 @@ func board_won(marbles_left: int, bonus: int, score: int = 0) -> void:
 		"marbles_left": maxi(marbles_left, 0),
 		"reward": reward,
 	}
+	_note_board_cleared()
 	if current_board_in_run >= BOARDS_PER_RUN and not endless_mode:
 		run_won = true
 		run_won_sig.emit()
+		# S7: the run is over the moment board 20 falls, so the summary can
+		# read a profile that already has this run in it.
+		_finish_profile_run(true)
 	_enter(Phase.WIN)
 	# Win over the live board (user request, 2026-11-08): the board hosts the
 	# win screen as a translucent overlay so the game stays visible and alive
@@ -626,10 +640,56 @@ func board_lost() -> void:
 	board_lost_sig.emit()
 	_enter(Phase.RESULT)
 	run_lost_sig.emit()
+	# S7: a lost run writes its depth and collection to the profile before the
+	# result screen reads it.
+	_finish_profile_run(false)
 	# The defeat screen plays over the live board too, like the win sequence
 	# (user request, 2026-11-08).
 	if not _host_overlay(&"host_result_overlay"):
 		change_to_current_scene()
+
+
+## S7/D3: everything the run obtains joins the profile collection, so the
+## library can show it after this run. The file is written when a board is
+## cleared, when a milestone unlocks and when the run ends — never on every
+## purchase.
+func _collect(kind: String, id: String) -> void:
+	if SaveGame == null:
+		return
+	SaveGame.collect(kind, id)
+
+
+## S6/S7: clearing a board is when a milestone may unlock content, so the
+## profile is written here: a crash after the win never loses the unlock.
+func _note_board_cleared() -> void:
+	if SaveGame == null:
+		return
+	var newly := SaveGame.unlock_for_board(current_board_in_run)
+	SaveGame.save_profile()
+	if not newly.is_empty():
+		unlocked_sig.emit(newly)
+
+
+## S7: the run is over — record how deep it got and, on a win, the last tier
+## of unlocks.
+func _finish_profile_run(won: bool) -> void:
+	if SaveGame == null:
+		return
+	if won:
+		var newly := SaveGame.unlock_for_run_won()
+		if not newly.is_empty():
+			unlocked_sig.emit(newly)
+	(
+		SaveGame
+		. record_run(
+			{
+				"board": boards_cleared,
+				"won": won,
+				"score": int(last_win_stats.get("score", 0)),
+			}
+		)
+	)
+	SaveGame.save_profile()
 
 
 ## Leave the shop for the next board; endless boards keep block 5.

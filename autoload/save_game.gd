@@ -24,6 +24,26 @@ var _data: Dictionary = {}
 var _loaded := false
 
 
+func _ready() -> void:
+	apply_settings()
+
+
+## S9: the persisted settings take effect when the game boots. Only the buses
+## the project actually has are touched, so a project without an SFX bus — or
+## a headless run — never breaks on a missing bus.
+func apply_settings() -> void:
+	var master := clampf(float(setting("master_volume", 1.0)), 0.0, 1.0)
+	_apply_bus(0, master)
+	var sfx := AudioServer.get_bus_index("SFX")
+	if sfx >= 0:
+		_apply_bus(sfx, clampf(float(setting("sfx_volume", 1.0)), 0.0, 1.0))
+
+
+func _apply_bus(index: int, level: float) -> void:
+	AudioServer.set_bus_mute(index, level <= 0.0)
+	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(level, 0.0001)))
+
+
 func load_profile() -> Dictionary:
 	_data = defaults()
 	_loaded = true
@@ -85,6 +105,13 @@ func collected_ids(kind: String) -> Array:
 
 func is_collected(kind: String, id: String) -> bool:
 	return collected_ids(kind).has(id)
+
+
+## S6: a discovered prize joins the collection and the pool at once, so the
+## library shows it and the next run's shops may sell it.
+func discover(kind: String, id: String) -> void:
+	unlock(kind, id)
+	collect(kind, id)
 
 
 func collect(kind: String, id: String) -> void:
