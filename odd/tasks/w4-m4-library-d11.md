@@ -68,6 +68,36 @@ placeholder art). Source: `docs/gdd/design-decisions-v2.md` D11 + D3 in
 - T9 [S4] Docs: M4 DELIVERED, W4 status, D11 status, README if a command
   changed. Route: inline.
 
+## Result
+
+Closed 2026-11-23 on branch `feat/w4-library-unlocks`; every task DONE with a
+commit holding it:
+
+- T1 + T2 — `03bea82`: `autoload/save_game.gd`, `scripts/core/unlock_table.gd`,
+  `data/balance/unlocks.tres`, `tests/save_load.gd`, `tests/unlocks.gd`.
+- T3 — `59dd09d`: `Economy.chest_draw_discovery` + `chest_discovery_pool`, the
+  per-run cap in `Game.discovery_used`, board wiring, `tests/chest_discovery.gd`.
+- T4 — `ed19ff3`: shop stock from the unlocked pool, collection hooks,
+  milestone unlock on board clear, run-end stats.
+- T5 — `5b37257`: settings applied at boot (`apply_settings`).
+- T6 + T7 — `9779ff7`: `scenes/library/`, `scripts/ui/library_screen.gd`, menu
+  and pause entry points, `tests/library.gd`.
+- T8 — full suite green (every `tests/*.gd`), plus an independent verification
+  pass that found three real defects (see L7); the fixes and their regressions
+  are in the commit that follows this document.
+- T9 — this status block, `docs/architecture.md` M4 DELIVERED, the W4 row and
+  the resolved pool split in `content-plan.md`, D11 moved to implemented in
+  `design-decisions-v2.md`, and the `gdd.md` meta loop.
+
+Contenido de `data/balance/unlocks.tres` (tuning lives there, not in code):
+starter marbles `agata, common, fire, rebote, remolino, glass`; starter prizes
+`muneco, globo, osito, carpa, trompo, pelota`; milestones board 4
+`teledirigida`, 8 `rayo`, 12 `trampa`, 16 `corona`, 20 `espejo`; run won `nitro`
++ `boleto`. Cosmetics and `billete` only arrive through a chest discovery.
+
+Pending for the user: one visual playtest of the library (menu entry, locked
+silhouettes, the collection marker) and of a first run's shop pool.
+
 ## Log
 
 - L1 (user request, verbatim): «puedes ordenar la documentación, limpiar el
@@ -92,3 +122,37 @@ placeholder art). Source: `docs/gdd/design-decisions-v2.md` D11 + D3 in
   board 4 → `teledirigida`, board 8 → `rayo`, board 12 → `trampa`, board 16 →
   `corona`, board 20 → `espejo`, run won → `boleto` + `nitro`. Cosmetics
   (`banderin`, `foto`, `silbato`) and `billete` come from chest discovery.
+- L6 (T6/T7, delegated `gentle-ai-worker`): library screen built in code with six
+  tabs, silhouette cards with the milestone/chest hint, "en la colección" marker
+  and per-tab counts ("CANICAS 6/10"); menu entry via `change_scene_to_node` with
+  `return_to = "menu"`; the pause entry instantiates the library as a child
+  overlay instead of changing scene, because the board is the live scene and a
+  scene change would discard the run. The first handoff timed out while reading
+  `shop_screen.gd`, so it was relaunched with an explicit line-range reading
+  budget.
+- L7 (T8, independent verification, verdict FAIL): the persistence core held
+  (atomic write, quarantine, validation, idempotence, round trip), but three real
+  defects landed: (A) `_quarantine` deleted a previous `.corrupt` backup before
+  moving the new one; (B) a restructured future-version section was silently
+  dropped on load+save; (C) Godot 4.7 registers project autoloads under
+  `--script` too, so `run_loop.gd` wrote the developer's real `user://profile.json`
+  through the T4 hooks. Advisories: int overflow on stats, type-only settings
+  validation, stale "autoloads are not registered" comments.
+- L8 (fixes, T8): quarantine now uses the first free `.corrupt.N` name so no copy
+  aside is ever deleted; a profile whose `version` is newer than ours is copied to
+  `<path>.v<version>` before the first save on top of it; `SaveGame._ready()`
+  points the path at `user://test_<suite>.json` when the engine runs with
+  `--script` (verified: `profile.json` mtime unchanged across a `run_loop` run,
+  `test_run_loop.json` created instead); stats are clamped and must be finite,
+  numeric settings are clamped and non-numeric ones fall back to the default; the
+  stale comments in `tests/chests.gd`, `tests/run_loop.gd` and `tests/library.gd`
+  corrected.
+- L9 (regressions added): `save_load.gd` grows four cases — two unreadable
+  profiles keep both copies, a `.v99` backup keeps a restructured future profile,
+  garbage numbers keep sane defaults, and a `--script` run never points at the
+  player profile — plus the dead-suite guard (44 checks observed).
+- L10 (T8, lint): `gdlint` capped the class at 20 public methods and `SaveGame`
+  had 23 — the profile facade was also doing audio. The audio application moved
+  to `scripts/core/audio_settings.gd` (`AudioSettings.apply(save)`), the unused
+  `has_profile()` is gone and the unlock-table accessor became the private
+  `_table()`; the public surface is the profile API only.

@@ -1,14 +1,16 @@
 extends Control
-## Title screen (M1): the fair is open, one button plays the run. The library
-## is a disabled placeholder until M4 ships the save/unlock wave. UI is built
-## in code in the board's candy style: yellow labels with a dark outline over
-## dark violet panels.
+## Title screen (M1): the fair is open, one button plays the run. Since M4 the
+## library button opens the collection index (D11) with the menu as its back
+## target. UI is built in code in the board's candy style: yellow labels with a
+## dark outline over dark violet panels.
 
 const TITLE := "CHIBOLONES"
 const SUBTITLE := "una noche de feria"
 const HINTS := "Flechas para mover e inclinar  |  ESPACIO para tirar  |  Z camara"
 ## Debug match setup (S1): one board played with a custom loadout.
 const DEBUG_SCENE := "res://scenes/debug/debug_setup.tscn"
+## Library index (D11; M4): the collection, with `return_to = "menu"`.
+const LIBRARY_SCENE := "res://scenes/library/library.tscn"
 
 
 func _ready() -> void:
@@ -51,8 +53,8 @@ func _build() -> void:
 	debug.pressed.connect(_on_debug_pressed)
 	column.add_child(debug)
 
-	var library := _menu_button("BIBLIOTECA (M4)")
-	library.disabled = true
+	var library := _menu_button("BIBLIOTECA")
+	library.pressed.connect(_on_library_pressed)
 	column.add_child(library)
 
 	var hints := _candy_label(HINTS, 18, Color("cdb8ff"))
@@ -72,6 +74,14 @@ func _on_play_pressed() -> void:
 func _on_debug_pressed() -> void:
 	# The setup screen owns the pickers; Game only launches the match.
 	get_tree().change_scene_to_file(DEBUG_SCENE)
+
+
+func _on_library_pressed() -> void:
+	# The screen reads `return_to` when it goes back, so it is set before the
+	# scene enters the tree: from here, back lands on this menu.
+	var screen := (load(LIBRARY_SCENE) as PackedScene).instantiate() as Control
+	screen.return_to = "menu"
+	get_tree().change_scene_to_node(screen)
 
 
 # --- Candy style -----------------------------------------------------------

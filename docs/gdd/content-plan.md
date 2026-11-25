@@ -12,7 +12,7 @@ marble durability, player-picked bag, unlock library, no interest.
 | W1 | Run skeleton, 20 boards (this doc §3), economy v1, shop placeholder | M1 |
 | W2 | Hook contract + scoring pipeline; 10 bonificadores (§4.3) | M2 |
 | W3 | 10 marbles (§4.1), 10 prizes (§4.2), shop v1, bag/prize pricing | M3 |
-| W4 | Library + unlocks (save file), first-run starter pool | M4 |
+| W4 | DELIVERED (M4): Library + unlocks (save file), first-run starter pool | M4 |
 | W5 | Balance harness over the sim, difficulty curve pass | M5 |
 | W6 | Prize 3D models, marble texture patterns/shaders, juice, audio | M6 |
 
@@ -148,8 +148,11 @@ resolves it): most boards carry one bonificador and the bosses run two.
 - Marble break rules once M2 adds durability events (glass 20%): the roll
   and the bag event are live since M2, the 20% value lands with the M3
   marble data.
-- Unlock pool split for first runs (M4): which 6 marbles / 6 prizes
-  are available before any unlock.
+- Unlock pool split for first runs (M4): **resolved** — starters are the
+  marbles `agata, common, fire, rebote, remolino, glass` and the prizes
+  `muneco, globo, osito, carpa, trompo, pelota`; the rest unlocks on boards
+  4/8/12/16/20, on winning a run, or through a chest discovery. The table
+  lives in `data/balance/unlocks.tres`, so tuning it is data, not code.
 - Per-board bonus objectives (§3, "Bonus" column): designed only — no
   code and no task document tracks them yet; the HUD already reserves
   the slot hidden (`scripts/board/hud.gd:528-531`). Candidate for the

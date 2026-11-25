@@ -1,14 +1,21 @@
 extends Control
 ## Pause overlay (user request, 2026-11-08): ESC or gamepad Start during a
 ## board opens it, the tree pauses, and the player can resume, restart the
-## run (normal runs only) or go back to the title screen. Built in code in
-## the menu's candy style. PROCESS_MODE_ALWAYS, because everything else is
-## paused while this is on screen.
+## run (normal runs only), open the library (D11; M4) or go back to the title
+## screen. Built in code in the menu's candy style. PROCESS_MODE_ALWAYS,
+## because everything else is paused while this is on screen.
 
 const HINT := "ESC / START reanuda"
+## Library index (D11; M4). It opens as a child overlay, not as a scene change:
+## the board is the live scene and a scene change would throw the run away.
+const LIBRARY_SCENE := "res://scenes/library/library.tscn"
 
 ## The restart option, exposed for tests and future modes that may toggle it.
 var restart_button: Button
+## The library entry point, exposed for tests as the restart option is.
+var library_button: Button
+## The library overlay while it is open, null when it is not.
+var _library: Control
 
 
 func _ready() -> void:
@@ -20,6 +27,11 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# The library overlay owns input while it is open: it closes itself on
+	# ESC / B, and resuming the tree under it would hide the library with the
+	# board still paused behind it.
+	if _library != null:
+		return
 	if event.is_action_pressed("pause") or event.is_action_pressed("cancel"):
 		_resume()
 		get_viewport().set_input_as_handled()
@@ -49,6 +61,11 @@ func _build() -> void:
 	resume.pressed.connect(_resume)
 	column.add_child(resume)
 
+	var library := _menu_button("BIBLIOTECA")
+	library.pressed.connect(_open_library)
+	column.add_child(library)
+	library_button = library
+
 	var restart := _menu_button("REINICIAR RUN")
 	# Debug matches are single boards: there is no run to restart, so the
 	# option only exists in the normal JUGAR flow.
@@ -71,6 +88,29 @@ func _build() -> void:
 func _resume() -> void:
 	get_tree().paused = false
 	queue_free()
+
+
+## Open the library over the paused board with `return_to = "pause"`: it asks
+## back instead of changing scene, so the run survives a look at the collection.
+func _open_library() -> void:
+	if _library != null:
+		return
+	var screen := (load(LIBRARY_SCENE) as PackedScene).instantiate() as Control
+	screen.return_to = "pause"
+	screen.back_requested.connect(_close_library)
+	add_child(screen)
+	_library = screen
+
+
+## The library asked back: close it and hand focus to the button that opened
+## it, exactly as resume does with the board.
+func _close_library() -> void:
+	if _library == null:
+		return
+	remove_child(_library)
+	_library.queue_free()
+	_library = null
+	library_button.grab_focus()
 
 
 func _restart_run() -> void:
