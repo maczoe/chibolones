@@ -4,6 +4,7 @@ extends Node
 ## modifier means adding a .tres file under data/, no code changes.
 
 const BALANCE_RULES := "res://data/balance/shooting_rules.tres"
+const UNLOCK_TABLE_PATH := "res://data/balance/unlocks.tres"
 const DEFAULT_MARBLE := "common"
 
 var _marbles: Array[MarbleDef] = []
@@ -11,6 +12,7 @@ var _prizes: Array[PrizeDef] = []
 var _boards: Array[BoardDef] = []
 var _modifiers: Array[BoardModifierDef] = []
 var _rules: ShootingRules
+var _unlock_table: UnlockTable
 
 
 func _ready() -> void:
@@ -37,6 +39,14 @@ func _ready() -> void:
 
 func rules() -> ShootingRules:
 	return _rules
+
+
+## Starter pool and milestone unlocks (W4/M4). A missing table leaves the
+## whole catalog available, which is the pre-M4 behavior.
+func unlock_table() -> UnlockTable:
+	if _unlock_table == null and ResourceLoader.exists(UNLOCK_TABLE_PATH):
+		_unlock_table = load(UNLOCK_TABLE_PATH) as UnlockTable
+	return _unlock_table
 
 
 func marbles() -> Array[MarbleDef]:

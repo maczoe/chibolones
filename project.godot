@@ -21,6 +21,7 @@ EventBus="*res://autoload/event_bus.gd"
 ContentDB="*res://autoload/content_db.gd"
 Game="*res://autoload/game.gd"
 Economy="*res://autoload/economy.gd"
+SaveGame="*res://autoload/save_game.gd"
 
 [display]
 

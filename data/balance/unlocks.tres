@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="UnlockTable" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/unlock_table.gd" id="1_unlock"]
+
+[resource]
+script = ExtResource("1_unlock")
+starter_marbles = Array[String](["agata", "common", "fire", "rebote", "remolino", "glass"])
+starter_prizes = Array[String](["muneco", "globo", "osito", "carpa", "trompo", "pelota"])
+milestones = Array[Dictionary]([{
+"board": 4,
+"marbles": ["teledirigida"],
+"prizes": []
+}, {
+"board": 8,
+"marbles": [],
+"prizes": ["rayo"]
+}, {
+"board": 12,
+"marbles": ["trampa"],
+"prizes": []
+}, {
+"board": 16,
+"marbles": [],
+"prizes": ["corona"]
+}, {
+"board": 20,
+"marbles": ["espejo"],
+"prizes": []
+}])
+run_won_marbles = Array[String](["nitro"])
+run_won_prizes = Array[String](["boleto"])
