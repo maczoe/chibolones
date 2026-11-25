@@ -39,10 +39,12 @@ S5: Compatibilidad: la API pública del HUD (set_shots, set_timer,
 T1 (S2,S3,S4,S5): Rewrite scripts/board/hud.gd to the sidebar layout;
     adapt board.gd call sites; bag selection signal; update tests
     (run_loop, inventory, debug_mode) to the new texts. Route: inline.
-    Commit: daec8d8 (suite 16/16 verde). Pendiente: partida visual del
-    usuario para decidir ajustes.
+    Commit: daec8d8 (suite 16/16 verde). DONE 2026-11-23: el usuario
+    aceptó el HUD en su partida visual ("están bien así por ahora").
 
 ## Log
 
 L1: S1 (verbatim). Elección del usuario: artboard B del design
     shop-hud-planning, iterado con 8 comentarios de canvas (resueltos).
+
+L2: Aceptación del usuario (verbatim): «el hud y shop están bien así por ahora». T1 cerrada sin ajustes pendientes.
